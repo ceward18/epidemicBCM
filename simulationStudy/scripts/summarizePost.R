@@ -134,6 +134,13 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
     samps3 <- resThree[[3]][,-grep('alarm', colnames(resThree[[3]]))]
     
     samples <- rbind(samps1, samps2, samps3)
+    
+    if (alarmFit == 'gp') {
+      # need yAlarm on the logit scale
+      yAlarmCols <- grep('yAlarm', colnames(samples))
+      samples[,yAlarmCols] <- logit(samples[,yAlarmCols])
+      colnames(samples)[yAlarmCols] <- paste0('logit_yAlarm[', 1:length(yAlarmCols), ']')
+    }
    
     
   } else if (alarmFit == 'betat') {
