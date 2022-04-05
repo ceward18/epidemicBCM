@@ -36,7 +36,8 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, seed) {
                           bw = smoothWindow,
                           lengthI = lengthI,
                           n = n,
-                          xAlarm = xAlarm)
+                          xAlarm = xAlarm,
+                          maxI = maxI)
     
     ### data
     dataList <- list(Istar = incData)
@@ -44,12 +45,12 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, seed) {
     ### inits
     initsList <- list(beta = runif(1, 0, 1),
                       delta = runif(1, 0, 1),
-                      H = runif(1, 0, maxI))
+                      H = runif(1, 0, maxI/N))
     
     ### MCMC specifications
     niter <- 600000
-    nburn <- 300000
-    nthin <- 15
+    nburn <- 400000
+    nthin <- 10
     
   } else if (alarmFit == 'hill') {
     
@@ -291,7 +292,9 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, seed) {
     myConfig$removeSampler(paramsForSlice)
     myConfig$addSampler(target = paramsForSlice[1], type = "slice")
     myConfig$addSampler(target = paramsForSlice[2], type = "slice")
+    
   } else if (alarmFit == 'thresh') {
+    
     
     # block sampler for transmission parameters
     paramsForBlock <- c('beta', 'delta', 'H')
