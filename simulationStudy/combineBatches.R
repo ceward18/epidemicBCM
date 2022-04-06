@@ -24,10 +24,12 @@ for (i in 2:length(grFiles)) {
 # which didn't converge
 notConverge <- grAll[which(grAll$gr > 1.1),  ]
 notConvergeModels <-  notConverge[!duplicated(notConverge),
-                                  c('alarmBase', 'alarmGen', 'alarmFit',
+                                  c('alarmGen', 'alarmFit',
                                     'infPeriod', 'smoothWindow', 'simNumber')]
 notConvergeModels$noConverge <- 1
 
+
+table(notConverge$alarmGen, notConverge$alarmFit, notConverge$smoothWindow)
 
 saveRDS(grAll, './resultsFinal/grAll.rds')
 
@@ -43,9 +45,32 @@ for (i in 2:length(alarmFiles)) {
     alarmAll <-rbind.data.frame(alarmAll, alarm_i)
 }
 
+# remove models that didn't estimate an alarm (betat and basic)
+alarmAll <- alarmAll[!is.na(alarmAll$mean),]
+rownames(alarmAll) <- NULL
+
+saveRDS(alarmAll, './resultsFinal/alarmPostAll.rds')
 
 ################################################################################
-# posterior alarms - for models that estimate the alarm function
+# posterior predictions
+
+postPredFiles <- outputFiles[grep('epiPredPostBatch', outputFiles)]
+
+postPredAll <- readRDS(paste0('./Output/', postPredFiles[1]))
+
+for (i in 2:length(postPredFiles)) {
+    postPred_i <- readRDS(paste0('./Output/', postPredFiles[i]))
+    postPredAll <-rbind.data.frame(postPredAll, postPred_i)
+}
+
+# remove models that didn't estimate posterior predictions (betat)
+postPredAll <- postPredAll[!is.na(postPredAll$mean),]
+
+
+saveRDS(postPredAll, './resultsFinal/postPredAll.rds')
+
+################################################################################
+# posterior parameters 
 
 paramsPostFiles <- outputFiles[grep('paramsPostBatch', outputFiles)]
 
@@ -56,4 +81,36 @@ for (i in 2:length(paramsPostFiles)) {
     paramsPostAll <-rbind.data.frame(paramsPostAll, paramsPost_i)
 }
 
-paramsPostAll$param <- rownames(paramsPostAll)
+saveRDS(paramsPostAll, './resultsFinal/paramsPostAll.rds')
+
+################################################################################
+# WAIC
+
+waicFiles <- outputFiles[grep('waicPostBatch', outputFiles)]
+
+waicAll <- readRDS(paste0('./Output/', waicFiles[1]))
+
+for (i in 2:length(waicFiles)) {
+    waic_i <- readRDS(paste0('./Output/', waicFiles[i]))
+    waicAll <-rbind.data.frame(waicAll, waic_i)
+}
+
+saveRDS(waicAll, './resultsFinal/waicAll')
+
+
+################################################################################
+# beta posterior (only for betat model)
+
+
+
+paramsPostFiles <- outputFiles[grep('waicPostBatch', outputFiles)]
+
+paramsPostAll <- readRDS(paste0('./Output/', paramsPostFiles[1]))
+
+for (i in 2:length(paramsPostFiles)) {
+    paramsPost_i <- readRDS(paste0('./Output/', paramsPostFiles[i]))
+    paramsPostAll <-rbind.data.frame(paramsPostAll, paramsPost_i)
+}
+
+saveRDS(paramsPostAll, './resultsFinal/paramsPostAll.rds')
+

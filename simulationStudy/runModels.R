@@ -133,8 +133,8 @@ saveRDS(gr, paste0('./Output/grBatch', idx, '.rds'))
 saveRDS(paramsPost, paste0('./Output/paramsPostBatch', idx, '.rds'))
 saveRDS(alarmPost, paste0('./Output/alarmPostBatch', idx, '.rds'))
 saveRDS(epiPredPost, paste0('./Output/epiPredPostBatch', idx, '.rds'))
-saveRDS(alarmPost, paste0('./Output/betaPostBatch', idx, '.rds'))
-saveRDS(alarmPost, paste0('./Output/waicPostBatch', idx, '.rds'))
+saveRDS(betaPost, paste0('./Output/betaPostBatch', idx, '.rds'))
+saveRDS(waicPost, paste0('./Output/waicPostBatch', idx, '.rds'))
 
 
 
