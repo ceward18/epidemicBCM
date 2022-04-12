@@ -130,6 +130,32 @@ nim_approx <- nimbleFunction(
   })
 assign('nim_approx', nim_approx, envir = .GlobalEnv)
 
+
+# function to simulate from myModel
+simulator <- nimbleFunction(
+  setup = function(model, dataNodes) {
+    parentNodes <- model$getParents(dataNodes, stochOnly = TRUE)
+    # exclude data from parent nodes
+    parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
+    parentNodes <- model$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
+    cat("Stochastic parents of data are: ", paste(parentNodes, sep = ','), ".\n")
+    simNodes <- model$getDependencies(parentNodes, self = FALSE,
+                                      downstream = T)
+    
+    nData <- length(model$expandNodeNames(dataNodes, returnScalarComponents = TRUE))
+  },
+  run = function(params = double(1), nSim = double()) {
+    simDat <- matrix(nrow = nSim, ncol = nData)   
+    for(i in 1:nSim) {
+      values(model, parentNodes) <<- params
+      model$simulate(simNodes, includeData = TRUE)
+      simDat[i, ] <- values(model, dataNodes)
+    }
+    return(simDat)
+    returnType(double(2))
+  })
+assign('simulator', simulator, envir = .GlobalEnv)
+
 # determine mean for prior on lengthscale parameter
 getl <- function(maxDist) {
   sqrt(- (maxDist/2) ^2 / (2 * log(0.025)))
@@ -253,12 +279,11 @@ assign('RstarUpdate', RstarUpdate, envir = .GlobalEnv)
 
 SIR_thresh_fixed <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
-  for(i in 1:lengthI) {
-    Rstar[i] <- Rstar0[i]
-  }
+  # removal times for those initially infectious
+  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
   
   ### first time point for incidence based alarm
   # compute alarm
@@ -308,7 +333,7 @@ SIR_thresh_fixed <-  nimbleCode({
 
 SIR_thresh_exp <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
   probIR <- 1 - exp(-rateI)
@@ -364,12 +389,11 @@ SIR_thresh_exp <-  nimbleCode({
 
 SIR_hill_fixed <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
-  for(i in 1:lengthI) {
-    Rstar[i] <- Rstar0[i]
-  }
+  # removal times for those initially infectious
+  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
   
   ### first time point for incidence based alarm
   # compute alarm
@@ -420,7 +444,7 @@ SIR_hill_fixed <-  nimbleCode({
 
 SIR_hill_exp <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
   probIR <- 1 - exp(-rateI)
@@ -477,12 +501,11 @@ SIR_hill_exp <-  nimbleCode({
 
 SIR_power_fixed <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
-  for(i in 1:lengthI) {
-    Rstar[i] <- Rstar0[i]
-  }
+  # removal times for those initially infectious
+  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
   
   ### first time point for incidence based alarm
   # compute alarm
@@ -531,7 +554,7 @@ SIR_power_fixed <-  nimbleCode({
 
 SIR_power_exp <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
   probIR <- 1 - exp(-rateI)
@@ -587,12 +610,11 @@ SIR_power_exp <-  nimbleCode({
 
 SIR_spline_fixed <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
-  for(i in 1:lengthI) {
-    Rstar[i] <- Rstar0[i]
-  }
+  # removal times for those initially infectious
+  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
   
   ### first time point for incidence based alarm
   # compute alarm
@@ -653,7 +675,7 @@ SIR_spline_fixed <-  nimbleCode({
 
 SIR_spline_exp <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
   probIR <- 1 - exp(-rateI)
@@ -721,12 +743,11 @@ SIR_spline_exp <-  nimbleCode({
 
 SIR_gp_fixed <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
-  for(i in 1:lengthI) {
-    Rstar[i] <- Rstar0[i]
-  }
+  # removal times for those initially infectious
+  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
   
   ### first time point for incidence based alarm
   smoothI[1] <- 0
@@ -774,7 +795,7 @@ SIR_gp_fixed <-  nimbleCode({
 
 SIR_gp_exp <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
   probIR <- 1 - exp(-rateI)
@@ -831,12 +852,11 @@ SIR_gp_exp <-  nimbleCode({
 
 SIR_basic_fixed <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
-  for(i in 1:lengthI) {
-    Rstar[i] <- Rstar0[i]
-  }
+  # removal times for those initially infectious
+  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
   
   ### rest of time points
   for(t in 1:tau) {
@@ -862,7 +882,7 @@ SIR_basic_fixed <-  nimbleCode({
 
 SIR_basic_exp <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
   probIR <- 1 - exp(-rateI)
@@ -896,12 +916,11 @@ SIR_basic_exp <-  nimbleCode({
 
 SIR_betat_fixed <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
-  for(i in 1:lengthI) {
-    Rstar[i] <- Rstar0[i]
-  }
+  # removal times for those initially infectious
+  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
   
   ### rest of time points
   for(t in 1:tau) {
@@ -931,7 +950,7 @@ SIR_betat_fixed <-  nimbleCode({
 
 SIR_basic_exp <-  nimbleCode({
   
-  S[1] <- N - I0 
+  S[1] <- S0
   I[1] <- I0
   
   probIR <- 1 - exp(-rateI)

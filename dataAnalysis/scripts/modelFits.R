@@ -7,7 +7,7 @@
 #   smoothWindow - width of smoothing window 
 ################################################################################
 
-fitAlarmModel <- function(incData, N, I0, R0,
+fitAlarmModel <- function(incData, N, I0, R0, lengthI,
                           infPeriod, alarmFit, smoothWindow, seed) {
   
   source('./scripts/modelCodes.R')
@@ -15,13 +15,14 @@ fitAlarmModel <- function(incData, N, I0, R0,
   # constants that are the same for all models
   S0 <- N - I0 - R0
   tau <- length(incData)
-  lengthI <- 7
   
   # get appropriate model code
   modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
   
   # for reproducibility so inits are always the same
   set.seed(seed + 3)
+  
+  # initial value for Rstar0
 
   # model-specific constants, data, and inits
   
@@ -34,7 +35,9 @@ fitAlarmModel <- function(incData, N, I0, R0,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           lengthI = lengthI,
                           n = n,
@@ -63,7 +66,9 @@ fitAlarmModel <- function(incData, N, I0, R0,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           lengthI = lengthI,
                           n = n,
@@ -93,7 +98,9 @@ fitAlarmModel <- function(incData, N, I0, R0,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           lengthI = lengthI,
                           n = n,
@@ -121,7 +128,9 @@ fitAlarmModel <- function(incData, N, I0, R0,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           xAlarm = xAlarm,
                           n = n,
@@ -172,7 +181,9 @@ fitAlarmModel <- function(incData, N, I0, R0,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           lengthI = lengthI,
                           dists = distMat,
@@ -213,7 +224,9 @@ fitAlarmModel <- function(incData, N, I0, R0,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           lengthI = lengthI,
                           dists = distMat,
                           zeros = rep(0, tau),
@@ -237,7 +250,9 @@ fitAlarmModel <- function(incData, N, I0, R0,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           lengthI = lengthI)
     
     ### data
@@ -302,7 +317,7 @@ fitAlarmModel <- function(incData, N, I0, R0,
     myConfig$removeSampler(paramsForBlock)
     myConfig$addSampler(target = paramsForBlock, type = "RW_block",
                         control = list(adaptInterval = 100,
-                                       propCov = diag(c(0.2, 0.2, 0.002))))
+                                       propCov = diag(c(0.2, 0.2, 0.01))))
     
   } else if (alarmFit == 'hill') {
     

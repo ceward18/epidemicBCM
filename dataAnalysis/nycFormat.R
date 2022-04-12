@@ -41,7 +41,7 @@ nyc$date <- as.Date(nyc$date, format = '%m/%d/%Y')
 nyc$smoothedCases <- round(movingAverage(nyc$dailyCases, 7))
 
 # cumulative cases
-nyc$cumulativeCases <- cumsum(nyc$dailyCases)
+nyc$cumulativeCases <- cumsum(nyc$smoothedCases)
 
 # population
 nyc$Population <- 8.419*1e6

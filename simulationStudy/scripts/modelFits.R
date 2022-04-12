@@ -14,12 +14,14 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, seed) {
   # constants that are the same for all models
   N <- 1e6
   I0 <- 5
-  S0 <- N - I0
   tau <- length(incData)
   lengthI <- 7
   
   # get appropriate model code
   modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
+  
+  # for reproducibility so inits are always the same
+  set.seed(seed + 3)
 
   # model-specific constants, data, and inits
   
@@ -48,8 +50,8 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, seed) {
                       H = runif(1, 0, maxI/N))
     
     ### MCMC specifications
-    niter <- 600000
-    nburn <- 400000
+    niter <- 800000
+    nburn <- 600000
     nthin <- 10
     
   } else if (alarmFit == 'hill') {
@@ -79,8 +81,8 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, seed) {
     
     ### MCMC specifications
     niter <- 600000
-    nburn <- 300000
-    nthin <- 15
+    nburn <- 400000
+    nthin <- 10
     
   } else if (alarmFit == 'power') {
     
@@ -106,8 +108,8 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, seed) {
     
     ### MCMC specifications
     niter <- 600000
-    nburn <- 300000
-    nthin <- 15
+    nburn <- 400000
+    nthin <- 10
     
   } else if (alarmFit == 'spline') {
     
@@ -147,9 +149,9 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, seed) {
     }
     
     ### MCMC specifications
-    niter <- 600000
-    nburn <- 300000
-    nthin <- 15
+    niter <- 800000
+    nburn <- 600000
+    nthin <- 10
     
   } else if (alarmFit == 'gp') {
     
@@ -228,8 +230,8 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, seed) {
     
     ### MCMC specifications
     niter <- 1200000
-    nburn <- 800000
-    nthin <- 20
+    nburn <- 1000000
+    nthin <- 10
     
   } else if (alarmFit == 'basic') {
     

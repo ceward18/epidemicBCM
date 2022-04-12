@@ -45,6 +45,11 @@ for (i in batchIdx) {
   alarmFit_i <- allFits$alarmFit[i]
   smoothWindow_i <- allFits$smoothWindow[i]
   
+  print(paste('alarm Gen:', alarmGen_i,
+              ', alarm fit:', alarmFit_i, 
+              ', smoothing window:', smoothWindow_i, 
+              ', simulation:', simNumber_i))
+  
   # load data
   incData <- readRDS(paste0('./Data/', alarmGen_i, '_', 
                             infPeriod_i, '_', smoothWindow_i, '.rds'))
