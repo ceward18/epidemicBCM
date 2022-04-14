@@ -55,13 +55,16 @@ for (i in 1:nrow(allModels)) {
     }
     
     # currently infectious
-    I0 <- sum(nyc$smoothedCases[max(1, (idxStart - lengthI + 1)):idxStart])
+    I0 <- sum(nyc$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
     R0 <- nyc$cumulativeCases[idxStart] - I0
+    
+    # first time point is included in initial values
+    incData <- incData[-1]
     
     # run three chains in parallel
     cl <- makeCluster(3)
     clusterExport(cl, list('incData',  'infPeriod_i', 'alarmFit_i',
-                           'N', 'I0', 'R0', 'lengthI'))
+                           'N', 'I0', 'R0', 'lengthI', 'smoothWindow'))
     
     resThree <- parLapplyLB(cl, 1:3, function(x) {
         
