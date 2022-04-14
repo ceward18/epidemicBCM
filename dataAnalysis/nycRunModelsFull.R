@@ -4,6 +4,9 @@
 #   thresh, hill, power, gp, spline, betat, basic
 ################################################################################
 
+task_id <- Sys.getenv("SLURM_ARRAY_TASK_ID")
+idx <- as.numeric(task_id)
+
 ### load libraries
 library(parallel)
 
