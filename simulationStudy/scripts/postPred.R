@@ -92,7 +92,7 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     distMat <- as.matrix(dist(matrix(xAlarm)))
     
     vals <- c(1, 1) # doesn't actually matter here
-    constantsList <- list(tau = length(incData),
+    constantsList <- list(tau = tau,
                           N = N,
                           I0 = I0,
                           bw = smoothWindow,
@@ -107,7 +107,7 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     
   } else if (alarmFit == 'basic') {
     
-    constantsList <- list(tau = length(incData),
+    constantsList <- list(tau = tau,
                           N = N,
                           I0 = I0,
                           bw = smoothWindow,

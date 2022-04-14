@@ -10,11 +10,11 @@ library(parallel)
 ### read data
 nyc <- read.csv('./Data/nycClean.csv')
 
-peak <- c('full', '1', '2', '3', '4')
+peak <- c('1', '2', '3', '4')
 alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betat', 'basic')
 infPeriod <- 'fixed'
 
-# 35 possibilities (7 alarmFits, 5 "peaks")
+# 28 possibilities (7 alarmFits, 4 peaks)
 allModels <- expand.grid(peak = peak,
                          alarmFit = alarmFit,
                          infPeriod = infPeriod)
@@ -25,7 +25,7 @@ lengthI <- 7
 smoothWindow <- 30
 
 # batches by alarmFit (7 batches total)
-batchSize <- 5
+batchSize <- 4
 batchIdx <- batchSize * (idx - 1) + 1:batchSize
 
 
@@ -86,45 +86,36 @@ for (i in 1:nrow(allModels)) {
     
     # debugonce(summarizePost)
     postSummaries <- summarizePost(resThree = resThree, incData = incData,
+                                   N = N, I0 = I0, R0 = R0, lengthI = lengthI,
                                    alarmFit = alarmFit_i, infPeriod = infPeriod_i, 
                                    smoothWindow = smoothWindow)
     
     # save results in separate files
     modelInfo <- data.frame(alarmFit = alarmFit_i,
-                            infPeriod = infPeriod_i)
+                            infPeriod = infPeriod_i,
+                            peak = peak_i)
     
     if (i == batchIdx[1]) {
         gr <- cbind.data.frame(postSummaries$gdiag, modelInfo)
-        
         paramsPost <- cbind.data.frame(postSummaries$postParams, modelInfo)
-        
         alarmPost <- cbind.data.frame(postSummaries$postAlarm, modelInfo)
-        
         epiPredPost <- cbind.data.frame(postSummaries$postEpiPred, modelInfo)
-        
         betaPost <- cbind.data.frame(postSummaries$postBeta, modelInfo)
-        
         waicPost <- cbind.data.frame(postSummaries$waic, modelInfo)
         
     } else {
         gr <- rbind.data.frame(gr, 
                                cbind.data.frame(postSummaries$gdiag, modelInfo))
-        
         paramsPost <- rbind.data.frame(paramsPost, 
                                        cbind.data.frame(postSummaries$postParams, modelInfo))
-        
         alarmPost <- rbind.data.frame(alarmPost, 
                                       cbind.data.frame(postSummaries$postAlarm, modelInfo))
-        
         epiPredPost <- rbind.data.frame(epiPredPost, 
                                         cbind.data.frame(postSummaries$postEpiPred, modelInfo))
-        
         betaPost <- rbind.data.frame(betaPost, 
                                      cbind.data.frame(postSummaries$postBeta, modelInfo))
-        
         waicPost <- rbind.data.frame(waicPost, 
                                      cbind.data.frame(postSummaries$waic, modelInfo))
-        
     }
     
 } # end loop

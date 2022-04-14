@@ -3,19 +3,20 @@
 ################################################################################
 
 
-postPred <- function(incData, alarmFit, infPeriod, smoothWindow, 
+postPred <- function(incData, N, I0, R0, lengthI,
+                     alarmFit, infPeriod, smoothWindow, 
                      paramsPost, alarmSamples) {
   
-  # constants that are true for all alarm types
-  obsTime <- 50
-  fullTime <- length(incData)
+  # want to predict out 100 days from last observed time point
+  nDaysPred <- 100
+  obsTime <- length(incData)
+  fullTime <- obsTime + nDaysPred
   predTime <- (obsTime + 1):fullTime
-  dataObs <- incData[1:obsTime]
+  dataObs <- incData
   
-  N <- 1e6
-  I0 <- 5
-  tau <- length(incData)
-  lengthI <- 7
+  # constants that are the same for all models
+  S0 <- N - I0 - R0
+  tau <- length(incData) + nDaysPred
   
   # model code
   modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
@@ -28,7 +29,9 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           lengthI = lengthI,
                           n = n,
@@ -42,7 +45,9 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           lengthI = lengthI,
                           n = n,
@@ -57,7 +62,9 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           lengthI = lengthI,
                           n = n,
@@ -72,7 +79,9 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     
     constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           xAlarm = xAlarm,
                           n = n,
@@ -92,9 +101,11 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     distMat <- as.matrix(dist(matrix(xAlarm)))
     
     vals <- c(1, 1) # doesn't actually matter here
-    constantsList <- list(tau = length(incData),
+    constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           lengthI = lengthI,
                           dists = distMat,
@@ -107,15 +118,20 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     
   } else if (alarmFit == 'basic') {
     
-    constantsList <- list(tau = length(incData),
+    constantsList <- list(tau = tau,
                           N = N,
+                          S0 = S0,
                           I0 = I0,
+                          probRstar = rep(1/lengthI, lengthI),
                           bw = smoothWindow,
                           lengthI = lengthI)
     
   }
   
-  dataList <- list(Istar = incData)
+  # true data and fake data during prediction interval just for initialization
+  dataList <- list(Istar = c(incData, 
+                             rep(1, nDaysPred)))
+  
   
   # compile model and simulator
   if (alarmFit == 'spline') {
@@ -134,52 +150,62 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
   dataNodes <- paste0('Istar[', predTime, ']')
   sim_R <- simulator(myModelPred, dataNodes)
   sim_C <- compileNimble(sim_R)
-
+  
+  names(dataObs) <- paste0('Istar[', 1:obsTime, ']')
+  
+  # get order of parameters
+  parentNodes <- myModelPred$getParents(dataNodes, stochOnly = TRUE)
+  parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
+  parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
+  
   nPost <- 10000
-  postPredInc <- matrix(NA, nrow = 50, ncol = nPost)
+  postPredInc <- matrix(NA, nrow = nDaysPred, ncol = nPost)
   set.seed(1)
   for (j in 1:nPost) {
     
     postIdx <- sample(1:nrow(paramsPost), 1)
     
     betaPost <- paramsPost[postIdx,'beta']
+    RstarPost <- paramsPost[postIdx,grep('Rstar', colnames(paramsPost))]
     
     # model specific parameters
     if (alarmFit == 'thresh') {
       
       alarmParamPost <- paramsPost[postIdx, c('delta', 'H')]
-      trueVals <- c(betaPost, alarmParamPost, dataObs)
-      
+      trueVals <- c(betaPost, alarmParamPost, dataObs, RstarPost)
+     
       
     } else if (alarmFit == 'hill') {
       
       alarmParamPost <- paramsPost[postIdx, c('delta', 'nu', 'x0')]
-      trueVals <- c(betaPost, alarmParamPost, dataObs)
+      trueVals <- c(betaPost, alarmParamPost, dataObs, RstarPost)
       
       
     } else if (alarmFit == 'power') {
       
       alarmParamPost <- paramsPost[postIdx, 'k']
-      trueVals <- c(betaPost, alarmParamPost, dataObs)
+      trueVals <- c(betaPost, alarmParamPost, dataObs, RstarPost)
       
       
     } else if (alarmFit == 'spline') {
       
       bPost <- paramsPost[postIdx, grep('b\\[', colnames(paramsPost))]
       knotsPost <- paramsPost[postIdx, grep('knots\\[', colnames(paramsPost))]
-      trueVals <- c(betaPost, bPost, knotsPost, dataObs)
+      trueVals <- c(betaPost, bPost, knotsPost, dataObs, RstarPost)
       
       
     } else if (alarmFit == 'gp') {
       
       logitAlarmPost <- logit(alarmSamples[,postIdx])[-1]
-      trueVals <- c(betaPost, logitAlarmPost, dataObs)
+      trueVals <- c(betaPost, logitAlarmPost, dataObs, RstarPost)
       
     } else if (alarmFit == 'basic') {
       
-      trueVals <- c(betaPost, dataObs)
+      trueVals <- c(betaPost, dataObs, RstarPost)
       
     }
+    
+    trueVals <- trueVals[parentNodes]
     
     
     postPredInc[,j] <- apply(sim_C$run(trueVals, 10), 2, median)

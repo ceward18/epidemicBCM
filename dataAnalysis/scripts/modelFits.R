@@ -269,8 +269,6 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
     
   }
   
-   
-  
   ### create nimble model
   myModel <- nimbleModel(modelCode, 
                          data = dataList, 
@@ -317,7 +315,7 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
     myConfig$removeSampler(paramsForBlock)
     myConfig$addSampler(target = paramsForBlock, type = "RW_block",
                         control = list(adaptInterval = 100,
-                                       propCov = diag(c(0.2, 0.2, 0.01))))
+                                       propCov = diag(c(0.2, 0.2, 0.1))))
     
   } else if (alarmFit == 'hill') {
     
@@ -326,7 +324,7 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
     myConfig$removeSampler(paramsForBlock)
     myConfig$addSampler(target = paramsForBlock, type = "RW_block",
                         control = list(adaptInterval = 100,
-                                       propCov = diag(c(0.2, 0.2, 1, 20))))
+                                       propCov = diag(c(0.2, 0.2, 1, 800))))
     
   }
   

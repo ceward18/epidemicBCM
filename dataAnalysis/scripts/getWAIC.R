@@ -5,19 +5,14 @@
 # called from summarize post after samples have been combined across chains
 ################################################################################
 
-getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
+getWAIC <- function(samples, incData, N, I0, R0, lengthI,
+                    infPeriod, alarmFit, smoothWindow) {
     
     source('./scripts/modelCodes.R')
     
     # constants that are the same for all models
-    N <- 1e6
-    I0 <- 5
-    S0 <- N - I0
-    tau <- 50
-    lengthI <- 7
-    
-    # only use the first 50 days of the incidence to define the model
-    incData <- incData[1:tau]
+    S0 <- N - I0 - R0
+    tau <- length(incData)
     
     # get appropriate model code
     modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
@@ -33,7 +28,9 @@ getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
         
         constantsList <- list(tau = tau,
                               N = N,
+                              S0 = S0,
                               I0 = I0,
+                              probRstar = rep(1/lengthI, lengthI),
                               bw = smoothWindow,
                               lengthI = lengthI,
                               n = n,
@@ -56,7 +53,9 @@ getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
         
         constantsList <- list(tau = tau,
                               N = N,
+                              S0 = S0,
                               I0 = I0,
+                              probRstar = rep(1/lengthI, lengthI),
                               bw = smoothWindow,
                               lengthI = lengthI,
                               n = n,
@@ -81,7 +80,9 @@ getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
         
         constantsList <- list(tau = tau,
                               N = N,
+                              S0 = S0,
                               I0 = I0,
+                              probRstar = rep(1/lengthI, lengthI),
                               bw = smoothWindow,
                               lengthI = lengthI,
                               n = n,
@@ -104,7 +105,9 @@ getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
         
         constantsList <- list(tau = tau,
                               N = N,
+                              S0 = S0,
                               I0 = I0,
+                              probRstar = rep(1/lengthI, lengthI),
                               bw = smoothWindow,
                               xAlarm = xAlarm,
                               n = n,
@@ -150,7 +153,9 @@ getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
         
         constantsList <- list(tau = tau,
                               N = N,
+                              S0 = S0,
                               I0 = I0,
+                              probRstar = rep(1/lengthI, lengthI),
                               bw = smoothWindow,
                               lengthI = lengthI,
                               dists = distMat,
@@ -186,7 +191,9 @@ getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
         
         constantsList <- list(tau = tau,
                               N = N,
+                              S0 = S0,
                               I0 = I0,
+                              probRstar = rep(1/lengthI, lengthI),
                               lengthI = lengthI,
                               dists = distMat,
                               zeros = rep(0, tau),
@@ -205,7 +212,9 @@ getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
         
         constantsList <- list(tau = tau,
                               N = N,
+                              S0 = S0,
                               I0 = I0,
+                              probRstar = rep(1/lengthI, lengthI),
                               lengthI = lengthI)
         
         ### data
