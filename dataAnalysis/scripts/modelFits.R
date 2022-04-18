@@ -269,11 +269,6 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
     
   }
   
-  ### MCMC specifications
-  niter <- 80
-  nburn <- 0
-  nthin <- 1
-  
   ### create nimble model
   myModel <- nimbleModel(modelCode, 
                          data = dataList, 

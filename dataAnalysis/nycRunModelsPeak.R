@@ -32,7 +32,7 @@ batchSize <- 4
 batchIdx <- batchSize * (idx - 1) + 1:batchSize
 
 
-for (i in 1:batchIdx) {
+for (i in batchIdx) {
     
     peak_i <- allModels$peak[i]
     alarmFit_i <- allModels$alarmFit[i]

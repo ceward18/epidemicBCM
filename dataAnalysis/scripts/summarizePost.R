@@ -168,7 +168,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
     colnames(samples)[betaCols] <- paste0('log_beta[', 1:length(betaCols), ']')
   }
   
-  if (alarmFit != c('betat', 'gp', 'spline')) {
+  if (!alarmFit %in% c('betat', 'gp', 'spline')) {
     # need all Rstar samples (even though some are fixed)
     RstarSamplesWAIC1 <-  resThree[[1]][,grep('Rstar', colnames(resThree[[1]]))]
     RstarSamplesWAIC2 <-  resThree[[2]][,grep('Rstar', colnames(resThree[[2]]))]
