@@ -132,7 +132,7 @@ postPred <- function(incData, N, I0, R0, lengthI,
   dataList <- list(Istar = c(incData, 
                              rep(1, nDaysPred)))
   
-  
+
   # compile model and simulator
   if (alarmFit == 'spline') {
     # spline model needs initial values to avoid warning from NA knots
@@ -157,6 +157,9 @@ postPred <- function(incData, N, I0, R0, lengthI,
   parentNodes <- myModelPred$getParents(dataNodes, stochOnly = TRUE)
   parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
   parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
+  
+  
+  
   
   nPost <- 10000
   postPredInc <- matrix(NA, nrow = nDaysPred, ncol = nPost)
@@ -197,6 +200,7 @@ postPred <- function(incData, N, I0, R0, lengthI,
     } else if (alarmFit == 'gp') {
       
       logitAlarmPost <- logit(alarmSamples[,postIdx])[-1]
+      names(logitAlarmPost) <- paste0('logit_', names(logitAlarmPost))
       trueVals <- c(betaPost, logitAlarmPost, dataObs, RstarPost)
       
     } else if (alarmFit == 'basic') {
@@ -213,6 +217,11 @@ postPred <- function(incData, N, I0, R0, lengthI,
   
   postPredInc
 }
+
+# simNodes <- myModelPred$getDependencies(parentNodes, self = FALSE,
+#                                   downstream = T)
+# values(myModelPred, parentNodes) <- trueVals
+# myModelPred$simulate(simNodes, includeData = TRUE)
 
 # 
 # parentNodes <- myModelPred$getParents(dataNodes, stochOnly = TRUE)
