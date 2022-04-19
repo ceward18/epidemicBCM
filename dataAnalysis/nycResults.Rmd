@@ -1,0 +1,210 @@
+---
+title: "New York City BCM Analysis"
+author: "Caitlin Ward"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.width = 14, fig.height = 10)
+
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(nimble)
+library(plyr)
+library(knitr)
+library(scales)
+
+# functions to calculate the alarms
+source('./scripts/modelCodes.R')
+
+theme_set(theme_bw() + 
+    theme(strip.background = element_rect(fill = 'white'),
+          strip.text = element_text(size = 16),
+          axis.title = element_text(size = 16),
+          axis.text = element_text(size = 14)))
+
+```
+
+
+## Data
+
+```{r}
+### read data
+nyc <- read.csv('./Data/nycClean.csv')
+nyc$date <- as.Date(nyc$date)
+
+ggplot(nyc, aes(x = date, y = smoothedCases, col = factor(peak))) +
+    geom_point() + 
+    labs(col = "Peak", x = "Date", y = "Incidence")
+
+```
+
+
+## Gelman Rubin
+
+Number of models remaining with Gelman Rubin > 1.1.
+
+```{r}
+grAll <- readRDS('./resultsFinal/grAll.rds')
+
+# which didn't converge
+notConverge <- grAll[which(grAll$gr > 1.1),  ]
+notConvergeModels <-  notConverge[!duplicated(notConverge[,-which(colnames(notConverge) %in% 
+                                                                    c('gr', 'grUpper', 'param'))]),
+                                  c('alarmFit', 'infPeriod', 'peak')]
+notConvergeModels$noConverge <- 1
+
+
+table(notConvergeModels$alarmFit,
+      notConvergeModels$peak)
+
+```
+
+
+
+## Posterior for Alarm Function
+
+```{r}
+
+### load posterior estimates
+alarmAll <- readRDS('./resultsFinal/alarmPostAll.rds')
+
+
+### remove those that did not converge (TEMPORARY)
+alarmAll <- merge(alarmAll, notConvergeModels,
+                       by = c('alarmFit', 'infPeriod', 'peak'),
+                       all.x = T)
+
+alarmAll$noConverge[is.na(alarmAll$noConverge)] <- 0
+
+
+# format for better plotting
+alarmAll$alarmFit <- factor(alarmAll$alarmFit,
+                            levels = c('spline', 'gp', 'thresh', 'hill', 'power'),
+                            labels = c('Spline', 'Gaussian Process', 
+                                       'Threshold', 'Hill', 'Power'))
+
+
+
+```
+
+### Peak 1
+
+```{r}
+ggplot(subset(nyc, peak== '1'), aes(x = date, y = smoothedCases)) +
+    geom_line() + 
+    labs(x = "Date", y = "Incidence")
+
+ggplot(subset(alarmAll, peak== '1' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+    geom_line() +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
+    facet_wrap(~alarmFit) +
+    labs(x = '30-day incidence', y = 'Alarm')
+```
+
+
+### Peak 2
+
+```{r}
+ggplot(subset(nyc, peak== '2'), aes(x = date, y = smoothedCases)) +
+    geom_line() + 
+    labs(x = "Date", y = "Incidence")
+
+ggplot(subset(alarmAll, peak== '2' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+    geom_line() +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
+    facet_wrap(~alarmFit) +
+    labs(x = '30-day incidence', y = 'Alarm')
+```
+
+
+### Peak 3
+
+```{r}
+ggplot(subset(nyc, peak== '3'), aes(x = date, y = smoothedCases)) +
+    geom_line() + 
+    labs(x = "Date", y = "Incidence")
+
+ggplot(subset(alarmAll, peak== '3' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+    geom_line() +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
+    facet_wrap(~alarmFit) +
+    labs(x = '30-day incidence', y = 'Alarm')
+```
+
+
+
+### Peak 4
+
+```{r}
+ggplot(subset(nyc, peak== '4'), aes(x = date, y = smoothedCases)) +
+    geom_line() + 
+    labs(x = "Date", y = "Incidence")
+
+ggplot(subset(alarmAll, peak== '4' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+    geom_line() +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
+    facet_wrap(~alarmFit) +
+    labs(x = '30-day incidence', y = 'Alarm')
+```
+
+### Full Data
+
+```{r}
+ggplot(nyc, aes(x = date, y = smoothedCases)) +
+    geom_line() + 
+    labs(x = "Date", y = "Incidence")
+
+ggplot(subset(alarmAll, peak== 'full' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+    geom_line() +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
+    facet_wrap(~alarmFit) +
+    labs(x = '30-day incidence', y = 'Alarm')
+```
+
+
+
+## Posterior prediction
+
+Predicted out 100 days after each peak.
+
+```{r}
+# merge with posterior predictions
+postPredAll <- readRDS('./resultsFinal/postPredAll.rds')
+incData <- nyc$smoothedCases[which(nyc$peak == peak_i)]
+
+if (peak_i %in% c('full', '1')) {
+    idxStart <- 5
+    incData <- incData[-c(1:4)]
+} else {
+    idxStart <- min(which(nyc$peak == peak_i))
+    incData <- incData[-1]
+}
+ # currently infectious
+    I0 <- sum(nyc$smoothedCases[max(1, (idxStart - 7 + 1)):(idxStart)])
+    R0 <- nyc$cumulativeCases[idxStart] - I0
+
+
+nyc$timePeak1 <- 1:nrow(nyc)
+```
+
+### Peak 1
+
+```{r}
+ggplot() +
+  geom_line(data = subset(nyc, alarmGen == 'thresh' & smoothWindow == 14),
+            aes(x = time, y = truth)) + 
+   geom_line(data = subset(postPredAll, alarmGen == 'thresh' & smoothWindow == 14),
+            aes(x = time, y = mean), col = 'red', size = 1) + 
+   geom_ribbon(data=subset(postPredAll, alarmGen == 'thresh' & smoothWindow == 14),
+               aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
+  facet_wrap(~alarmFit, nrow = 1)
+```
+
+
+
+
+
+
+

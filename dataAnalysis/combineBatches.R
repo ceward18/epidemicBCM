@@ -12,7 +12,7 @@ outputFiles <- list.files('./Output')
 ################################################################################
 # Gelman rubin
 
-grFiles <- outputFiles[grep('grFull', outputFiles)]
+grFiles <- outputFiles[grep('gr', outputFiles)]
 
 grAll <- readRDS(paste0('./Output/', grFiles[1]))
 
@@ -27,7 +27,7 @@ saveRDS(grAll, './resultsFinal/grAll.rds')
 ################################################################################
 # posterior alarms - for models that estimate the alarm function
 
-alarmFiles <- outputFiles[grep('alarmPostBatch', outputFiles)]
+alarmFiles <- outputFiles[grep('alarmPost', outputFiles)]
 
 alarmAll <- readRDS(paste0('./Output/', alarmFiles[1]))
 
@@ -45,7 +45,7 @@ saveRDS(alarmAll, './resultsFinal/alarmPostAll.rds')
 ################################################################################
 # posterior predictions
 
-postPredFiles <- outputFiles[grep('epiPredPostBatch', outputFiles)]
+postPredFiles <- outputFiles[grep('epiPredPost', outputFiles)]
 
 postPredAll <- readRDS(paste0('./Output/', postPredFiles[1]))
 
@@ -63,7 +63,7 @@ saveRDS(postPredAll, './resultsFinal/postPredAll.rds')
 ################################################################################
 # posterior parameters 
 
-paramsPostFiles <- outputFiles[grep('paramsPostBatch', outputFiles)]
+paramsPostFiles <- outputFiles[grep('paramsPost', outputFiles)]
 
 paramsPostAll <- readRDS(paste0('./Output/', paramsPostFiles[1]))
 
@@ -77,7 +77,7 @@ saveRDS(paramsPostAll, './resultsFinal/paramsPostAll.rds')
 ################################################################################
 # WAIC
 
-waicFiles <- outputFiles[grep('waicPostBatch', outputFiles)]
+waicFiles <- outputFiles[grep('waicPost', outputFiles)]
 
 waicAll <- readRDS(paste0('./Output/', waicFiles[1]))
 
@@ -92,7 +92,7 @@ saveRDS(waicAll, './resultsFinal/waicAll.rds')
 ################################################################################
 # beta posterior (only for betat model)
 
-betaPostFiles <- outputFiles[grep('betaPostBatch', outputFiles)]
+betaPostFiles <- outputFiles[grep('betaPost', outputFiles)]
 
 betaPostAll <- readRDS(paste0('./Output/', betaPostFiles[1]))
 

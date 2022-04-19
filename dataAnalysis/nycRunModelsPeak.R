@@ -53,16 +53,16 @@ for (i in batchIdx) {
     
     if (peak_i %in% c('full', '1')) {
         idxStart <- 5
+        incData <- incData[-c(1:4)]
     } else {
         idxStart <- min(which(nyc$peak == peak_i))
+        incData <- incData[-1]
     }
     
     # currently infectious
     I0 <- sum(nyc$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
     R0 <- nyc$cumulativeCases[idxStart] - I0
     
-    # first time point is included in initial values
-    incData <- incData[-1]
     
     # run three chains in parallel
     cl <- makeCluster(3)
