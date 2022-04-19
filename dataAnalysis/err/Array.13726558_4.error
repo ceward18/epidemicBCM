@@ -23,4 +23,15 @@ Compiling
 Compiling
   [Note] This may take a minute.
   [Note] Use 'showCompilerOutput = TRUE' to see C++ compilation details.
-slurmstepd: error: *** JOB 13726511 ON fc60 CANCELLED AT 2022-04-18T13:42:07 ***
+
+ *** caught segfault ***
+address (nil), cause 'memory not mapped'
+
+Traceback:
+ 1: .Call("CALL_nfRefClass_R_GlobalEnv39_run", params, nSim, .basePtr)
+ 2: sim_C$run(trueVals, 10)
+ 3: apply(sim_C$run(trueVals, 10), 2, median)
+ 4: postPred(incData, N, I0, R0, lengthI, alarmFit, infPeriod, smoothWindow,     cbind(paramsPost, RstarPost), alarmSamples)
+ 5: summarizePost(resThree = resThree, incData = incData, N = N,     I0 = I0, R0 = R0, lengthI = lengthI, alarmFit = alarmFit_i,     infPeriod = infPeriod_i, smoothWindow = smoothWindow)
+An irrecoverable exception occurred. R is aborting now ...
+/var/spool/slurmd/job13726562/slurm_script: line 23: 248524 Segmentation fault      (core dumped) Rscript nycRunModelsPeak.R $SLURM_ARRAY_TASK_ID
