@@ -50,7 +50,7 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
     ### inits
     initsList <- list(beta = runif(1, 0, 1),
                       delta = runif(1, 0, 1),
-                      H = runif(1, 0, maxI/N))
+                      H = runif(1, 0, maxI/N/2))
     
     ### MCMC specifications
     niter <- 800000
@@ -315,7 +315,7 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
     myConfig$removeSampler(paramsForBlock)
     myConfig$addSampler(target = paramsForBlock, type = "RW_block",
                         control = list(adaptInterval = 100,
-                                       propCov = diag(c(0.2, 0.2, 0.1))))
+                                       propCov = diag(c(0.2, 0.2, 0.00007))))
     
   } else if (alarmFit == 'hill') {
     

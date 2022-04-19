@@ -17,7 +17,7 @@ source('./scripts/getWAIC.R')
 
 summarizePost <- function(resThree, incData, N, I0, R0, lengthI, 
                           alarmBase, alarmFit, infPeriod, smoothWindow) {
-
+  
   if (!alarmFit %in% c('betat', 'basic')) {
     paramSamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[1]]))]
     paramSamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[2]]))]
@@ -33,7 +33,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
   }
   
   RstarSamples1 <-  resThree[[1]][,which(colnames(resThree[[1]]) %in% 
-                                                    paste0('Rstar[', 1:lengthI,']'))]
+                                           paste0('Rstar[', 1:lengthI,']'))]
   RstarSamples2 <-  resThree[[2]][,which(colnames(resThree[[1]]) %in% 
                                            paste0('Rstar[', 1:lengthI,']'))]
   RstarSamples3 <-  resThree[[3]][,which(colnames(resThree[[1]]) %in% 
@@ -61,7 +61,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                            upper = postCI[2,])
   rownames(postParams) <- NULL
   
-  ### posterior distribution of alarm function
+  ### posterior distribution of alarm function 
   if (!alarmFit %in% c('betat', 'basic')) {
     alarmSamples1 <- t(resThree[[1]][,grep('yAlarm', colnames(resThree[[1]]))])
     alarmSamples2 <- t(resThree[[2]][,grep('yAlarm', colnames(resThree[[2]]))])
@@ -91,6 +91,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                             upper = NA)
   }
   
+  
   ### posterior distribution of beta[t] when estimated directly
   if (alarmFit == 'betat') {
     betaSamples1 <- t(resThree[[1]][,grep('beta', colnames(resThree[[1]]))])
@@ -110,6 +111,68 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                            lower = NA,
                            upper = NA)
   }
+  
+  ### Posterior distribution of reproductive number
+  ### R0 = beta(1-a) * lengthI, beta * lengthI
+  
+  if (!alarmFit %in% c('betat', 'basic')) {
+    
+    # want R0 by xAlarm and epidemic time
+    betaSamples <- paramsPost[,'beta']
+    
+    # by xAlarm
+    R0SamplesAlarm <- sapply(1:ncol(alarmSamples), function(k)
+      betaSamples[k] * (1 - alarmSamples[,k]) * lengthI)
+    
+    postMeans <- rowMeans(R0SamplesAlarm)
+    postCI <- apply(R0SamplesAlarm, 1, quantile, probs = c(0.025, 0.975))
+    postR0Alarm <- data.frame(xAlarm = xAlarm,
+                              mean = postMeans,
+                              lower = postCI[1,],
+                              upper = postCI[2,])
+    
+    # by time
+    alarmTimeSamples1 <- t(resThree[[1]][,grep('alarm', colnames(resThree[[1]]))])
+    alarmTimeSamples2 <- t(resThree[[2]][,grep('alarm', colnames(resThree[[2]]))])
+    alarmTimeSamples3 <- t(resThree[[3]][,grep('alarm', colnames(resThree[[3]]))])
+    alarmTimeSamples <- cbind(alarmTimeSamples1, alarmTimeSamples2, alarmTimeSamples3)
+    
+    R0Samples <- sapply(1:ncol(alarmTimeSamples), function(k)
+      betaSamples[k] * (1 - alarmTimeSamples[,k]) * lengthI)
+    
+  } else if (alarmFit == 'betat') {
+    
+    postR0Alarm <- data.frame(xAlarm = NA, 
+                              mean = NA,
+                              lower = NA,
+                              upper = NA)
+    
+    # beta samples already calculated (matrix)
+    R0Samples <- betaSamples * lengthI
+    
+  } else if (alarmFit == 'basic') {
+    
+    postR0Alarm <- data.frame(xAlarm = NA, 
+                              mean = NA,
+                              lower = NA,
+                              upper = NA)
+    
+    betaSamples <- paramsPost[,'beta']
+    R0Samples <- betaSamples * lengthI
+    
+    R0Samples <- matrix(rep(R0Samples, length(incData)),
+                        nrow = length(incData),
+                        ncol = length(R0Samples),
+                        byrow = T)
+    
+  }
+  
+  postMeans <- rowMeans(R0Samples)
+  postCI <- apply(R0Samples, 1, quantile, probs = c(0.025, 0.975))
+  postR0 <- data.frame(time = 1:length(incData),
+                       mean = postMeans,
+                       lower = postCI[1,],
+                       upper = postCI[2,])
   
   
   ### posterior predictive forecasting 
@@ -132,7 +195,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                               upper = NA)
   }
   
-
+  
   ### WAIC values
   
   # samples to use for WAIC calculation differ by model
@@ -155,7 +218,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
       samples[,yAlarmCols] <- logit(samples[,yAlarmCols])
       colnames(samples)[yAlarmCols] <- paste0('logit_yAlarm[', 1:length(yAlarmCols), ']')
     }
-   
+    
     
   } else if (alarmFit == 'betat') {
     
@@ -178,19 +241,21 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
     
     samples <- cbind(samples, RstarPostWAIC)
   }
- 
+  
   
   waic <- getWAIC(samples = samples, incData = incData, 
                   N = N, I0 = I0, R0 = R0, lengthI = lengthI,
                   infPeriod = infPeriod, 
                   alarmFit = alarmFit, smoothWindow = smoothWindow)
-
+  
   ### output
   list(gdiag = gdiag,
        postParams = postParams,
        postAlarm = postAlarm,
        postEpiPred = postEpiPred,
        postBeta = postBeta,
+       postR0Alarm = postR0Alarm,
+       postR0 = postR0,
        waic= waic)
   
   

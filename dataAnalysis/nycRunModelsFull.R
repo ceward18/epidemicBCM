@@ -40,13 +40,11 @@ incData <- nyc$smoothedCases
 
 # initialize current number of infectious and removed individuals
 idxStart <- 5
+incData <- incData[-c(1:idxStart)]
 
 # currently infectious
 I0 <- sum(nyc$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
 R0 <- nyc$cumulativeCases[idxStart] - I0
-
-# first time point is included in initial values
-incData <- incData[-1]
 
 # run three chains in parallel
 cl <- makeCluster(3)
@@ -87,8 +85,9 @@ paramsPost <- cbind.data.frame(postSummaries$postParams, modelInfo)
 alarmPost <- cbind.data.frame(postSummaries$postAlarm, modelInfo)
 epiPredPost <- cbind.data.frame(postSummaries$postEpiPred, modelInfo)
 betaPost <- cbind.data.frame(postSummaries$postBeta, modelInfo)
+R0AlarmPost <- cbind.data.frame(postSummaries$postR0Alarm, modelInfo)
+R0Post <- cbind.data.frame(postSummaries$postR0, modelInfo)
 waicPost <- cbind.data.frame(postSummaries$waic, modelInfo)
-
 
 # save output in RDS form
 saveRDS(gr, paste0('./Output/grFull', idx, '.rds'))
@@ -96,6 +95,8 @@ saveRDS(paramsPost, paste0('./Output/paramsPostFull', idx, '.rds'))
 saveRDS(alarmPost, paste0('./Output/alarmPostFull', idx, '.rds'))
 saveRDS(epiPredPost, paste0('./Output/epiPredPostFull', idx, '.rds'))
 saveRDS(betaPost, paste0('./Output/betaPostFull', idx, '.rds'))
+saveRDS(R0AlarmPost, paste0('./Output/R0AlarmPostFull', idx, '.rds'))
+saveRDS(R0Post, paste0('./Output/R0PostFull', idx, '.rds'))
 saveRDS(waicPost, paste0('./Output/waicPostFull', idx, '.rds'))
 
 

@@ -53,7 +53,7 @@ for (i in batchIdx) {
     
     if (peak_i %in% c('full', '1')) {
         idxStart <- 5
-        incData <- incData[-c(1:4)]
+        incData <- incData[-c(1:idxStart)]
     } else {
         idxStart <- min(which(nyc$peak == peak_i))
         incData <- incData[-1]
@@ -104,6 +104,8 @@ for (i in batchIdx) {
         alarmPost <- cbind.data.frame(postSummaries$postAlarm, modelInfo)
         epiPredPost <- cbind.data.frame(postSummaries$postEpiPred, modelInfo)
         betaPost <- cbind.data.frame(postSummaries$postBeta, modelInfo)
+        R0AlarmPost <- cbind.data.frame(postSummaries$postR0Alarm, modelInfo)
+        R0Post <- cbind.data.frame(postSummaries$postR0, modelInfo)
         waicPost <- cbind.data.frame(postSummaries$waic, modelInfo)
         
     } else {
@@ -117,6 +119,10 @@ for (i in batchIdx) {
                                         cbind.data.frame(postSummaries$postEpiPred, modelInfo))
         betaPost <- rbind.data.frame(betaPost, 
                                      cbind.data.frame(postSummaries$postBeta, modelInfo))
+        R0AlarmPost <- rbind.data.frame(R0AlarmPost, 
+                                        cbind.data.frame(postSummaries$postR0Alarm, modelInfo))
+        R0Post <- rbind.data.frame(R0Post, 
+                                   cbind.data.frame(postSummaries$postR0, modelInfo))
         waicPost <- rbind.data.frame(waicPost, 
                                      cbind.data.frame(postSummaries$waic, modelInfo))
     }
@@ -129,6 +135,8 @@ saveRDS(paramsPost, paste0('./Output/paramsPostBatch', idx, '.rds'))
 saveRDS(alarmPost, paste0('./Output/alarmPostBatch', idx, '.rds'))
 saveRDS(epiPredPost, paste0('./Output/epiPredPostBatch', idx, '.rds'))
 saveRDS(betaPost, paste0('./Output/betaPostBatch', idx, '.rds'))
+saveRDS(R0AlarmPost, paste0('./Output/R0AlarmPostBatch', idx, '.rds'))
+saveRDS(R0Post, paste0('./Output/R0PostBatch', idx, '.rds'))
 saveRDS(waicPost, paste0('./Output/waicPostBatch', idx, '.rds'))
 
 
