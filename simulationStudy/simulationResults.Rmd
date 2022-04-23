@@ -769,9 +769,9 @@ waicAll <- readRDS('./resultsFinal/waicAll.rds')
 
 ### remove those that did not converge (TEMPORARY)
 waicAll <- merge(waicAll, notConvergeModels,
-                       by = c('alarmGen', 'alarmFit', 
-                              'infPeriod', 'smoothWindow', 'simNumber'),
-                       all.x = T)
+                 by = c('alarmGen', 'alarmFit', 
+                        'infPeriod', 'smoothWindow', 'simNumber'),
+                 all.x = T)
 
 waicAll$noConverge[is.na(waicAll$noConverge)] <- 0
 
