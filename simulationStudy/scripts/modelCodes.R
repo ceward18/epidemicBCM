@@ -101,6 +101,20 @@ splineAlarm <- nimbleRcall(function(x = double(1), b = double(1), knots= double(
 )
 assign('splineAlarm', splineAlarm, envir = .GlobalEnv)
 
+
+# spline for beta[t] define first as an R function
+splineBetaR <- function(x, b, knots) {
+  xBasis <- splines::ns(x, knots = knots, Boundary.knots = c(min(x) - 50, max(x)))
+  c(xBasis %*% b)
+  
+}
+# then convert to something that can be compiled in nimble
+splineBeta <- nimbleRcall(function(x = double(1), b = double(1), knots= double(1)){}, 
+                           Rfun = 'splineBetaR',
+                           returnType = double(1)
+)
+assign('splineBeta', splineBeta, envir = .GlobalEnv)
+
 # linear interpolation function to get alarm values for each observed incidence value
 nim_approx <- nimbleFunction(     
   run = function(x = double(1), y = double(1), xout = double(0)) {
@@ -905,6 +919,7 @@ SIR_basic_exp <-  nimbleCode({
 
 ################################################################################
 ### SIR model with time-varying beta (no alarm)
+# Gaussian Process
 
 ### Fixed infectious period
 
@@ -941,7 +956,7 @@ SIR_betat_fixed <-  nimbleCode({
 
 ### Exponential infectious period
 
-SIR_basic_exp <-  nimbleCode({
+SIR_betat_exp <-  nimbleCode({
   
   S[1] <- N - I0 
   I[1] <- I0
@@ -974,7 +989,90 @@ SIR_basic_exp <-  nimbleCode({
 })
 
 
+################################################################################
+### SIR model with time-varying beta (no alarm)
+# Spline
 
+### Fixed infectious period
+
+SIR_betatSpline_fixed <-  nimbleCode({
+  
+  S[1] <- N - I0 
+  I[1] <- I0
+  Rstar[1:(lengthI-1)] <- 0
+  Rstar[lengthI] <- I0
+  
+  ### rest of time points
+  for(t in 1:tau) {
+    
+    probSI[t] <- 1 - exp(- beta[t] * I[t] / N)
+    
+    Istar[t] ~ dbin(probSI[t], S[t])
+    
+    Rstar[t + lengthI] <- Istar[t]
+    
+    # update S and I
+    S[t + 1] <- S[t] - Istar[t]
+    I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+    
+  }
+  
+  log(beta[1:tau]) <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])
+  
+  # priors
+  for (i in 1:nb) {
+    b[i] ~ dnorm(0, sd = 100)
+  }
+  for (i in 1:(nb - 1)) {
+    knots[i] ~ dunif(min = 1, max = tau)
+  }
+  
+  # constrain knots to be ordered
+  constrain_knots ~ dconstraint(knots[1] < knots[2] & knots[2] < knots[3] )
+  
+  
+})
+
+### Exponential infectious period
+
+SIR_betatSpline_exp <-  nimbleCode({
+  
+  S[1] <- N - I0 
+  I[1] <- I0
+  
+  probIR <- 1 - exp(-rateI)
+  
+  ### rest of time points
+  for(t in 1:tau) {
+    
+    probSI[t] <- 1 - exp(- beta[t] * I[t] / N)
+    
+    Istar[t] ~ dbin(probSI[t], S[t])
+    Rstar[t] ~ dbin(probIR, I[t])
+    
+    
+    # update S and I
+    S[t + 1] <- S[t] - Istar[t]
+    I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+    
+  }
+  
+  beta[1:tau] <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])
+
+  
+  # priors
+  rateI ~ dgamma(a, b)
+  for (i in 1:nb) {
+    b[i] ~ dnorm(0, sd = 100)
+  }
+  for (i in 1:(nb - 1)) {
+    knots[i] ~ dunif(min = 1, max = tau)
+  }
+  
+  # constrain knots to be ordered
+  constrain_knots ~ dconstraint(knots[1] < knots[2])
+  
+})
 
 
 

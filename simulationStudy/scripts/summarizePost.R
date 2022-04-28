@@ -12,20 +12,21 @@ library(nimble)
 
 # source relevant scripts
 source('./scripts/modelCodes.R')
+source('./scripts/getModelInputs.R')
 source('./scripts/postPred.R')
 source('./scripts/getWAIC.R')
 
 summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smoothWindow) {
 
   
-  if (!alarmFit %in% c('betat', 'basic')) {
+  if (!alarmFit %in% c('betat', 'basic', 'betatSpline')) {
     paramsamples1 <- resThree[[1]][,-grep('alarm|yAlarm', colnames(resThree[[1]]))]
     paramsamples2 <- resThree[[2]][,-grep('alarm|yAlarm', colnames(resThree[[2]]))]
     paramsamples3 <- resThree[[3]][,-grep('alarm|yAlarm', colnames(resThree[[3]]))]
-  } else if (alarmFit == 'betat') {
-    paramsamples1 <- resThree[[1]][,-grep('beta', colnames(resThree[[1]]))]
-    paramsamples2 <- resThree[[2]][,-grep('beta', colnames(resThree[[2]]))]
-    paramsamples3 <- resThree[[3]][,-grep('beta', colnames(resThree[[3]]))]
+  } else if (alarmFit %in% c('betat', 'betatSpline')) {
+    paramsamples1 <- resThree[[1]][,-grep('beta\\[', colnames(resThree[[1]]))]
+    paramsamples2 <- resThree[[2]][,-grep('beta\\[', colnames(resThree[[2]]))]
+    paramsamples3 <- resThree[[3]][,-grep('beta\\[', colnames(resThree[[3]]))]
   } else if (alarmFit == 'basic') {
     paramsamples1 <- resThree[[1]]
     paramsamples2 <- resThree[[2]]
@@ -51,7 +52,7 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
   rownames(postParams) <- NULL
   
   ### posterior distribution of alarm function
-  if (!alarmFit %in% c('betat', 'basic')) {
+  if (!alarmFit %in% c('betat', 'basic', 'betatSpline')) {
     alarmSamples1 <- t(resThree[[1]][,grep('yAlarm', colnames(resThree[[1]]))])
     alarmSamples2 <- t(resThree[[2]][,grep('yAlarm', colnames(resThree[[2]]))])
     alarmSamples3 <- t(resThree[[3]][,grep('yAlarm', colnames(resThree[[3]]))])
@@ -63,8 +64,10 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
     # get xAlarm
     if (alarmFit == 'gp') {
       n <- 10
-    } else {
+    } else if (!alarmFit %in% c('thresh', 'spline')) {
       n <- 50
+    } else {
+      n <- 100
     }
     maxI <- ceiling(max(movingAverage(incData, smoothWindow)) + 1)
     xAlarm <- seq(0, maxI, length.out = n)
@@ -81,10 +84,10 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
   }
   
   ### posterior distribution of beta[t] when estimated directly
-  if (alarmFit == 'betat') {
-    betaSamples1 <- t(resThree[[1]][,grep('beta', colnames(resThree[[1]]))])
-    betaSamples2 <- t(resThree[[2]][,grep('beta', colnames(resThree[[2]]))])
-    betaSamples3 <- t(resThree[[3]][,grep('beta', colnames(resThree[[3]]))])
+  if (alarmFit %in% c('betat', 'betatSpline')) {
+    betaSamples1 <- t(resThree[[1]][,grep('beta\\[', colnames(resThree[[1]]))])
+    betaSamples2 <- t(resThree[[2]][,grep('beta\\[', colnames(resThree[[2]]))])
+    betaSamples3 <- t(resThree[[3]][,grep('beta\\[', colnames(resThree[[3]]))])
     betaSamples <- cbind(betaSamples1, betaSamples2, betaSamples3)
     
     postMeans <- rowMeans(betaSamples)
@@ -102,7 +105,7 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
   
   
   ### posterior predictive forecasting assuming first 50 days have been observed
-  if (!alarmFit %in% c('betat')) {
+  if (!alarmFit %in% c('betat', 'betatSpline')) {
     postPredInc <- postPred(incData, alarmFit, infPeriod, smoothWindow, 
                             paramsPost, alarmSamples)
     
@@ -143,14 +146,17 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
     }
    
     
-  } else if (alarmFit == 'betat') {
+  } else if (alarmFit %in% c('betat', 'betatSpline')) {
     
     samples <- rbind(resThree[[1]], resThree[[2]], resThree[[3]])
     
     # samples needs to be log_beta to get WAIC
-    betaCols <- grep('beta', colnames(samples))
-    samples[,betaCols] <- log(samples[,betaCols])
-    colnames(samples)[betaCols] <- paste0('log_beta[', 1:length(betaCols), ']')
+    if (alarmFit == 'betat') {
+      betaCols <- grep('beta\\[', colnames(samples))
+      samples[,betaCols] <- log(samples[,betaCols])
+      colnames(samples)[betaCols] <- paste0('log_beta[', 1:length(betaCols), ']')
+    }
+   
   }
   
   

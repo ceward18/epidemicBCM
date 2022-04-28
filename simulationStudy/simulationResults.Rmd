@@ -96,6 +96,13 @@ paramsPostAll <- merge(paramsPostAll, notConvergeModels,
                        all.x = T)
 
 paramsPostAll$noConverge[is.na(paramsPostAll$noConverge)] <- 0
+
+paramsPostAll$param <- factor(paramsPostAll$param , 
+                              labels=c('beta', 'delta', 'H', 'k', 'nu', 'x[0]'))
+
+paramsPostAll$smoothWindow <- factor(paramsPostAll$smoothWindow , 
+                                     labels=c('14-day smoothing', '30-day smoothing'))
+
 ```
 
 
@@ -108,9 +115,9 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'thresh' & noConverge == 0),
     geom_point() + 
     geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
                   position = position_dodge(width = 0.9)) +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~smoothWindow + param, nrow = 2, scales = 'free_y',
-               labeller = "label_both") +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_wrap(smoothWindow ~ param, nrow = 2, scales = 'free_y',
+               labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
     labs(x = 'Simulation Number', y = '') 
 
 
@@ -125,9 +132,9 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'hill' & noConverge == 0),
     geom_point() + 
     geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
                   position = position_dodge(width = 0.9)) +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~smoothWindow + param, nrow = 2, scales = 'free_y',
-               labeller = "label_both") +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_wrap(smoothWindow ~ param, nrow = 2, scales = 'free_y',
+               labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
     labs(x = 'Simulation Number', y = '')
 ```
 
@@ -140,9 +147,9 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'power' & noConverge == 0),
     geom_point() + 
     geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
                   position = position_dodge(width = 0.9)) +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2) +
-    facet_wrap(~smoothWindow + param, nrow = 2, scales = 'free_y',
-               labeller = "label_both") + 
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_wrap(smoothWindow ~ param, nrow = 2, scales = 'free_y',
+               labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
     labs(x = 'Simulation Number', y = '')
 ```
 

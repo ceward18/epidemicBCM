@@ -12,6 +12,7 @@ library(parallel)
 
 ### read data
 nyc <- read.csv('./Data/nycClean.csv')
+nyc <- nyc[1:745,]
 
 peak <- c('full')
 alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betat', 'basic')

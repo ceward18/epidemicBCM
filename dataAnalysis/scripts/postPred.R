@@ -158,9 +158,6 @@ postPred <- function(incData, N, I0, R0, lengthI,
   parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
   parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
   
-  
-  
-  
   nPost <- 10000
   postPredInc <- matrix(NA, nrow = nDaysPred, ncol = nPost)
   set.seed(1)
@@ -217,22 +214,3 @@ postPred <- function(incData, N, I0, R0, lengthI,
   
   postPredInc
 }
-
-# simNodes <- myModelPred$getDependencies(parentNodes, self = FALSE,
-#                                   downstream = T)
-# values(myModelPred, parentNodes) <- trueVals
-# myModelPred$simulate(simNodes, includeData = TRUE)
-
-# 
-# parentNodes <- myModelPred$getParents(dataNodes, stochOnly = TRUE)
-# # exclude data from parent nodes
-# parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
-# parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
-# cat("Stochastic parents of data are: ", paste(parentNodes, sep = ','), ".\n")
-# simNodes <- myModelPred$getDependencies(parentNodes, self = FALSE,
-#                                   downstream = T)
-# 
-# values(myModelPred, parentNodes) <- trueVals
-# myModelPred$simulate(simNodes, includeData = TRUE)
-# values(myModelPred, dataNodes)
-# 

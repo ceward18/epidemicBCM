@@ -20,120 +20,33 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
   # model code
   modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
   
-  if (alarmFit == 'thresh') {
-    
-    n <- 50
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          I0 = I0,
-                          bw = smoothWindow,
-                          lengthI = lengthI,
-                          n = n,
-                          xAlarm = xAlarm)
-    
-  } else if (alarmFit == 'hill') {
-    
-    n <- 50
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          I0 = I0,
-                          bw = smoothWindow,
-                          lengthI = lengthI,
-                          n = n,
-                          xAlarm = xAlarm,
-                          maxI = maxI)
-    
-  } else if (alarmFit == 'power') {
-    
-    n <- 50
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          I0 = I0,
-                          bw = smoothWindow,
-                          lengthI = lengthI,
-                          n = n,
-                          xAlarm = xAlarm)
-    
-  } else if (alarmFit == 'spline') {
-    
-    n <- 50
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    nb <- 3
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          I0 = I0,
-                          bw = smoothWindow,
-                          xAlarm = xAlarm,
-                          n = n,
-                          maxI = maxI,
-                          lengthI = lengthI,
-                          nb = nb)
-    
-    initsList <- list(b = c(1, 1, 1), 
-                      knots = quantile(1:maxI, probs = c(0.3, 0.6)), 
-                      beta = 0.5)
-    
-  } else if (alarmFit == 'gp') {
-    
-    n <- 10
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    distMat <- as.matrix(dist(matrix(xAlarm)))
-    
-    vals <- c(1, 1) # doesn't actually matter here
-    constantsList <- list(tau = tau,
-                          N = N,
-                          I0 = I0,
-                          bw = smoothWindow,
-                          lengthI = lengthI,
-                          dists = distMat,
-                          mu0 = 1,
-                          ones = logit(seq(0.0001, 0.9999, length.out= n)),
-                          n = n,
-                          xAlarm = xAlarm,
-                          c = vals[1],
-                          d = vals[2])
-    
-  } else if (alarmFit == 'basic') {
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          I0 = I0,
-                          bw = smoothWindow,
-                          lengthI = lengthI)
-    
-  }
+  # model-specific constants, data, and inits
+  modelInputs <- getModelInput(alarmFit, incData, smoothWindow, 
+                               N, I0, tau, lengthI)
   
-  dataList <- list(Istar = incData)
   
   # compile model and simulator
   if (alarmFit == 'spline') {
     # spline model needs initial values to avoid warning from NA knots
     myModelPred <- nimbleModel(modelCode, 
-                               data = dataList, 
-                               constants = constantsList,
-                               inits = initsList)
+                               data = modelInputs$dataList, 
+                               constants = modelInputs$constantsList,
+                               inits = modelInputs$initsList)
   } else {
     myModelPred <- nimbleModel(modelCode, 
-                               data = dataList, 
-                               constants = constantsList)
+                               data = modelInputs$dataList, 
+                               constants = modelInputs$constantsList)
   }
   
   compiledPred  <- compileNimble(myModelPred) 
   dataNodes <- paste0('Istar[', predTime, ']')
   sim_R <- simulator(myModelPred, dataNodes)
   sim_C <- compileNimble(sim_R)
+  
+  # get order of parameters
+  parentNodes <- myModelPred$getParents(dataNodes, stochOnly = TRUE)
+  parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
+  parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
 
   nPost <- 10000
   postPredInc <- matrix(NA, nrow = 50, ncol = nPost)
@@ -181,23 +94,11 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
       
     }
     
+    trueVals <- trueVals[parentNodes]
+    
     
     postPredInc[,j] <- apply(sim_C$run(trueVals, 10), 2, median)
   }
   
   postPredInc
 }
-
-# 
-# parentNodes <- myModelPred$getParents(dataNodes, stochOnly = TRUE)
-# # exclude data from parent nodes
-# parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
-# parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
-# cat("Stochastic parents of data are: ", paste(parentNodes, sep = ','), ".\n")
-# simNodes <- myModelPred$getDependencies(parentNodes, self = FALSE,
-#                                   downstream = T)
-# 
-# values(myModelPred, parentNodes) <- trueVals
-# myModelPred$simulate(simNodes, includeData = TRUE)
-# values(myModelPred, dataNodes)
-# 

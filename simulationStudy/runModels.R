@@ -14,7 +14,7 @@ nSim <- 50
 
 infPeriod <- c('fixed')
 alarmGen <- c('thresh', 'hill', 'power')
-alarmFit <- c('thresh', 'hill', 'power', 'spline', 'gp', 'betat', 'basic')
+alarmFit <- c('thresh', 'hill', 'power', 'spline', 'gp', 'betatSpline', 'basic')
 smoothWindow <- c(14, 30)
 
 
@@ -63,7 +63,7 @@ for (i in batchIdx) {
   # run three chains in parallel
   cl <- makeCluster(3)
   clusterExport(cl, list('incDataFit',  'infPeriod_i', 'alarmFit_i',
-                         'smoothWindow_i'))
+                         'smoothWindow_i', 'simNumber_i'))
   
   resThree <- parLapplyLB(cl, 1:3, function(x) {
     
@@ -74,7 +74,7 @@ for (i in batchIdx) {
     
     fitAlarmModel(incData = incDataFit, infPeriod = infPeriod_i, 
                   alarmFit = alarmFit_i, smoothWindow = smoothWindow_i,
-                  seed = x)
+                  simNumber = simNumber_i, seed = x)
   })
   stopCluster(cl)
   

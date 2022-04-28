@@ -107,3 +107,39 @@ rownames(betaPostAll) <- NULL
 
 saveRDS(betaPostAll, './resultsFinal/betaPostAll.rds')
 
+
+################################################################################
+# R0 posterior over time
+
+
+r0PostFiles <- outputFiles[grep('R0Post', outputFiles)]
+
+r0PostAll <- readRDS(paste0('./Output/', r0PostFiles[1]))
+
+for (i in 2:length(r0PostFiles)) {
+    r0Post_i <- readRDS(paste0('./Output/', r0PostFiles[i]))
+    r0PostAll <-rbind.data.frame(r0PostAll, r0Post_i)
+}
+
+rownames(r0PostAll) <- NULL
+
+saveRDS(r0PostAll, './resultsFinal/r0PostAll.rds')
+
+################################################################################
+# R0 posterior over xAlarm (not basic or betat)
+
+
+
+r0AlarmPostFiles <- outputFiles[grep('R0AlarmPost', outputFiles)]
+
+r0AlarmPostAll <- readRDS(paste0('./Output/', r0AlarmPostFiles[1]))
+
+for (i in 2:length(r0AlarmPostFiles)) {
+    r0AlarmPost_i <- readRDS(paste0('./Output/', r0AlarmPostFiles[i]))
+    r0AlarmPostAll <-rbind.data.frame(r0AlarmPostAll, r0AlarmPost_i)
+}
+
+rownames(r0AlarmPostAll) <- NULL
+
+saveRDS(r0AlarmPostAll, './resultsFinal/r0AlarmPostAll.rds')
+
