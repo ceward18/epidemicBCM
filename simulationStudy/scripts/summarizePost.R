@@ -64,7 +64,7 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
     # get xAlarm
     if (alarmFit == 'gp') {
       n <- 10
-    } else if (!alarmFit %in% c('thresh', 'spline')) {
+    } else if (!alarmFit %in% c('thresh')) {
       n <- 50
     } else {
       n <- 100

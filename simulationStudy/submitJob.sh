@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
 #SBATCH --time=36:00:00
-#SBATCH --mem 32000M
+#SBATCH --mem 64000M
 #SBATCH --partition=cpu2021
 #SBATCH --array=1-30
 #SBATCH --output=./out/Array.%A_%a.out

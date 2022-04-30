@@ -81,7 +81,7 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, simNumber,
     myConfig$removeSampler(paramsForBlock)
     myConfig$addSampler(target = paramsForBlock, type = "RW_block",
                         control = list(adaptInterval = 100,
-                                       propCov = diag(c(0.2, 0.2, 0.001))))
+                                       propCov = diag(c(0.2, 0.2, 0.0001))))
     
   } else if (alarmFit == 'hill') {
     

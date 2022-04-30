@@ -95,7 +95,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
     } else if (alarmFit == 'spline') {
         
         ### constants
-        n <- 100
+        n <- 50
         maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
         xAlarm <- seq(0, maxI, length.out = n)
         nb <- 3
@@ -130,8 +130,8 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
         }
         
         ### MCMC specifications
-        niter <- 600000
-        nburn <- 400000
+        niter <- 800000
+        nburn <- 600000
         nthin <- 10
         
     } else if (alarmFit == 'gp') {
@@ -239,8 +239,8 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
         
         
         ### MCMC specifications
-        niter <- 400000
-        nburn <- 200000
+        niter <- 600000
+        nburn <- 400000
         nthin <- 10
         
     } else if (alarmFit == 'basic') {

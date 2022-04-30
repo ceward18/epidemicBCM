@@ -47,6 +47,8 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
   parentNodes <- myModelPred$getParents(dataNodes, stochOnly = TRUE)
   parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
   parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
+  
+  browser()
 
   nPost <- 10000
   postPredInc <- matrix(NA, nrow = 50, ncol = nPost)
@@ -86,6 +88,7 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     } else if (alarmFit == 'gp') {
       
       logitAlarmPost <- logit(alarmSamples[,postIdx])[-1]
+      names(logitAlarmPost) <- paste0('logit_', names(logitAlarmPost))
       trueVals <- c(betaPost, logitAlarmPost, dataObs)
       
     } else if (alarmFit == 'basic') {
