@@ -13,11 +13,6 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, simNumber,
   source('./scripts/modelCodes.R')
   source('./scripts/getModelInputs.R')
   
-  # constants that are the same for all models
-  N <- 1e6
-  I0 <- 5
-  tau <- length(incData)
-  lengthI <- 7
   
   # get appropriate model code
   modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
@@ -26,8 +21,7 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, simNumber,
   set.seed(seed + simNumber)
 
   # model-specific constants, data, inits, and MCMC specs
-  modelInputs <- getModelInput(alarmFit, incData, smoothWindow, 
-                               N, I0, tau, lengthI)
+  modelInputs <- getModelInput(alarmFit, incData, infPeriod, smoothWindow)
 
   ### MCMC specifications
   niter <- modelInputs$niter
@@ -55,6 +49,10 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, simNumber,
     myConfig$removeSamplers('Rstar') # Nodes will be expanded
     myConfig$addSampler(target = c('Rstar'),
                         type = "RstarUpdate")
+    myConfig$addMonitors(c('Rstar'))
+    
+    myConfig$removeSampler('rateI')
+    myConfig$addSampler(target = 'rateI', type = "slice")
   }
   
   # if gaussian process model, use slice sampling
@@ -74,7 +72,6 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, simNumber,
     myConfig$addSampler(target = paramsForSlice[2], type = "slice")
     
   } else if (alarmFit == 'thresh') {
-    
     
     # block sampler for transmission parameters
     paramsForBlock <- c('beta', 'delta', 'H')
@@ -96,11 +93,11 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, simNumber,
   
   myMCMC <- buildMCMC(myConfig)
   compiled <- compileNimble(myModel, myMCMC) 
-  
+
   runMCMC(compiled$myMCMC, 
           niter = niter, 
           nburnin = nburn,
           thin = nthin,
           setSeed  = seed)
-  
+
 }

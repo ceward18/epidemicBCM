@@ -11,33 +11,38 @@ library(parallel)
 
 # set up grid of models to fit
 nSim <- 50
-
-infPeriod <- c('fixed')
 alarmGen <- c('thresh', 'hill', 'power')
 alarmFit <- c('thresh', 'hill', 'power', 'spline', 'gp', 'betatSpline', 'basic')
 smoothWindow <- c(14, 30)
 
+allFitsFixed <- expand.grid(simNumber = 1:nSim,
+                            infPeriod = 'fixed',
+                            alarmGen = alarmGen,
+                            alarmFit = alarmFit,
+                            smoothWindow = smoothWindow,
+                            stringsAsFactors = FALSE)
 
-allFits <- expand.grid(simNumber = 1:nSim,
-                       infPeriod = infPeriod,
-                       alarmGen = alarmGen,
-                       alarmFit = alarmFit,
-                       smoothWindow = smoothWindow,
-                       stringsAsFactors = FALSE)
+allFitsExp <- expand.grid(simNumber = 1:nSim,
+                          infPeriod = 'exp',
+                          alarmGen = alarmGen,
+                          alarmFit = alarmFit,
+                          smoothWindow = smoothWindow,
+                          stringsAsFactors = FALSE)
 
-# 1500 rows
+allFits <- rbind.data.frame(allFitsFixed,
+                            allFitsExp)
+
+# 3000 rows
 allFits <- allFits[-which(allFits$alarmFit %in% alarmGen &
                             allFits$alarmFit != allFits$alarmGen),]
 rownames(allFits) <- 1:nrow(allFits)
 
 
-# fit models in batches of 50 (30 batches total)
-batchSize <- 50
+# fit models in batches of 25 (120 batches total)
+batchSize <- 25
 batchIdx <- batchSize * (idx - 1) + 1:batchSize
 
 for (i in batchIdx) {
-  
-  print(paste0('Now starting row: ', i))
   
   simNumber_i <- allFits$simNumber[i]
   infPeriod_i <- allFits$infPeriod[i]
@@ -45,14 +50,19 @@ for (i in batchIdx) {
   alarmFit_i <- allFits$alarmFit[i]
   smoothWindow_i <- allFits$smoothWindow[i]
   
-  print(paste('alarm Gen:', alarmGen_i,
-              ', alarm fit:', alarmFit_i, 
-              ', smoothing window:', smoothWindow_i, 
-              ', simulation:', simNumber_i))
+  print(paste0('alarm Gen: ', alarmGen_i,
+               ', alarm fit: ', alarmFit_i, 
+               ', infectious period: ', infPeriod_i, 
+               ', smoothing window: ', smoothWindow_i, 
+               ', simulation: ', simNumber_i))
   
   # load data
   incData <- readRDS(paste0('./Data/', alarmGen_i, '_', 
                             infPeriod_i, '_', smoothWindow_i, '.rds'))
+  
+  if (infPeriod_i == 'exp') {
+    incData <- incData[,grep('Istar', colnames(incData))]
+  }
   
   # subset row corresponding to simulation number specified
   incData <- incData[simNumber_i,]

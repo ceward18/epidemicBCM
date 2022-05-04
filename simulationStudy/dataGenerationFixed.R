@@ -11,87 +11,8 @@ library(nimble)
 # number of simulated epidemics in each scenario
 nSim <- 50
 
-
-################################################################################
-### Helper functions
-
-# threshold alarm function
-thresholdAlarm <- nimbleFunction(     
-  run = function(x = double(0), N = double(0), delta = double(0), H = double(0)) {
-    returnType(double(0))
-    
-    result <- delta * (x / N > H)
-    
-    return(result)
-  })
-
-# power alarm function
-powerAlarm <- nimbleFunction(     
-  run = function(x = double(0), N = double(0), k = double(0)) {
-    returnType(double(0))
-    
-    result <- 1 - (1 - x / N)^(1 / k)
-    
-    return(result)
-  })
-
-# Hill-Langmuir alarm function
-hillAlarm <- nimbleFunction(     
-  run = function(x = double(0), nu = double(0), x0 = double(0), delta = double(0)) {
-    returnType(double(0))
-    
-    result <- delta / (1 + (x0 / x) ^ nu)
-    
-    return(result)
-  })
-
-# calculate moving average for smoothing
-movingAverage <- nimbleFunction(     
-  run = function(x = double(1), bw = double(0)) {
-    returnType(double(1))
-    n <- length(x)
-    
-    out <- rep(0, n)
-    for (i in 1:n) {
-      
-      if (i < bw) {
-        t1 = 1
-        t2 = i
-      } else {
-        t1 = i - bw + 1
-        t2 = i
-      }
-      
-      out[i] <- mean(x[t1:t2])
-    }
-    
-    return(out)
-  })
-
-################################################################################
-# simulator function
-
-simulator <- nimbleFunction(
-  setup = function(model, dataNodes) {
-    parentNodes <- model$getParents(dataNodes, stochOnly = TRUE)
-    # exclude data from parent nodes
-    parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
-    cat("Stochastic parents of data are: ", paste(parentNodes, sep = ','), ".\n")
-    simNodes <- model$getDependencies(parentNodes, self = FALSE,
-                                      downstream = T)
-    
-    nData <- length(model$expandNodeNames(dataNodes, returnScalarComponents = TRUE))
-  },
-  run = function(params = double(1), nSim = double()) {
-    simDat <- matrix(nrow = nSim, ncol = nData)   
-    for(i in 1:nSim) {
-      values(model, parentNodes) <<- params
-      model$simulate(simNodes, includeData = TRUE)
-      simDat[i, ] <- values(model, dataNodes)
-    }
-    return(simDat)
-    returnType(double(2))
-  })
+# load model scripts and simulator function
+source('./scripts/modelCodesSim.R')
 
 ################################################################################
 # parameters for all
@@ -109,54 +30,6 @@ dataNodes <- c(paste0('Istar[', 1:tau, ']'))
 ################################################################################
 # Threshold alarms
 ################################################################################
-
-SIR_thresh_fixed <-  nimbleCode({
-  
-  S[1] <- N - I0 
-  I[1] <- I0
-  Rstar[1:(lengthI-1)] <- 0
-  Rstar[lengthI] <- I0
-  
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- thresholdAlarm(smoothI[1],  N, delta, H)
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1 + lengthI] <- Istar[1]
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
-  ### rest of time points
-  for(t in 2:tau) {
-    
-    # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
-    alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
-    
-    probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-    
-    Istar[t] ~ dbin(probSI[t], S[t])
-    
-    Rstar[t + lengthI] <- Istar[t]
-    
-    # update S and I
-    S[t + 1] <- S[t] - Istar[t]
-    I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-    
-  }
-  
-  # priors
-  beta ~ dgamma(0.1, 0.1)
-  delta ~ dbeta(1, 1)
-  H ~ dgamma(1, 10)
-  rateI ~ dgamma(20, 100)
-  
-})
 
 ################################################################################
 ### 14-day Incidence
@@ -182,8 +55,8 @@ colnames(epiSims) <- dataNodes
 nInf <- rowSums(epiSims[,grep('Istar', colnames(epiSims))])
 toSave <- epiSims[nInf > 100,][1:nSim,]
 
-
 saveRDS(toSave, './Data/thresh_fixed_14.rds')
+
 
 ################################################################################
 ### 30-day Incidence
@@ -217,54 +90,6 @@ saveRDS(toSave, './Data/thresh_fixed_30.rds')
 ################################################################################
 # Hill Alarm
 ################################################################################
-
-SIR_hill_fixed <-  nimbleCode({
-  
-  S[1] <- N - I0 
-  I[1] <- I0
-  Rstar[1:(lengthI-1)] <- 0
-  Rstar[lengthI] <- I0
-  
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- hillAlarm(smoothI[1], nu, x0, delta)
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1 + lengthI] <- Istar[1]
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
-  ### rest of time points
-  for(t in 2:tau) {
-    
-    # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
-    alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
-    
-    probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-    
-    Istar[t] ~ dbin(probSI[t], S[t])
-    
-    Rstar[t + lengthI] <- Istar[t]
-    
-    # update S and I
-    S[t + 1] <- S[t] - Istar[t]
-    I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-    
-  }
-  
-  # priors
-  beta ~ dgamma(0.1, 0.1)
-  nu ~ dgamma(0.1, 0.1)
-  x0 ~ dnorm(100, sd=10)
-  delta ~ dbeta(1, 1)
-  
-})
 
 ################################################################################
 ### 14-day Incidence
@@ -325,52 +150,6 @@ saveRDS(toSave, './Data/hill_fixed_30.rds')
 ################################################################################
 # Power Alarm
 ################################################################################
-
-SIR_power_fixed <-  nimbleCode({
-  
-  S[1] <- N - I0 
-  I[1] <- I0
-  Rstar[1:(lengthI-1)] <- 0
-  Rstar[lengthI] <- I0
-  
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- powerAlarm(smoothI[1], N, k)
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1 + lengthI] <- Istar[1]
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
-  ### rest of time points
-  for(t in 2:tau) {
-    
-    # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
-    alarm[t] <- powerAlarm(smoothI[t], N, k)
-    
-    probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-    
-    Istar[t] ~ dbin(probSI[t], S[t])
-    
-    Rstar[t + lengthI] <- Istar[t]
-    
-    # update S and I
-    S[t + 1] <- S[t] - Istar[t]
-    I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-    
-  }
-  
-  # priors
-  beta ~ dgamma(0.1, 0.1)
-  k ~ dgamma(0.1, 0.1)
-  
-})
 
 ################################################################################
 ### 14-day Incidence

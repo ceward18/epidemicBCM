@@ -10,10 +10,7 @@ getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
     source('./scripts/modelCodes.R')
     
     # constants that are the same for all models
-    N <- 1e6
-    I0 <- 5
     tau <- 50
-    lengthI <- 7
     
     # only use the first 50 days of the incidence to define the model
     incData <- incData[1:tau]
@@ -22,8 +19,7 @@ getWAIC <- function(samples, incData, infPeriod, alarmFit, smoothWindow) {
     modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
     
     # model-specific constants, data, and inits
-    modelInputs <- getModelInput(alarmFit, incData, smoothWindow, 
-                                 N, I0, tau, lengthI)
+    modelInputs <- getModelInput(alarmFit, incData, infPeriod, smoothWindow)
     
 
     ### create nimble model

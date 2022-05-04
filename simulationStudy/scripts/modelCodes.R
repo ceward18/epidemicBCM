@@ -184,7 +184,7 @@ myF <- function(x, min, mid,  max) {
   
   # variance is b^2 / ((a-1)^2 * (a-2))
   distSD <- sqrt(b^2 / ((a-1)^2 * (a-2)))
-  sdEst <- (max - min) / 50
+  sdEst <- (max - min) / 100
   
   summat <- c(distMean - mid,
               distSD - sdEst)
@@ -199,10 +199,10 @@ RstarUpdate <- nimbleFunction(
   contains = sampler_BASE,                     
   setup = function(model, mvSaved, target, control) {                 # REQUIRED setup arguments
     calcNodes <- model$getDependencies(target) 
-    percent <- if(!is.null(control$percent)) control$percent else 0.05   
+    # percent <- if(!is.null(control$percent)) control$percent else 0.05   
     
     # number of update attempts is some % of the final epidemic size (total # of removals)
-    nUpdates <- floor(percent * (sum(model$Istar)))
+    nUpdates <- 200
   },                                                                  # setup can't return anything
   run = function() {
     currentValue <- model[[target]]                                   
@@ -216,22 +216,24 @@ RstarUpdate <- nimbleFunction(
       
       proposalValue <- currentValue
       
+      nTimePoints <- length(currentValue)
+      
       if (moveType == 1) {
         # add a removal time
-        addIdx <- runif(1, 1, length(currentValue) + 1)
+        addIdx <- runif(1, 1, nTimePoints + 1)
         proposalValue[addIdx] <- proposalValue[addIdx] + 1
         
         # g(old|new) - g(new|old)
-        # subtract - add
+        # subtract from new - add to old
         possibleSubtract <- which(proposalValue > 0)
-        g <- -log(length(possibleSubtract)) + log(length(currentValue))
+        g <- -log(length(possibleSubtract)) + log(nTimePoints)
         
         
       } else if (moveType == 2) {
         # move a removal time
         possibleSubtract <- which(currentValue > 0)
         subtractIdx <- possibleSubtract[runif(1, 1, length(possibleSubtract) + 1)]
-        addIdx <- runif(1, 1, length(currentValue) + 1)
+        addIdx <- runif(1, 1, nTimePoints + 1)
         
         proposalValue[subtractIdx] <- proposalValue[subtractIdx] - 1
         proposalValue[addIdx] <- proposalValue[addIdx] + 1
@@ -239,8 +241,7 @@ RstarUpdate <- nimbleFunction(
         # g(old|new) - g(new|old)
         # possibly have different number of values to subtract from 
         newPossibleSubtract <- which(proposalValue > 0)
-        g <- (-log(length(newPossibleSubtract))) - 
-          (-log(length(possibleSubtract)))
+        g <- -log(length(newPossibleSubtract)) +log(length(possibleSubtract))
         
       } else if (moveType == 3) {
         # subtract a removal time
@@ -249,9 +250,8 @@ RstarUpdate <- nimbleFunction(
         proposalValue[subtractIdx] <- proposalValue[subtractIdx] - 1
         
         # g(old|new) - g(new|old)
-        # add - subtract
-        possibleSubtract <- which(currentValue > 0)
-        g <- -log(length(currentValue)) + log(length(possibleSubtract)) 
+        # add to new - subtract from old
+        g <- -log(nTimePoints) + log(length(possibleSubtract)) 
         
       }
       
@@ -298,25 +298,10 @@ SIR_thresh_fixed <-  nimbleCode({
   Rstar[1:(lengthI-1)] <- 0
   Rstar[lengthI] <- I0
   
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- thresholdAlarm(smoothI[1],  N, delta, H)
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1 + lengthI] <- Istar[1]
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
     
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -351,25 +336,10 @@ SIR_thresh_exp <-  nimbleCode({
   
   probIR <- 1 - exp(-rateI)
   
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- thresholdAlarm(smoothI[1],  N, delta, H)
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1] ~ dbin(probIR, I[1])
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
     
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -391,7 +361,7 @@ SIR_thresh_exp <-  nimbleCode({
   beta ~ dgamma(0.1, 0.1)
   delta ~ dbeta(1, 1)
   H ~ dunif(0, maxI/N)
-  rateI ~ dgamma(a, b)
+  rateI ~ dgamma(aa, bb)
   
 })
 
@@ -407,25 +377,10 @@ SIR_hill_fixed <-  nimbleCode({
   Rstar[1:(lengthI-1)] <- 0
   Rstar[lengthI] <- I0
   
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- hillAlarm(smoothI[1], nu, x0, delta)
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1 + lengthI] <- Istar[1]
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
     
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -461,25 +416,10 @@ SIR_hill_exp <-  nimbleCode({
   
   probIR <- 1 - exp(-rateI)
   
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- hillAlarm(smoothI[1], nu, x0, delta)
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1] ~ dbin(probIR, I[1])
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
     
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -501,8 +441,8 @@ SIR_hill_exp <-  nimbleCode({
   beta ~ dgamma(0.1, 0.1)
   delta ~ dbeta(1, 1)
   nu ~ dgamma(0.1, 0.1)
-  x0 ~ dnorm(100, sd=10)
-  rateI ~ dgamma(a, b)
+  x0 ~ dunif(1, maxI)
+  rateI ~ dgamma(aa, bb)
   
 })
 
@@ -518,25 +458,10 @@ SIR_power_fixed <-  nimbleCode({
   Rstar[1:(lengthI-1)] <- 0
   Rstar[lengthI] <- I0
   
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- powerAlarm(smoothI[1], N, k)
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1 + lengthI] <- Istar[1]
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- powerAlarm(smoothI[t], N, k)
     
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -570,25 +495,10 @@ SIR_power_exp <-  nimbleCode({
   
   probIR <- 1 - exp(-rateI)
   
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- powerAlarm(smoothI[1], N, k)
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1] ~ dbin(probIR, I[1])
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- powerAlarm(smoothI[t], N, k)
     
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -609,7 +519,7 @@ SIR_power_exp <-  nimbleCode({
   # priors
   beta ~ dgamma(0.1, 0.1)
   k ~ dgamma(0.1, 0.1)
-  rateI ~ dgamma(a, b)
+  rateI ~ dgamma(aa, bb)
   
 })
 
@@ -626,25 +536,10 @@ SIR_spline_fixed <-  nimbleCode({
   Rstar[1:(lengthI-1)] <- 0
   Rstar[lengthI] <- I0
   
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1 + lengthI] <- Istar[1]
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
     
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -690,25 +585,10 @@ SIR_spline_exp <-  nimbleCode({
   
   probIR <- 1 - exp(-rateI)
   
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1] ~ dbin(probIR, I[1])
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
     
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -732,13 +612,13 @@ SIR_spline_exp <-  nimbleCode({
   
   # priors
   beta ~ dgamma(0.1, 0.1)
-  rateI ~ dgamma(a, b)
   for (i in 1:nb) {
     b[i] ~ dnorm(0, sd = 100)
   }
   for (i in 1:(nb - 1)) {
     knots[i] ~ dunif(min = 1, max = maxI)
   }
+  rateI ~ dgamma(aa, bb)
   
   # constrain knots to be ordered
   constrain_knots ~ dconstraint(knots[1] < knots[2])
@@ -757,24 +637,11 @@ SIR_gp_fixed <-  nimbleCode({
   I[1] <- I0
   Rstar[1:(lengthI-1)] <- 0
   Rstar[lengthI] <- I0
-  
-  ### first time point for incidence based alarm
-  smoothI[1] <- 0
-  alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1 + lengthI] <- Istar[1]
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
+ 
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
     
@@ -809,25 +676,10 @@ SIR_gp_exp <-  nimbleCode({
   
   probIR <- 1 - exp(-rateI)
   
-  ### first time point for incidence based alarm
-  # compute alarm
-  smoothI[1] <- 0
-  alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
-  
-  probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-  
-  Istar[1] ~ dbin(probSI[1], S[1])
-  Rstar[1] ~ dbin(probIR, I[1])
-  
-  # update S and I
-  S[2] <- S[1] - Istar[1]
-  I[2] <- I[1] + Istar[1] - Rstar[1]
-  
   ### rest of time points
-  for(t in 2:tau) {
+  for(t in 1:tau) {
     
     # compute alarm
-    smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
     alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
     
     probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -850,7 +702,7 @@ SIR_gp_exp <-  nimbleCode({
   beta ~ dgamma(0.1, 0.1)
   sigma ~ dgamma(100, 50)
   l ~ dinvgamma(c, d)
-  rateI ~ dgamma(a, b)
+  rateI ~ dgamma(aa, bb)
   
 })
 
@@ -912,7 +764,7 @@ SIR_basic_exp <-  nimbleCode({
   
   # priors
   beta ~ dgamma(0.1, 0.1)
-  rateI ~ dgamma(a, b)
+  rateI ~ dgamma(aa, bb)
   
 })
 
@@ -984,7 +836,7 @@ SIR_betat_exp <-  nimbleCode({
   # priors
   sigma ~ dgamma(100, 50)
   l ~ dinvgamma(c, d)
-  rateI ~ dgamma(a, b)
+  rateI ~ dgamma(aa, bb)
   
 })
 
@@ -1057,40 +909,20 @@ SIR_betatSpline_exp <-  nimbleCode({
     
   }
   
-  beta[1:tau] <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])
-
+  log(beta[1:tau]) <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])
   
   # priors
-  rateI ~ dgamma(a, b)
   for (i in 1:nb) {
     b[i] ~ dnorm(0, sd = 100)
   }
   for (i in 1:(nb - 1)) {
     knots[i] ~ dunif(min = 1, max = tau)
   }
+  rateI ~ dgamma(aa, bb)
   
   # constrain knots to be ordered
-  constrain_knots ~ dconstraint(knots[1] < knots[2])
+  constrain_knots ~ dconstraint(knots[1] < knots[2] & knots[2] < knots[3] )
   
 })
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

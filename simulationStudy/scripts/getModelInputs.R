@@ -2,31 +2,43 @@
 #
 ################################################################################
 
-getModelInput <- function(alarmFit, incData, smoothWindow, 
-                          N, I0, tau, lengthI) {
+getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
     
+    # constants that are the same for all models
+    N <- 1e6
+    I0 <- 5
+    tau <- length(incData)
+    
+    # for fixed infectious period
+    lengthI <- 7
+    
+    # for exponential infectious period
+    # puts 95% probability of mean infectious period between 6 and 8 days
+    bb <- 1350
+    aa <- 1/7*bb
     
     if (alarmFit == 'thresh') {
         
         ### constants
+        smoothI <- c(0, movingAverage(incData, smoothWindow))
         n <- 100
-        maxI <- ceiling(max(movingAverage(incData, smoothWindow)) )
+        maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         
         constantsList <- list(tau = tau,
                               N = N,
                               I0 = I0,
-                              bw = smoothWindow,
                               lengthI = lengthI,
                               n = n,
                               xAlarm = xAlarm,
                               maxI = maxI)
         
         ### data
-        dataList <- list(Istar = incData)
+        dataList <- list(Istar = incData,
+                         smoothI = smoothI)
         
         ### inits
-        initsList <- list(beta = runif(1, 0, 1),
+        initsList <- list(beta = runif(1, 1/7, 5/7),
                           delta = runif(1, 0, 1),
                           H = runif(1, 0, maxI/N/2))
         
@@ -38,24 +50,25 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
     } else if (alarmFit == 'hill') {
         
         ### constants
+        smoothI <- c(0, movingAverage(incData, smoothWindow))
         n <- 50
-        maxI <- ceiling(max(movingAverage(incData, smoothWindow)) )
+        maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         
         constantsList <- list(tau = tau,
                               N = N,
                               I0 = I0,
-                              bw = smoothWindow,
                               lengthI = lengthI,
                               n = n,
                               xAlarm = xAlarm,
                               maxI = maxI)
         
         ### data
-        dataList <- list(Istar = incData)
+        dataList <- list(Istar = incData,
+                         smoothI = smoothI)
         
         ### inits
-        initsList <- list(beta = runif(1, 0, 1),
+        initsList <- list(beta = runif(1, 1/7, 5/7),
                           delta = runif(1, 0, 1),
                           nu = runif(1, 0, 10),
                           x0 = max(rnorm(1, maxI/2, 10), 1))
@@ -68,23 +81,24 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
     } else if (alarmFit == 'power') {
         
         ### constants 
+        smoothI <- c(0, movingAverage(incData, smoothWindow))
         n <- 50
-        maxI <- ceiling(max(movingAverage(incData, smoothWindow)) )
+        maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         
         constantsList <- list(tau = tau,
                               N = N,
                               I0 = I0,
-                              bw = smoothWindow,
                               lengthI = lengthI,
                               n = n,
                               xAlarm = xAlarm)
         
         ### data
-        dataList <- list(Istar = incData)
+        dataList <- list(Istar = incData,
+                         smoothI = smoothI)
         
         ### inits
-        initsList <- list(beta = runif(1, 0, 1),
+        initsList <- list(beta = runif(1, 1/7, 5/7),
                           k = runif(1, 0, 1))
         
         ### MCMC specifications
@@ -95,15 +109,15 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
     } else if (alarmFit == 'spline') {
         
         ### constants
+        smoothI <- c(0, movingAverage(incData, smoothWindow))
         n <- 50
-        maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
+        maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         nb <- 3
         
         constantsList <- list(tau = tau,
                               N = N,
                               I0 = I0,
-                              bw = smoothWindow,
                               xAlarm = xAlarm,
                               n = n,
                               maxI = maxI,
@@ -112,13 +126,14 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
         
         ### data
         dataList <- list(Istar = incData,
+                         smoothI = smoothI,
                          constrain_knots = 1,
                          constrain_min = 1,
                          constrain_max = 1)
         
         ### inits (must satisfy constraint)
         repeat {
-            initsList <- list(beta = runif(1, 0, 1),
+            initsList <- list(beta = runif(1, 1/7, 5/7),
                               b = rnorm(nb, 0, 4),
                               knots = as.vector(quantile(xAlarm, 
                                                          probs = sort(runif(nb - 1, 0, 0.4)))))
@@ -137,8 +152,9 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
     } else if (alarmFit == 'gp') {
         
         ### constants
+        smoothI <- c(0, movingAverage(incData, smoothWindow))
         n <- 10
-        maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
+        maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         distMat <- as.matrix(dist(matrix(xAlarm)))
         
@@ -154,7 +170,6 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
         constantsList <- list(tau = tau,
                               N = N,
                               I0 = I0,
-                              bw = smoothWindow,
                               lengthI = lengthI,
                               dists = distMat,
                               mu0 = 1,
@@ -165,10 +180,11 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
                               d = vals[2])
         
         ### data
-        dataList <- list(Istar = incData)
+        dataList <- list(Istar = incData,
+                         smoothI = smoothI)
         
         ### inits 
-        initsList <- list(beta = runif(1, 0, 1),
+        initsList <- list(beta = runif(1, 1/7, 5/7),
                           l = rinvgamma(1, vals[1], vals[2]),
                           sigma = rgamma(1, 100, 50))
         
@@ -214,6 +230,8 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
         nburn <- 1000000
         nthin <- 10
         
+        xAlarm <- NULL
+        
     } else if (alarmFit == 'betatSpline') {
         
         ### constants
@@ -223,7 +241,6 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
         constantsList <- list(tau = tau,
                               N = N,
                               I0 = I0,
-                              bw = smoothWindow,
                               timeVec = timeVec,
                               lengthI = lengthI,
                               nb = nb)
@@ -232,7 +249,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
         dataList <- list(Istar = incData,
                          constrain_knots = 1)
         
-        ### inits (must satisfy constraint)
+        ### inits
         initsList <- list(b = rnorm(nb, 0, 4),
                           knots = as.vector(quantile(timeVec, 
                                                      probs = sort(runif(nb - 1, 0, 0.4)))))
@@ -242,6 +259,8 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
         niter <- 600000
         nburn <- 400000
         nthin <- 10
+        
+        xAlarm <- NULL
         
     } else if (alarmFit == 'basic') {
         
@@ -254,21 +273,36 @@ getModelInput <- function(alarmFit, incData, smoothWindow,
         dataList <- list(Istar = incData)
         
         ### inits 
-        initsList <- list(beta = runif(1, 0, 1))
+        initsList <- list(beta = runif(1, 1/7, 5/7))
         
         
         ### MCMC specifications
-        niter <- 200000
-        nburn <- 50000
+        niter <- 300000
+        nburn <- 100000
         nthin <- 10
         
+        xAlarm <- NULL
     }
-
+    
+    # adjust specs if model is exponential infectious period
+    if (infPeriod == 'exp') {
+        
+        # adjust constants
+        constantsList$lengthI <- NULL
+        constantsList$aa <- aa
+        constantsList$bb <- bb
+        
+        # add initial value for rateI
+        initsList$rateI <- rgamma(1, aa, bb)
+        
+    }
+    
     list(constantsList = constantsList,
          dataList = dataList,
          initsList = initsList,
          niter = niter,
          nburn = nburn,
-         nthin = nthin)
+         nthin = nthin,
+         xAlarm = xAlarm)
     
 }

@@ -42,6 +42,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
   # combine posterior parameters with posterior Rstar
   RstarPost <- rbind(RstarSamples1, RstarSamples2, RstarSamples3)
   
+  ##############################################################################
   ### gelman-rubin
   res_mcmc <- mcmc.list(mcmc(cbind(paramSamples1, RstarSamples1)), 
                         mcmc(cbind(paramSamples2, RstarSamples2)),
@@ -51,6 +52,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
   gdiag$param <- rownames(gdiag)
   rownames(gdiag) <- NULL
   
+  ##############################################################################
   ### posterior mean and 95% CI for parameters
   paramsPost <- rbind(paramSamples1, paramSamples2, paramSamples3)
   postMeans <- colMeans(paramsPost)
@@ -61,6 +63,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                            upper = postCI[2,])
   rownames(postParams) <- NULL
   
+  ##############################################################################
   ### posterior distribution of alarm function 
   if (!alarmFit %in% c('betat', 'basic')) {
     alarmSamples1 <- t(resThree[[1]][,grep('yAlarm', colnames(resThree[[1]]))])
@@ -91,7 +94,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                             upper = NA)
   }
   
-  
+  ##############################################################################
   ### posterior distribution of beta[t] when estimated directly
   if (alarmFit == 'betat') {
     betaSamples1 <- t(resThree[[1]][,grep('beta', colnames(resThree[[1]]))])
@@ -112,6 +115,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                            upper = NA)
   }
   
+  ##############################################################################
   ### Posterior distribution of reproductive number
   ### R0 = beta(1-a) * lengthI, beta * lengthI
   
@@ -174,7 +178,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                        lower = postCI[1,],
                        upper = postCI[2,])
   
-  
+  ##############################################################################
   ### posterior predictive forecasting 
   if (!alarmFit %in% c('betat')) {
     
@@ -195,7 +199,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                               upper = NA)
   }
   
-  
+  ##############################################################################
   ### WAIC values
   
   # samples to use for WAIC calculation differ by model

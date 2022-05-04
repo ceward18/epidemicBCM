@@ -4,7 +4,9 @@
 
 
 postPred <- function(incData, alarmFit, infPeriod, smoothWindow, 
-                     paramsPost, alarmSamples) {
+                     paramsPost, alarmSamples, RstarPost = NULL) {
+  
+  source('./scripts/modelCodesSim.R')
   
   # constants that are true for all alarm types
   obsTime <- 50
@@ -12,18 +14,13 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
   predTime <- (obsTime + 1):fullTime
   dataObs <- incData[1:obsTime]
   
-  N <- 1e6
-  I0 <- 5
-  tau <- length(incData)
-  lengthI <- 7
-  
   # model code
   modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
   
   # model-specific constants, data, and inits
-  modelInputs <- getModelInput(alarmFit, incData, smoothWindow, 
-                               N, I0, tau, lengthI)
+  modelInputs <- getModelInput(alarmFit, incData, infPeriod, smoothWindow)
   
+  modelInputs$constantsList$bw <- smoothWindow
   
   # compile model and simulator
   if (alarmFit == 'spline') {
@@ -40,6 +37,11 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
   
   compiledPred  <- compileNimble(myModelPred) 
   dataNodes <- paste0('Istar[', predTime, ']')
+  
+  if (infPeriod == 'exp') {
+    dataNodes <- c(dataNodes, paste0('Rstar[', predTime, ']'))
+  }
+  
   sim_R <- simulator(myModelPred, dataNodes)
   sim_C <- compileNimble(sim_R)
   
@@ -48,8 +50,6 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
   parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
   parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
   
-  browser()
-
   nPost <- 10000
   postPredInc <- matrix(NA, nrow = 50, ncol = nPost)
   set.seed(1)
@@ -57,7 +57,12 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
     
     postIdx <- sample(1:nrow(paramsPost), 1)
     
-    betaPost <- paramsPost[postIdx,'beta']
+    betaPost <- paramsPost[postIdx, 'beta']
+    
+    if (infPeriod == 'exp') {
+      rateIPost <- paramsPost[postIdx, 'rateI']
+      RstarPostSamp <- RstarPost[postIdx, ]
+    }
     
     # model specific parameters
     if (alarmFit == 'thresh') {
@@ -97,10 +102,15 @@ postPred <- function(incData, alarmFit, infPeriod, smoothWindow,
       
     }
     
+    # for exponential infectious period
+    if (infPeriod == 'exp') {
+      trueVals <- c(trueVals, rateIPost, RstarPostSamp)
+    }
+    
     trueVals <- trueVals[parentNodes]
     
     
-    postPredInc[,j] <- apply(sim_C$run(trueVals, 10), 2, median)
+    postPredInc[,j] <- apply(sim_C$run(trueVals, 10), 2, median)[grep('Istar', dataNodes)]
   }
   
   postPredInc
