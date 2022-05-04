@@ -190,9 +190,9 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
         
         
         ### MCMC specifications
-        niter <- 1000000
+        niter <- 800000
         nburn <- 600000
-        nthin <- 20
+        nthin <- 10
         
     } else if (alarmFit == 'betat') {
         

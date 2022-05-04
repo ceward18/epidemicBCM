@@ -478,7 +478,7 @@ SIR_spline_fixed <-  nimbleCode({
     probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
     Istar[1] ~ dbin(probSI[1], S[1])
-    Rstar[1] ~ dbin(probIR, I[1])
+    Rstar[1 + lengthI] <- Istar[1]
     
     # update S and I
     S[2] <- S[1] - Istar[1]
@@ -610,7 +610,7 @@ SIR_gp_fixed <-  nimbleCode({
     probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
     Istar[1] ~ dbin(probSI[1], S[1])
-    Rstar[1] ~ dbin(probIR, I[1])
+    Rstar[1 + lengthI] <- Istar[1]
     
     # update S and I
     S[2] <- S[1] - Istar[1]
