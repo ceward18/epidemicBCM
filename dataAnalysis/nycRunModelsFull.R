@@ -15,13 +15,17 @@ nyc <- read.csv('./Data/nycClean.csv')
 nyc <- nyc[1:745,]
 
 peak <- c('full')
-alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betat', 'basic')
-infPeriod <- 'fixed'
+alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betatSpline', 'basic')
 
-# 7 possibilities (7 alarmFits each to full data)
-allModels <- expand.grid(peak = peak,
-                         alarmFit = alarmFit,
-                         infPeriod = infPeriod)
+# 14 possibilities (7 alarmFits, full data, 2 infPeriods)
+allModelsFixed <- expand.grid(peak = peak,
+                              alarmFit = alarmFit,
+                              infPeriod = 'fixed')
+allModelsExp <- expand.grid(peak = peak,
+                            alarmFit = alarmFit,
+                            infPeriod = 'exp')
+
+allModels <- rbind.data.frame(allModelsFixed, allModelsExp)
 
 # constants for all models
 N <- nyc$Population[1]

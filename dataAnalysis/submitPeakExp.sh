@@ -4,10 +4,10 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
-#SBATCH --time=72:00:00
-#SBATCH --mem 32000M
+#SBATCH --time=96:00:00
+#SBATCH --mem 64000M
 #SBATCH --partition=cpu2019
-#SBATCH --array=5
+#SBATCH --array=8-14
 #SBATCH --output=./out/Array.%A_%a.out
 #SBATCH --error=./err/Array.%A_%a.error
 
@@ -20,4 +20,4 @@ export PATH=/home/caitlin.ward/R/bin:$PATH
 export R_LIBS=/home/caitlin.ward/R/lib64:$R_LIBS
 
 ####### Run your script #########################
-Rscript nycRunModelsFull.R $SLURM_ARRAY_TASK_ID
+Rscript nycRunModelsPeak.R $SLURM_ARRAY_TASK_ID

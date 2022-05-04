@@ -50,7 +50,9 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
   
   ##############################################################################
   ### gelman-rubin
-  res_mcmc <- mcmc.list(mcmc(paramsamples1), mcmc(paramsamples2), mcmc(paramsamples3))
+  res_mcmc <- mcmc.list(mcmc(paramsamples1), 
+                        mcmc(paramsamples2), 
+                        mcmc(paramsamples3))
   gdiag <- data.frame(gelman.diag(res_mcmc, multivariate = F)$psrf)
   colnames(gdiag) <- c('gr', 'grUpper')
   gdiag$param <- rownames(gdiag)

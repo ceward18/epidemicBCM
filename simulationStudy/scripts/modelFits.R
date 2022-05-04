@@ -13,7 +13,6 @@ fitAlarmModel <- function(incData, infPeriod, alarmFit, smoothWindow, simNumber,
   source('./scripts/modelCodes.R')
   source('./scripts/getModelInputs.R')
   
-  
   # get appropriate model code
   modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
   

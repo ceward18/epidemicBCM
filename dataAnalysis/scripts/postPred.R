@@ -7,147 +7,45 @@ postPred <- function(incData, N, I0, R0, lengthI,
                      alarmFit, infPeriod, smoothWindow, 
                      paramsPost, alarmSamples) {
   
+  source('./scripts/modelCodesSim.R')
+  
   # want to predict out 100 days from last observed time point
   nDaysPred <- 100
   obsTime <- length(incData)
   fullTime <- obsTime + nDaysPred
   predTime <- (obsTime + 1):fullTime
   dataObs <- incData
-  
-  # constants that are the same for all models
-  S0 <- N - I0 - R0
-  tau <- length(incData) + nDaysPred
-  
+
   # model code
   modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
   
-  if (alarmFit == 'thresh') {
-    
-    n <- 50
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          S0 = S0,
-                          I0 = I0,
-                          probRstar = rep(1/lengthI, lengthI),
-                          bw = smoothWindow,
-                          lengthI = lengthI,
-                          n = n,
-                          xAlarm = xAlarm)
-    
-  } else if (alarmFit == 'hill') {
-    
-    n <- 50
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          S0 = S0,
-                          I0 = I0,
-                          probRstar = rep(1/lengthI, lengthI),
-                          bw = smoothWindow,
-                          lengthI = lengthI,
-                          n = n,
-                          xAlarm = xAlarm,
-                          maxI = maxI)
-    
-  } else if (alarmFit == 'power') {
-    
-    n <- 50
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          S0 = S0,
-                          I0 = I0,
-                          probRstar = rep(1/lengthI, lengthI),
-                          bw = smoothWindow,
-                          lengthI = lengthI,
-                          n = n,
-                          xAlarm = xAlarm)
-    
-  } else if (alarmFit == 'spline') {
-    
-    n <- 50
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    nb <- 3
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          S0 = S0,
-                          I0 = I0,
-                          probRstar = rep(1/lengthI, lengthI),
-                          bw = smoothWindow,
-                          xAlarm = xAlarm,
-                          n = n,
-                          maxI = maxI,
-                          lengthI = lengthI,
-                          nb = nb)
-    
-    initsList <- list(b = c(1, 1, 1), 
-                      knots = quantile(1:maxI, probs = c(0.3, 0.6)), 
-                      beta = 0.5)
-    
-  } else if (alarmFit == 'gp') {
-    
-    n <- 10
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)))
-    xAlarm <- seq(0, maxI, length.out = n)
-    distMat <- as.matrix(dist(matrix(xAlarm)))
-    
-    vals <- c(1, 1) # doesn't actually matter here
-    constantsList <- list(tau = tau,
-                          N = N,
-                          S0 = S0,
-                          I0 = I0,
-                          probRstar = rep(1/lengthI, lengthI),
-                          bw = smoothWindow,
-                          lengthI = lengthI,
-                          dists = distMat,
-                          mu0 = 1,
-                          ones = logit(seq(0.0001, 0.9999, length.out= n)),
-                          n = n,
-                          xAlarm = xAlarm,
-                          c = vals[1],
-                          d = vals[2])
-    
-  } else if (alarmFit == 'basic') {
-    
-    constantsList <- list(tau = tau,
-                          N = N,
-                          S0 = S0,
-                          I0 = I0,
-                          probRstar = rep(1/lengthI, lengthI),
-                          bw = smoothWindow,
-                          lengthI = lengthI)
-    
-  }
+  modelInputs <- getModelInput(alarmFit, 
+                               c(incData, rep(1, nDaysPred)), 
+                               infPeriod, smoothWindow, 
+                               N, I0, R0)
   
-  # true data and fake data during prediction interval just for initialization
-  dataList <- list(Istar = c(incData, 
-                             rep(1, nDaysPred)))
+  modelInputs$constantsList$bw <- smoothWindow
   
-
   # compile model and simulator
   if (alarmFit == 'spline') {
     # spline model needs initial values to avoid warning from NA knots
     myModelPred <- nimbleModel(modelCode, 
-                               data = dataList, 
-                               constants = constantsList,
-                               inits = initsList)
+                               data = modelInputs$dataList, 
+                               constants = modelInputs$constantsList,
+                               inits = modelInputs$initsList)
   } else {
     myModelPred <- nimbleModel(modelCode, 
-                               data = dataList, 
-                               constants = constantsList)
+                               data = modelInputs$dataList, 
+                               constants = modelInputs$constantsList)
   }
   
   compiledPred  <- compileNimble(myModelPred) 
   dataNodes <- paste0('Istar[', predTime, ']')
+  
+  if (infPeriod == 'exp') {
+    dataNodes <- c(dataNodes, paste0('Rstar[', predTime, ']'))
+  }
+  
   sim_R <- simulator(myModelPred, dataNodes)
   sim_C <- compileNimble(sim_R)
   
@@ -168,12 +66,17 @@ postPred <- function(incData, N, I0, R0, lengthI,
     betaPost <- paramsPost[postIdx,'beta']
     RstarPost <- paramsPost[postIdx,grep('Rstar', colnames(paramsPost))]
     
+    if (infPeriod == 'exp') {
+      rateIPost <- paramsPost[postIdx, 'rateI']
+    }
+    
+    
     # model specific parameters
     if (alarmFit == 'thresh') {
       
       alarmParamPost <- paramsPost[postIdx, c('delta', 'H')]
       trueVals <- c(betaPost, alarmParamPost, dataObs, RstarPost)
-     
+      
       
     } else if (alarmFit == 'hill') {
       
@@ -206,10 +109,15 @@ postPred <- function(incData, N, I0, R0, lengthI,
       
     }
     
+    # for exponential infectious period
+    if (infPeriod == 'exp') {
+      trueVals <- c(trueVals, rateIPost)
+    }
+    
     trueVals <- trueVals[parentNodes]
     
     
-    postPredInc[,j] <- apply(sim_C$run(trueVals, 10), 2, median)
+    postPredInc[,j] <- apply(sim_C$run(trueVals, 10), 2, median)[grep('Istar', dataNodes)]
   }
   
   postPredInc

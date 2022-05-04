@@ -12,17 +12,18 @@ library(nimble)
 
 # source relevant scripts
 source('./scripts/modelCodes.R')
+source('./scripts/getModelInputs.R')
 source('./scripts/postPred.R')
 source('./scripts/getWAIC.R')
 
 summarizePost <- function(resThree, incData, N, I0, R0, lengthI, 
                           alarmBase, alarmFit, infPeriod, smoothWindow) {
   
-  if (!alarmFit %in% c('betat', 'basic')) {
+  if (!alarmFit %in% c('betatSpline', 'basic')) {
     paramSamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[1]]))]
     paramSamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[2]]))]
     paramSamples3 <- resThree[[3]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[3]]))]
-  } else if (alarmFit == 'betat') {
+  } else if (alarmFit == 'betatSpline') {
     paramSamples1 <- resThree[[1]][,-grep('beta|Rstar', colnames(resThree[[1]]))]
     paramSamples2 <- resThree[[2]][,-grep('beta|Rstar', colnames(resThree[[2]]))]
     paramSamples3 <- resThree[[3]][,-grep('beta|Rstar', colnames(resThree[[3]]))]
@@ -32,21 +33,18 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
     paramSamples3 <- resThree[[3]][,-grep('Rstar', colnames(resThree[[3]])), drop = F]
   }
   
-  RstarSamples1 <-  resThree[[1]][,which(colnames(resThree[[1]]) %in% 
-                                           paste0('Rstar[', 1:lengthI,']'))]
-  RstarSamples2 <-  resThree[[2]][,which(colnames(resThree[[1]]) %in% 
-                                           paste0('Rstar[', 1:lengthI,']'))]
-  RstarSamples3 <-  resThree[[3]][,which(colnames(resThree[[1]]) %in% 
-                                           paste0('Rstar[', 1:lengthI,']'))]
+  RstarSamples1 <-  resThree[[1]][,grep('Rstar', colnames(resThree[[1]]))]
+  RstarSamples2 <-  resThree[[2]][,grep('Rstar', colnames(resThree[[2]]))]
+  RstarSamples3 <-  resThree[[3]][,grep('Rstar', colnames(resThree[[3]]))]
   
   # combine posterior parameters with posterior Rstar
   RstarPost <- rbind(RstarSamples1, RstarSamples2, RstarSamples3)
   
   ##############################################################################
   ### gelman-rubin
-  res_mcmc <- mcmc.list(mcmc(cbind(paramSamples1, RstarSamples1)), 
-                        mcmc(cbind(paramSamples2, RstarSamples2)),
-                        mcmc(cbind(paramSamples3, RstarSamples3)))
+  res_mcmc <- mcmc.list(mcmc(paramSamples1),
+                        mcmc(paramSamples2),
+                        mcmc(paramSamples3))
   gdiag <- data.frame(gelman.diag(res_mcmc, multivariate = F)$psrf)
   colnames(gdiag) <- c('gr', 'grUpper')
   gdiag$param <- rownames(gdiag)
@@ -65,7 +63,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
   
   ##############################################################################
   ### posterior distribution of alarm function 
-  if (!alarmFit %in% c('betat', 'basic')) {
+  if (!alarmFit %in% c('betatSpline', 'basic')) {
     alarmSamples1 <- t(resThree[[1]][,grep('yAlarm', colnames(resThree[[1]]))])
     alarmSamples2 <- t(resThree[[2]][,grep('yAlarm', colnames(resThree[[2]]))])
     alarmSamples3 <- t(resThree[[3]][,grep('yAlarm', colnames(resThree[[3]]))])
@@ -87,6 +85,9 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                             mean = postMeans,
                             lower = postCI[1,],
                             upper = postCI[2,])
+    
+    rownames(postAlarm) <- NULL
+    
   } else {
     postAlarm <- data.frame(xAlarm = NA, 
                             mean = NA,
@@ -96,7 +97,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
   
   ##############################################################################
   ### posterior distribution of beta[t] when estimated directly
-  if (alarmFit == 'betat') {
+  if (alarmFit == 'betatSpline') {
     betaSamples1 <- t(resThree[[1]][,grep('beta', colnames(resThree[[1]]))])
     betaSamples2 <- t(resThree[[2]][,grep('beta', colnames(resThree[[2]]))])
     betaSamples3 <- t(resThree[[3]][,grep('beta', colnames(resThree[[3]]))])
@@ -119,7 +120,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
   ### Posterior distribution of reproductive number
   ### R0 = beta(1-a) * lengthI, beta * lengthI
   
-  if (!alarmFit %in% c('betat', 'basic')) {
+  if (!alarmFit %in% c('betatSpline', 'basic')) {
     
     # want R0 by xAlarm and epidemic time
     betaSamples <- paramsPost[,'beta']
@@ -134,6 +135,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                               mean = postMeans,
                               lower = postCI[1,],
                               upper = postCI[2,])
+    rownames(postR0Alarm) <- NULL
     
     # by time
     alarmTimeSamples1 <- t(resThree[[1]][,grep('alarm', colnames(resThree[[1]]))])
@@ -144,7 +146,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
     R0Samples <- sapply(1:ncol(alarmTimeSamples), function(k)
       betaSamples[k] * (1 - alarmTimeSamples[,k]) * lengthI)
     
-  } else if (alarmFit == 'betat') {
+  } else if (alarmFit == 'betatSpline') {
     
     postR0Alarm <- data.frame(xAlarm = NA, 
                               mean = NA,
@@ -177,35 +179,43 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                        mean = postMeans,
                        lower = postCI[1,],
                        upper = postCI[2,])
+  rownames(postR0) <- NULL
   
   ##############################################################################
-  ### posterior predictive forecasting 
-  if (!alarmFit %in% c('betat')) {
-    
-    postPredInc <- postPred(incData, N, I0, R0, lengthI,
-                            alarmFit, infPeriod, smoothWindow, 
-                            cbind(paramsPost, RstarPost), alarmSamples)
-    
-    postMean <- rowMeans(postPredInc)
-    postCI <- apply(postPredInc, 1, quantile, probs = c(0.025, 0.975))
-    postEpiPred <- data.frame(time = 1:length(postMean) + length(incData),
-                              mean = postMean,
-                              lower = postCI[1,],
-                              upper = postCI[2,])
-  } else {
-    postEpiPred <- data.frame(time = NA, 
-                              mean = NA,
-                              lower = NA,
-                              upper = NA)
-  }
+  ### posterior predictive forecasting
+  
+  # not including for now as it is time consuming
+  # if (!alarmFit %in% c('betatSpline')) {
+  #   
+  #   postPredInc <- postPred(incData, N, I0, R0, lengthI,
+  #                           alarmFit, infPeriod, smoothWindow, 
+  #                           cbind(paramsPost, RstarPost), alarmSamples)
+  # 
+  #   postMean <- rowMeans(postPredInc)
+  #   postCI <- apply(postPredInc, 1, quantile, probs = c(0.025, 0.975))
+  #   postEpiPred <- data.frame(time = 1:length(postMean) + length(incData),
+  #                             mean = postMean,
+  #                             lower = postCI[1,],
+  #                             upper = postCI[2,])
+  # } else {
+  #   postEpiPred <- data.frame(time = NA, 
+  #                             mean = NA,
+  #                             lower = NA,
+  #                             upper = NA)
+  # }
+  
+  postEpiPred <- data.frame(time = NA, 
+                            mean = NA,
+                            lower = NA,
+                            upper = NA)
   
   ##############################################################################
   ### WAIC values
   
   # samples to use for WAIC calculation differ by model
-  if (alarmFit %in% c('thresh', 'hill', 'power', 'basic')) {
+  if (alarmFit %in% c('thresh', 'hill', 'power', 'basic', 'betatSpline')) {
     
-    samples <- paramsPost
+    samples <- rbind(resThree[[1]], resThree[[2]], resThree[[3]])
     
   } else if (alarmFit %in% c('gp', 'spline')) {
     
@@ -224,28 +234,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
     }
     
     
-  } else if (alarmFit == 'betat') {
-    
-    # includes Rstar, so don't need to add later
-    samples <- rbind(resThree[[1]], resThree[[2]], resThree[[3]])
-    
-    # samples needs to be log_beta to get WAIC
-    betaCols <- grep('beta', colnames(samples))
-    samples[,betaCols] <- log(samples[,betaCols])
-    colnames(samples)[betaCols] <- paste0('log_beta[', 1:length(betaCols), ']')
-  }
-  
-  if (!alarmFit %in% c('betat', 'gp', 'spline')) {
-    # need all Rstar samples (even though some are fixed)
-    RstarSamplesWAIC1 <-  resThree[[1]][,grep('Rstar', colnames(resThree[[1]]))]
-    RstarSamplesWAIC2 <-  resThree[[2]][,grep('Rstar', colnames(resThree[[2]]))]
-    RstarSamplesWAIC3 <-  resThree[[3]][,grep('Rstar', colnames(resThree[[3]]))]
-    
-    RstarPostWAIC <- rbind(RstarSamplesWAIC1, RstarSamplesWAIC2, RstarSamplesWAIC3)
-    
-    samples <- cbind(samples, RstarPostWAIC)
-  }
-  
+  } 
   
   waic <- getWAIC(samples = samples, incData = incData, 
                   N = N, I0 = I0, R0 = R0, lengthI = lengthI,
