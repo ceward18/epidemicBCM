@@ -1,0 +1,2 @@
+[1] "Running alarm: spline , peak: full , infPeriod: fixed"
+WAIC was calculated as NaN.  You may need to add monitors to model latent states, in order for a valid WAIC calculation.
