@@ -176,7 +176,7 @@ getl <- function(maxDist) {
 }
 
 # determine shape and scale for prior on rho
-myF <- function(x, min, mid,  max) {
+myF <- function(x, mid) {
   a <- x[1]; b <- x[2]
   
   # mean is b/(a - 1)
@@ -184,7 +184,7 @@ myF <- function(x, min, mid,  max) {
   
   # variance is b^2 / ((a-1)^2 * (a-2))
   distSD <- sqrt(b^2 / ((a-1)^2 * (a-2)))
-  sdEst <- (max - min) / 100
+  sdEst <- 2
   
   summat <- c(distMean - mid,
               distSD - sdEst)
@@ -263,18 +263,21 @@ RstarUpdate <- nimbleFunction(
       accept <- decide(logAcceptanceRatio)                              
       
       if (accept) {
-        model[[target]] <<- proposalValue
+        # no changes to model object needed
         currentLogProb <- proposalLogProb
+        currentValue <- proposalValue
+        
       } else {
+        # reject proposal and revert model to current state
         model[[target]] <<- currentValue
         
         # current full conditional (calculate overwrites the stored value)
         currentLogProb <- model$calculate(calcNodes) 
       }
       
-    }
+    } # end loop
     
-    # synchronize model -> mvSaved
+    # synchronize model -> mvSaved after nUpdates
     copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
     
   },

@@ -4,6 +4,8 @@ author: "Caitlin Ward"
 output: html_document
 ---
 
+# Exponential Infectious Period
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 14, fig.height = 10)
 
@@ -33,6 +35,7 @@ Number of models remaining with Gelman Rubin > 1.1.
 
 ```{r}
 grAll <- readRDS('./resultsFinal/grAll.rds')
+grAll <- grAll[grAll$infPeriod == 'exp',]
 
 # which didn't converge
 notConverge <- grAll[which(grAll$gr > 1.1),  ]
@@ -59,28 +62,30 @@ When correct parametric model was fit to the true data generation process.
 ```{r}
 ### load truth
 paramsTruth <- read.xlsx('simParamsSummary.xlsx')
-paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'fixed',]
+paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'exp',]
 
 ### wide to long
 paramsTruth <- reshape(paramsTruth, 
-  varying = c("beta", "delta", "H", "nu", "x0", "k"), 
+  varying = c("beta", "delta", "H", "nu", "x0", "k", "rateI"), 
   v.names = "truth",
   timevar = "param", 
-  times = c("beta", "delta", "H", "nu", "x0", "k"), 
+  times = c("beta", "delta", "H", "nu", "x0", "k", "rateI"), 
   new.row.names = 1:1000,
   direction = "long")
 
 paramsTruth <- paramsTruth[-which(is.na(paramsTruth$truth)),]
 paramsTruth <- paramsTruth[order(paramsTruth$alarmGen, paramsTruth$smoothWindow, paramsTruth$param),]
-paramsTruth <- paramsTruth[-which(colnames(paramsTruth) %in% c('infPeriod', 'id'))]
+paramsTruth <- paramsTruth[-which(colnames(paramsTruth) %in% c('id'))]
 
 paramsPostAll <- readRDS('./resultsFinal/paramsPostAll.rds')
+paramsPostAll <- paramsPostAll[paramsPostAll$infPeriod == 'exp',]
 
 # only keep rows where alarmGen == alarmFit
 paramsPostAll <- paramsPostAll[paramsPostAll$alarmGen == paramsPostAll$alarmFit,]
 
 # merge with truth
-paramsPostAll <- merge(paramsPostAll, paramsTruth, by = c('param', 'alarmGen', 'smoothWindow'),
+paramsPostAll <- merge(paramsPostAll, paramsTruth, by = c('param', 'alarmGen',
+                                                          'smoothWindow', 'infPeriod'),
                        all.x = T)
 
 paramsPostAll <- paramsPostAll[order(paramsPostAll$alarmGen, 
@@ -98,7 +103,8 @@ paramsPostAll <- merge(paramsPostAll, notConvergeModels,
 paramsPostAll$noConverge[is.na(paramsPostAll$noConverge)] <- 0
 
 paramsPostAll$param <- factor(paramsPostAll$param , 
-                              labels=c('beta', 'delta', 'H', 'k', 'nu', 'x[0]'))
+                              levels = c('beta', 'delta', 'H', 'k', 'nu', 'x0', 'rateI'),
+                              labels=c('beta', 'delta', 'H', 'k', 'nu', 'x[0]', 'rateI'))
 
 paramsPostAll$smoothWindow <- factor(paramsPostAll$smoothWindow , 
                                      labels=c('14-day smoothing', '30-day smoothing'))
@@ -109,7 +115,6 @@ paramsPostAll$smoothWindow <- factor(paramsPostAll$smoothWindow ,
 ### Threshold Alarm
 
 ```{r}
-### threshold alarm
 ggplot(data = subset(paramsPostAll, alarmFit == 'thresh' & noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -142,7 +147,7 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'hill' & noConverge == 0),
 
 ```{r}
 ### power alarm
-ggplot(data = subset(paramsPostAll, alarmFit == 'power' & noConverge == 0), 
+ggplot(data = subset(paramsPostAll, alarmFit == 'power' & noConverge == 0 ), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
     geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
@@ -160,7 +165,7 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'power' & noConverge == 0),
 ```{r}
 ### get parameters for true alarms
 paramsTruth <- read.xlsx('simParamsSummary.xlsx')
-paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'fixed',]
+paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'exp',]
 
 N <- 1e6
 
@@ -222,6 +227,7 @@ trueAlarms <- data.frame(xAlarm = rep(xAlarm, 6),
 
 ### load posterior estimates
 alarmAll <- readRDS('./resultsFinal/alarmPostAll.rds')
+alarmAll <- alarmAll[alarmAll$infPeriod == 'exp',]
 
 
 ### remove those that did not converge (TEMPORARY)
@@ -251,30 +257,30 @@ alarmAll$alarmFit <- factor(alarmAll$alarmFit,
 ### smoothing window 14 days
 p1 <- ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 14  & 
-                              alarmGen == 'thresh'  & noConverge == 0), 
+                              alarmGen == 'thresh'), 
               aes(x = xAlarm, y = mean, group = simNumber), 
               col = adjustcolor('grey40', alpha = 0.5)) +
     geom_line(data = subset(trueAlarms, smoothWindow == 14 & alarmGen == 'thresh'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_wrap(~alarmFit) 
+    facet_wrap(~alarmFit, scales = 'free_x') 
 
 p2 <- ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 14  & 
-                              alarmGen == 'hill'  & noConverge == 0), 
+                              alarmGen == 'hill' ), 
               aes(x = xAlarm, y = mean, group = simNumber), 
               col = adjustcolor('grey40', alpha = 0.5)) +
     geom_line(data = subset(trueAlarms, smoothWindow == 14 & alarmGen == 'hill'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_wrap(~alarmFit)
+    facet_wrap(~alarmFit, scales = 'free_x')
 
 p3 <- ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 14  & 
-                              alarmGen == 'power'  & noConverge == 0), 
+                              alarmGen == 'power' ), 
               aes(x = xAlarm, y = mean, group = simNumber), 
               col = adjustcolor('grey40', alpha = 0.5)) +
     geom_line(data = subset(trueAlarms, smoothWindow == 14 & alarmGen == 'power'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_wrap(~alarmFit)
+    facet_wrap(~alarmFit, scales = 'free_x')
 
 
 grid.arrange(p1, p2, p3, nrow = 3,
@@ -288,36 +294,35 @@ grid.arrange(p1, p2, p3, nrow = 3,
 
 p1 <- ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 30  & 
-                              alarmGen == 'thresh'  & noConverge == 0), 
+                              alarmGen == 'thresh'), 
               aes(x = xAlarm, y = mean, group = simNumber), 
               col = adjustcolor('grey40', alpha = 0.5)) +
     geom_line(data = subset(trueAlarms, smoothWindow == 30 & alarmGen == 'thresh'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_wrap(~alarmFit) 
+    facet_wrap(~alarmFit, scales = 'free_x') 
 
 p2 <- ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 30  & 
-                              alarmGen == 'hill'  & noConverge == 0), 
+                              alarmGen == 'hill' ), 
               aes(x = xAlarm, y = mean, group = simNumber), 
               col = adjustcolor('grey40', alpha = 0.5)) +
     geom_line(data = subset(trueAlarms, smoothWindow == 30 & alarmGen == 'hill'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_wrap(~alarmFit)
+    facet_wrap(~alarmFit, scales = 'free_x')
 
 p3 <- ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 30 & 
-                              alarmGen == 'power' & noConverge == 0), 
+                              alarmGen == 'power'), 
               aes(x = xAlarm, y = mean, group = simNumber), 
               col = adjustcolor('grey40', alpha = 0.5)) +
     geom_line(data = subset(trueAlarms, smoothWindow == 30 & alarmGen == 'power'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_wrap(~alarmFit) 
+    facet_wrap(~alarmFit, scales = 'free_x') 
 
 grid.arrange(p1, p2, p3, nrow = 3,
              top=textGrob("30-day smoothing", gp = gpar(fontsize = 18, font = 1)))
 
 ```
-
 
 
 ## Posterior prediction
@@ -330,12 +335,12 @@ from each scenario.
 simNumber <- 1
 
 # get true epidemic curves for each scenario
-trueCurveThresh14 <- readRDS(paste0('./Data/thresh_fixed_14.rds'))[simNumber,]
-trueCurveThresh30 <- readRDS(paste0('./Data/thresh_fixed_30.rds'))[simNumber,]
-trueCurveHill14 <- readRDS(paste0('./Data/hill_fixed_14.rds'))[simNumber,]
-trueCurveHill30 <- readRDS(paste0('./Data/hill_fixed_30.rds'))[simNumber,]
-trueCurvePower14 <- readRDS(paste0('./Data/power_fixed_14.rds'))[simNumber,]
-trueCurvePower30 <- readRDS(paste0('./Data/power_fixed_30.rds'))[simNumber,]
+trueCurveThresh14 <- readRDS(paste0('./Data/thresh_exp_14.rds'))[simNumber,]
+trueCurveThresh30 <- readRDS(paste0('./Data/thresh_exp_30.rds'))[simNumber,]
+trueCurveHill14 <- readRDS(paste0('./Data/hill_exp_14.rds'))[simNumber,]
+trueCurveHill30 <- readRDS(paste0('./Data/hill_exp_30.rds'))[simNumber,]
+trueCurvePower14 <- readRDS(paste0('./Data/power_exp_14.rds'))[simNumber,]
+trueCurvePower30 <- readRDS(paste0('./Data/power_exp_30.rds'))[simNumber,]
 
 trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 6),
                          truth = c(trueCurveThresh14, trueCurveThresh30,
@@ -348,7 +353,8 @@ trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 6),
 
 # merge with posterior predictions
 postPredAll <- readRDS('./resultsFinal/postPredAll.rds')
-postPredAll <- postPredAll[postPredAll$simNumber == simNumber,]
+postPredAll <- postPredAll[postPredAll$simNumber == simNumber &
+                             postPredAll$infPeriod == 'exp',]
 
 # format for better plotting
 postPredAll$alarmFit <- factor(postPredAll$alarmFit,
@@ -436,12 +442,12 @@ Now for second simulated epidemic
 simNumber <- 3
 
 # get true epidemic curves for each scenario
-trueCurveThresh14 <- readRDS(paste0('./Data/thresh_fixed_14.rds'))[simNumber,]
-trueCurveThresh30 <- readRDS(paste0('./Data/thresh_fixed_30.rds'))[simNumber,]
-trueCurveHill14 <- readRDS(paste0('./Data/hill_fixed_14.rds'))[simNumber,]
-trueCurveHill30 <- readRDS(paste0('./Data/hill_fixed_30.rds'))[simNumber,]
-trueCurvePower14 <- readRDS(paste0('./Data/power_fixed_14.rds'))[simNumber,]
-trueCurvePower30 <- readRDS(paste0('./Data/power_fixed_30.rds'))[simNumber,]
+trueCurveThresh14 <- readRDS(paste0('./Data/thresh_exp_14.rds'))[simNumber, 1:100]
+trueCurveThresh30 <- readRDS(paste0('./Data/thresh_exp_30.rds'))[simNumber, 1:100]
+trueCurveHill14 <- readRDS(paste0('./Data/hill_exp_14.rds'))[simNumber, 1:100]
+trueCurveHill30 <- readRDS(paste0('./Data/hill_exp_30.rds'))[simNumber, 1:100]
+trueCurvePower14 <- readRDS(paste0('./Data/power_exp_14.rds'))[simNumber, 1:100]
+trueCurvePower30 <- readRDS(paste0('./Data/power_exp_30.rds'))[simNumber, 1:100]
 
 trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 6),
                          truth = c(trueCurveThresh14, trueCurveThresh30,
@@ -455,7 +461,8 @@ trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 6),
 
 # merge with posterior predictions
 postPredAll <- readRDS('./resultsFinal/postPredAll.rds')
-postPredAll <- postPredAll[postPredAll$simNumber == simNumber,]
+postPredAll <- postPredAll[postPredAll$simNumber == simNumber &
+                             postPredAll$infPeriod == 'exp',]
 
 
 # format for better plotting
@@ -549,17 +556,17 @@ simNumber <- 1
 times <- 1:50
 
 # get true epidemic curves for each scenario
-trueCurveThresh14 <- readRDS(paste0('./Data/thresh_fixed_14.rds'))[simNumber,times]
-trueCurveThresh30 <- readRDS(paste0('./Data/thresh_fixed_30.rds'))[simNumber,times]
-trueCurveHill14 <- readRDS(paste0('./Data/hill_fixed_14.rds'))[simNumber,times]
-trueCurveHill30 <- readRDS(paste0('./Data/hill_fixed_30.rds'))[simNumber,times]
-trueCurvePower14 <- readRDS(paste0('./Data/power_fixed_14.rds'))[simNumber,times]
-trueCurvePower30 <- readRDS(paste0('./Data/power_fixed_30.rds'))[simNumber,times]
+trueCurveThresh14 <- readRDS(paste0('./Data/thresh_exp_14.rds'))[simNumber,times]
+trueCurveThresh30 <- readRDS(paste0('./Data/thresh_exp_30.rds'))[simNumber,times]
+trueCurveHill14 <- readRDS(paste0('./Data/hill_exp_14.rds'))[simNumber,times]
+trueCurveHill30 <- readRDS(paste0('./Data/hill_exp_30.rds'))[simNumber,times]
+trueCurvePower14 <- readRDS(paste0('./Data/power_exp_14.rds'))[simNumber,times]
+trueCurvePower30 <- readRDS(paste0('./Data/power_exp_30.rds'))[simNumber,times]
 
 
 # using epidemic trajectory and true parameters, find value of alarm[t]/beta[t]
 paramsTruth <- read.xlsx('simParamsSummary.xlsx')
-paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'fixed',]
+paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'exp',]
 
 N <- 1e6
 trueAlarmThresh14 <- thresholdAlarm(movingAverage(trueCurveThresh14, 14),
@@ -623,11 +630,12 @@ trueAlarmsSim <- data.frame(time = rep(times, 6),
 
 # from true alarms, get true beta[t]
 trueBeta <- trueAlarmsSim
-trueBeta$trueBeta <- 0.36 * (1 - trueBeta$trueAlarm)
+trueBeta$trueBeta <- paramsTruth$beta[1] * (1 - trueBeta$trueAlarm)
 
 ### load posterior estimates
 betaPostAll <- readRDS('./resultsFinal/betaPostAll.rds')
-betaPostAll <- betaPostAll[betaPostAll$simNumber == simNumber,]
+betaPostAll <- betaPostAll[betaPostAll$simNumber == simNumber &
+                               betaPostAll$infPeriod == 'exp',]
 
 
 ggplot() +  
@@ -653,17 +661,17 @@ simNumber <- 42
 times <- 1:50
 
 # get true epidemic curves for each scenario
-trueCurveThresh14 <- readRDS(paste0('./Data/thresh_fixed_14.rds'))[simNumber,times]
-trueCurveThresh30 <- readRDS(paste0('./Data/thresh_fixed_30.rds'))[simNumber,times]
-trueCurveHill14 <- readRDS(paste0('./Data/hill_fixed_14.rds'))[simNumber,times]
-trueCurveHill30 <- readRDS(paste0('./Data/hill_fixed_30.rds'))[simNumber,times]
-trueCurvePower14 <- readRDS(paste0('./Data/power_fixed_14.rds'))[simNumber,times]
-trueCurvePower30 <- readRDS(paste0('./Data/power_fixed_30.rds'))[simNumber,times]
+trueCurveThresh14 <- readRDS(paste0('./Data/thresh_exp_14.rds'))[simNumber,times]
+trueCurveThresh30 <- readRDS(paste0('./Data/thresh_exp_30.rds'))[simNumber,times]
+trueCurveHill14 <- readRDS(paste0('./Data/hill_exp_14.rds'))[simNumber,times]
+trueCurveHill30 <- readRDS(paste0('./Data/hill_exp_30.rds'))[simNumber,times]
+trueCurvePower14 <- readRDS(paste0('./Data/power_exp_14.rds'))[simNumber,times]
+trueCurvePower30 <- readRDS(paste0('./Data/power_exp_30.rds'))[simNumber,times]
 
 
 # using epidemic trajectory and true parameters, find value of alarm[t]/beta[t]
 paramsTruth <- read.xlsx('simParamsSummary.xlsx')
-paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'fixed',]
+paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'exp',]
 
 N <- 1e6
 trueAlarmThresh14 <- thresholdAlarm(movingAverage(trueCurveThresh14, 14),
@@ -727,11 +735,12 @@ trueAlarmsSim <- data.frame(time = rep(times, 6),
 
 # from true alarms, get true beta[t]
 trueBeta <- trueAlarmsSim
-trueBeta$trueBeta <- 0.36 * (1 - trueBeta$trueAlarm)
+trueBeta$trueBeta <- paramsTruth$beta[1] * (1 - trueBeta$trueAlarm)
 
 ### load posterior estimates
 betaPostAll <- readRDS('./resultsFinal/betaPostAll.rds')
-betaPostAll <- betaPostAll[betaPostAll$simNumber == simNumber,]
+betaPostAll <- betaPostAll[betaPostAll$simNumber == simNumber &
+                               betaPostAll$infPeriod == 'exp',]
 
 
 ggplot() +  
@@ -773,6 +782,7 @@ data point
 
 ```{r}
 waicAll <- readRDS('./resultsFinal/waicAll.rds')
+waicAll<- waicAll[waicAll$infPeriod == 'exp',]
 
 ### remove those that did not converge (TEMPORARY)
 waicAll <- merge(waicAll, notConvergeModels,
@@ -856,7 +866,8 @@ waicSelected <- ddply(waicAll, .(alarmGen, smoothWindow, simNumber), summarize,
                      selected = alarmFit[which(waic == minWAIC)])
 
 waicSelected$selected <- factor(waicSelected$selected,
-                                levels = c('thresh', 'hill', 'power', 'gp', 'spline', 'betat', 'basic'))
+                                levels = c('thresh', 'hill', 'power', 'gp', 
+                                           'spline', 'betatSpline', 'basic'))
 
 waicSelected$alarmGen <- factor(waicSelected$alarmGen,
                                 levels = c('thresh', 'hill', 'power'))

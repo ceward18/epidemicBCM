@@ -77,8 +77,8 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
                           x0 = max(rnorm(1, maxI/2, 10), 1))
         
         ### MCMC specifications
-        niter <- 600000
-        nburn <- 400000
+        niter <- 800000
+        nburn <- 600000
         nthin <- 10
         
     } else if (alarmFit == 'power') {
@@ -162,13 +162,12 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
         distMat <- as.matrix(dist(matrix(xAlarm)))
         
         uniqueDists <- distMat[lower.tri(distMat)]
-        minDist <- min(uniqueDists)
         maxDist <- max(uniqueDists)
         midDist <- getl(maxDist)
         
         # parameters of inverse gamma distribution for prior on lengthscale
         vals <- round(optim(c(3, 2), myF, lower = c(2.001, 1.001), method = 'L-BFGS-B',
-                            min = minDist, mid = midDist, max = maxDist)$par, 2)
+                            mid = midDist)$par, 2)
         
         constantsList <- list(tau = tau,
                               N = N,
@@ -197,44 +196,6 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
         nburn <- 600000
         nthin <- 10
         
-    } else if (alarmFit == 'betat') {
-        
-        ### set up grid for gaussian process of beta over epidemic time
-        distMat <- as.matrix(dist(matrix(1:tau)))
-        
-        uniqueDists <- distMat[lower.tri(distMat)]
-        minDist <- min(uniqueDists)
-        maxDist <- max(uniqueDists)
-        midDist <- getl(maxDist)
-        
-        
-        vals <- round(optim(c(3, 2), myF, lower = c(2.001, 1.001), method = 'L-BFGS-B',
-                            min = minDist, mid = midDist, max = maxDist)$par, 2)
-        
-        constantsList <- list(tau = tau,
-                              N = N,
-                              I0 = I0,
-                              lengthI = lengthI,
-                              dists = distMat,
-                              zeros = rep(0, tau),
-                              c = vals[1],
-                              d = vals[2])
-        
-        ### data
-        dataList <- list(Istar = incData)
-        
-        ### inits 
-        initsList <- list(l = rinvgamma(1, vals[1], vals[2]),
-                          sigma = rgamma(1, 100, 50))
-        
-        
-        ### MCMC specifications
-        niter <- 1200000
-        nburn <- 1000000
-        nthin <- 10
-        
-        xAlarm <- NULL
-        
     } else if (alarmFit == 'betatSpline') {
         
         ### constants
@@ -259,8 +220,8 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
         
         
         ### MCMC specifications
-        niter <- 600000
-        nburn <- 400000
+        niter <- 800000
+        nburn <- 600000
         nthin <- 10
         
         xAlarm <- NULL
@@ -280,8 +241,8 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
         
         
         ### MCMC specifications
-        niter <- 300000
-        nburn <- 100000
+        niter <- 250000
+        nburn <- 50000
         nthin <- 10
         
         xAlarm <- NULL
@@ -299,6 +260,11 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
         initsList$rateI <- rgamma(1, aa, bb)
         
     }
+    
+    ### MCMC specifications
+    niter <- 200
+    nburn <- 5
+    nthin <- 1
     
     list(constantsList = constantsList,
          dataList = dataList,

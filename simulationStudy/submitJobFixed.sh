@@ -4,10 +4,10 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
-#SBATCH --time=24:00:00
+#SBATCH --time=36:00:00
 #SBATCH --mem 64000M
 #SBATCH --partition=cpu2019
-#SBATCH --array=7-18,37-48
+#SBATCH --array=1-60
 #SBATCH --output=./out/Array.%A_%a.out
 #SBATCH --error=./err/Array.%A_%a.error
 

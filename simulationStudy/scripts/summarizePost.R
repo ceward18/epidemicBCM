@@ -96,6 +96,7 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
                             upper = NA)
   }
   
+  ##############################################################################
   ### posterior distribution of beta[t] when estimated directly
   if (alarmFit %in% c('betat', 'betatSpline')) {
     betaSamples1 <- t(resThree[[1]][,grep('beta\\[', colnames(resThree[[1]]))])
@@ -121,11 +122,14 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, infPeriod, smo
   if (!alarmFit %in% c('betat', 'betatSpline')) {
     
     if (infPeriod == 'fixed') {
-      postPredInc <- postPred(incData, alarmFit, infPeriod, smoothWindow, 
-                              paramsPost, alarmSamples)
+      postPredInc <- postPred(incData = incData, alarmFit= alarmFit, 
+                              infPeriod = infPeriod, smoothWindow = smoothWindow, 
+                              paramsPost = paramsPost, alarmSamples = alarmSamples)
     } else if (infPeriod == 'exp') {
-      postPredInc <- postPred(incData, alarmFit, infPeriod, smoothWindow, 
-                              paramsPost, alarmSamples, RstarPost)
+      postPredInc <- postPred(incData = incData, alarmFit= alarmFit, 
+                              infPeriod = infPeriod, smoothWindow = smoothWindow, 
+                              paramsPost = paramsPost, alarmSamples = alarmSamples, 
+                              RstarPost = RstarPost)
     }
     
     postMean <- rowMeans(postPredInc)

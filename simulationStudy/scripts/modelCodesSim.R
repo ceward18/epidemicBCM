@@ -182,10 +182,25 @@ SIR_thresh_fixed <-  nimbleCode({
     Rstar[1:(lengthI-1)] <- 0
     Rstar[lengthI] <- I0
     
+    ### first time point for incidence based alarm
+    # compute alarm
+    smoothI[1] <- 0
+    alarm[1] <- thresholdAlarm(smoothI[1],  N, delta, H)
+    
+    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    
+    Istar[1] ~ dbin(probSI[1], S[1])
+    Rstar[1 + lengthI] <- Istar[1]
+    
+    # update S and I
+    S[2] <- S[1] - Istar[1]
+    I[2] <- I[1] + Istar[1] - Rstar[1]
+    
     ### rest of time points
-    for(t in 1:tau) {
+    for(t in 2:tau) {
         
         # compute alarm
+        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
         alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
         
         probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)

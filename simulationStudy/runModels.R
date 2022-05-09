@@ -37,6 +37,8 @@ allFits <- allFits[-which(allFits$alarmFit %in% alarmGen &
                             allFits$alarmFit != allFits$alarmGen),]
 rownames(allFits) <- 1:nrow(allFits)
 
+tmp <- allFits[seq(1,nrow(allFits), 25),]
+# rownames(tmp) <- 1:nrow(tmp)
 
 # fit models in batches of 25 (120 batches total)
 batchSize <- 25
