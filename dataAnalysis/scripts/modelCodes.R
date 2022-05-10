@@ -183,7 +183,7 @@ myF <- function(x, min, mid,  max) {
   
   # variance is b^2 / ((a-1)^2 * (a-2))
   distSD <- sqrt(b^2 / ((a-1)^2 * (a-2)))
-  sdEst <- 10
+  sdEst <- 4
   
   summat <- c(distMean - mid,
               distSD - sdEst)
@@ -262,18 +262,21 @@ RstarUpdate <- nimbleFunction(
       accept <- decide(logAcceptanceRatio)                              
       
       if (accept) {
-        model[[target]] <<- proposalValue
+        # no changes to model object needed
         currentLogProb <- proposalLogProb
+        currentValue <- proposalValue
+        
       } else {
+        # reject proposal and revert model to current state
         model[[target]] <<- currentValue
         
         # current full conditional (calculate overwrites the stored value)
         currentLogProb <- model$calculate(calcNodes) 
       }
       
-    }
+    } # end loop
     
-    # synchronize model -> mvSaved
+    # synchronize model -> mvSaved after nUpdates
     copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
     
   },
@@ -283,7 +286,6 @@ RstarUpdate <- nimbleFunction(
 )
 
 assign('RstarUpdate', RstarUpdate, envir = .GlobalEnv)
-
 
 ################################################################################
 ### Threshold alarm models
@@ -535,6 +537,9 @@ SIR_spline_fixed <-  nimbleCode({
   
   S[1] <- S0
   I[1] <- I0
+  
+  # removal times for those initially infectious
+  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
   
   ### rest of time points
   for(t in 1:tau) {

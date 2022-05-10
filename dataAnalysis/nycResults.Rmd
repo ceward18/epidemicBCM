@@ -28,6 +28,8 @@ theme_set(theme_bw() +
                   legend.title = element_text(size = 18),
                   legend.text = element_text(size = 16)))
 
+infPeriodSpec <- 'fixed'
+
 ```
 
 
@@ -51,6 +53,7 @@ Number of models remaining with Gelman Rubin > 1.1.
 
 ```{r}
 grAll <- readRDS('./resultsFinal/grAll.rds')
+grAll <- grAll[grAll$infPeriod == infPeriodSpec,]
 
 # which didn't converge
 notConverge <- grAll[which(grAll$gr > 1.1),  ]
@@ -73,6 +76,7 @@ table(notConvergeModels$alarmFit,
 ################################################################################
 ### load posterior estimates of alarm functions
 alarmAll <- readRDS('./resultsFinal/alarmPostAll.rds')
+alarmAll <- alarmAll[alarmAll$infPeriod == infPeriodSpec,]
 
 ### remove those that did not converge (TEMPORARY)
 alarmAll <- merge(alarmAll, notConvergeModels,
@@ -90,6 +94,7 @@ alarmAll$alarmFit <- factor(alarmAll$alarmFit,
 ################################################################################
 ### load posterior estimates of R0 over epidemic time
 r0All <- readRDS('./resultsFinal/r0PostAll.rds')
+r0All <- r0All[r0All$infPeriod == infPeriodSpec,]
 
 ### remove those that did not converge (TEMPORARY)
 r0All <- merge(r0All, notConvergeModels,
@@ -100,7 +105,7 @@ r0All$noConverge[is.na(r0All$noConverge)] <- 0
 # format for better plotting
 r0All$alarmFit <- factor(r0All$alarmFit,
                          levels = c('spline', 'gp', 'thresh', 'hill', 'power',
-                                    'betat', 'basic'),
+                                    'betatSpline', 'basic'),
                          labels = c('Spline', 'Gaussian Process', 
                                     'Threshold', 'Hill', 'Power',
                                     'Beta[t]', 'Basic'))
@@ -109,25 +114,25 @@ r0All <- r0All[order(r0All$alarmFit,
                      r0All$time),]
 
 ################################################################################
-# posterior predictions
-postPredAll <- readRDS('./resultsFinal/postPredAll.rds')
-
-### remove those that did not converge (TEMPORARY)
-postPredAll <- merge(postPredAll, notConvergeModels,
-                     by = c('alarmFit', 'infPeriod', 'peak'),
-                     all.x = T)
-postPredAll$noConverge[is.na(postPredAll$noConverge)] <- 0
-
-# format for better plotting
-postPredAll$alarmFit <- factor(postPredAll$alarmFit,
-                               levels = c('spline', 'gp', 'thresh', 'hill', 
-                                          'power', 'betat',  'basic'),
-                               labels = c('Spline', 'Gaussian Process', 
-                                          'Threshold', 'Hill', 'Power',
-                                          'Beta[t]', 'Basic'))
-postPredAll <- postPredAll[order(postPredAll$alarmFit, 
-                                 postPredAll$peak, 
-                                 postPredAll$time),]
+# # posterior predictions
+# postPredAll <- readRDS('./resultsFinal/postPredAll.rds')
+# 
+# ### remove those that did not converge (TEMPORARY)
+# postPredAll <- merge(postPredAll, notConvergeModels,
+#                      by = c('alarmFit', 'infPeriod', 'peak'),
+#                      all.x = T)
+# postPredAll$noConverge[is.na(postPredAll$noConverge)] <- 0
+# 
+# # format for better plotting
+# postPredAll$alarmFit <- factor(postPredAll$alarmFit,
+#                                levels = c('spline', 'gp', 'thresh', 'hill', 
+#                                           'power', 'betat',  'basic'),
+#                                labels = c('Spline', 'Gaussian Process', 
+#                                           'Threshold', 'Hill', 'Power',
+#                                           'Beta[t]', 'Basic'))
+# postPredAll <- postPredAll[order(postPredAll$alarmFit, 
+#                                  postPredAll$peak, 
+#                                  postPredAll$time),]
 
 ################################################################################
 # format NYC data to merge with R0 and postPred - those always start at "time 1"
@@ -166,6 +171,7 @@ nycNew$timePeak4[(min(which(nycNew$peak == 4)) + 1):(max(which(nycNew$peak == 4)
 
 options(scipen=20)
 waicAll <- readRDS('./resultsFinal/waicAll.rds')
+waicAll <- waicAll[waicAll$infPeriod == infPeriodSpec,]
 
 ### remove those that did not converge (TEMPORARY)
 waicAll <- merge(waicAll, notConvergeModels,
@@ -220,21 +226,6 @@ ggplot(r0Peak1, aes(x = date, y = mean)) +
   geom_hline(yintercept = 1, linetype = 2)
 ```
 
-#### Posterior Prediction
-
-Predicted out 100 days after each peak.
-
-```{r}
-ggplot() +
-  geom_line(data = nycNew, aes(x = timePeak1, y = smoothedCases)) + 
-  geom_line(data = subset(postPredAll, peak == '1' & noConverge == 0),
-            aes(x = time, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= subset(postPredAll, peak == '1' & noConverge == 0),
-              aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  facet_wrap(~alarmFit, nrow = 1)+
-  ylim(0, 6000)
-
-```
 
 #### WAIC
 
@@ -283,21 +274,6 @@ ggplot(r0Peak2, aes(x = date, y = mean)) +
   geom_hline(yintercept = 1, linetype = 2)
 ```
 
-#### Posterior Prediction
-
-Predicted out 100 days after each peak.
-
-```{r}
-ggplot() +
-  geom_line(data = nycNew, aes(x = timePeak2, y = smoothedCases)) + 
-  geom_line(data = subset(postPredAll, peak == '2' & noConverge == 0),
-            aes(x = time, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= subset(postPredAll, peak == '2' & noConverge == 0),
-              aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  facet_wrap(~alarmFit, nrow = 1)+
-  ylim(0, 6000)
-
-```
 
 #### WAIC
 
@@ -346,34 +322,6 @@ ggplot(r0Peak3, aes(x = date, y = mean)) +
   geom_hline(yintercept = 1, linetype = 2)
 ```
 
-#### Posterior Prediction
-
-Predicted out 100 days after each peak.
-
-```{r}
-ggplot() +
-  geom_line(data = nycNew, aes(x = timePeak3, y = smoothedCases)) + 
-  geom_line(data = subset(postPredAll, peak == '3' & noConverge == 0),
-            aes(x = time, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= subset(postPredAll, peak == '3' & noConverge == 0),
-              aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  facet_wrap(~alarmFit, nrow = 1)
-
-```
-
-Zoomed in 
-
-```{r}
-ggplot() +
-  geom_line(data = nycNew, aes(x = timePeak3, y = smoothedCases)) + 
-  geom_line(data = subset(postPredAll, peak == '3' & noConverge == 0),
-            aes(x = time, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= subset(postPredAll, peak == '3' & noConverge == 0),
-              aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  facet_wrap(~alarmFit, nrow = 1) +
-  ylim(0, 6000)
-
-```
 
 #### WAIC
 
@@ -422,21 +370,6 @@ ggplot(r0Peak4, aes(x = date, y = mean)) +
   geom_hline(yintercept = 1, linetype = 2)
 ```
 
-#### Posterior Prediction
-
-Predicted out 100 days after each peak.
-
-```{r}
-ggplot() +
-  geom_line(data = nycNew, aes(x = timePeak4, y = smoothedCases)) + 
-  geom_line(data = subset(postPredAll, peak == '4' & noConverge == 0),
-            aes(x = time, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= subset(postPredAll, peak == '4' & noConverge == 0),
-              aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  facet_wrap(~alarmFit, nrow = 1)
-
-```
-
 #### WAIC
 
 ```{r}
@@ -483,21 +416,6 @@ ggplot(r0PeakFull, aes(x = date, y = mean)) +
   geom_hline(yintercept = 1, linetype = 2)
 ```
 
-#### Posterior Prediction
-
-Predicted out 100 days after each peak.
-
-```{r}
-ggplot() +
-  geom_line(data = nycNew, aes(x = timeFull, y = smoothedCases)) + 
-  geom_line(data = subset(postPredAll, peak == 'full' & noConverge == 0),
-            aes(x = time, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= subset(postPredAll, peak == 'full' & noConverge == 0),
-              aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  facet_wrap(~alarmFit, nrow = 1)+
-  ylim(0, 6000)
-
-```
 
 #### WAIC
 
@@ -507,6 +425,7 @@ kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))],
       row.names = F)  %>% 
   kable_styling()
 ```
+
 
 ## All together
 
@@ -524,10 +443,6 @@ ggplot(subset(alarmAll, noConverge == 0), aes(x = xAlarm, y = mean,
 #### Estimated R0 Functions
 
 ```{r}
-r0Peak3 <- subset(r0All, peak == '3' & noConverge == 0)
-r0Peak3 <- merge(r0Peak3, nycNew, 
-                 by.x = 'time', by.y = 'timePeak3', 
-                 all.x = T)
 
 r0PeakAll <- rbind.fill(r0Peak1, r0Peak2, r0Peak3, r0Peak4, r0PeakFull)
 
@@ -537,75 +452,6 @@ ggplot(r0PeakAll, aes(x = date, y = mean, group = alarmFit)) +
   facet_wrap(~peak.x, nrow = 2, scales = 'free') +
   labs(x = 'Date', y = 'R0', col = 'Alarm', fill = 'Alarm') + 
   geom_hline(yintercept = 1, linetype = 2)
-```
-
-#### Posterior Prediction
-
-Predicted out 100 days after each peak.
-
-```{r}
-predPeak1 <- subset(postPredAll, peak == '1' & noConverge == 0)
-predPeak1 <- merge(predPeak1, nycNew, 
-                   by.x = 'time', by.y = 'timePeak1', 
-                   all.x = T)
-
-predPeak2 <- subset(postPredAll, peak == '2' & noConverge == 0)
-predPeak2 <- merge(predPeak2, nycNew, 
-                   by.x = 'time', by.y = 'timePeak2', 
-                   all.x = T)
-
-predPeak3 <- subset(postPredAll, peak == '3' & noConverge == 0)
-predPeak3 <- merge(predPeak3, nycNew, 
-                   by.x = 'time', by.y = 'timePeak3', 
-                   all.x = T)
-
-predPeak4 <- subset(postPredAll, peak == '4' & noConverge == 0)
-predPeak4 <- merge(predPeak4, nycNew, 
-                   by.x = 'time', by.y = 'timePeak4', 
-                   all.x = T)
-
-ggplot() +
-  geom_line(data = nycNew, aes(x = date, y = smoothedCases)) + 
-  geom_line(data = predPeak1, aes(x = date, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= predPeak1,
-              aes(x = date, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  geom_line(data = predPeak2, aes(x = date, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= predPeak2,
-              aes(x = date, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  geom_line(data = predPeak3, aes(x = date, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= predPeak3,
-              aes(x = date, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  geom_line(data = predPeak4, aes(x = date, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data= predPeak4,
-              aes(x = date, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  facet_wrap(~alarmFit, nrow = 2) +
-  ylim(0, 6000)
-
-```
-
-
-```{r}
-ggplot() +
-  geom_line(data = nycNew, aes(x = date, y = smoothedCases)) + 
-  geom_line(data = subset(predPeak1, alarmFit %in% c('Gaussian Process', 'Basic')), 
-            aes(x = date, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data = subset(predPeak1, alarmFit %in% c('Gaussian Process', 'Basic')),
-              aes(x = date, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  geom_line(data = subset(predPeak2, alarmFit %in% c('Gaussian Process', 'Basic')), 
-            aes(x = date, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data = subset(predPeak2, alarmFit %in% c('Gaussian Process', 'Basic')),
-              aes(x = date, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  geom_line(data = subset(predPeak3, alarmFit %in% c('Gaussian Process', 'Basic')),
-            aes(x = date, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data = subset(predPeak3, alarmFit %in% c('Gaussian Process', 'Basic')),
-              aes(x = date, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  geom_line(data = subset(predPeak4, alarmFit %in% c('Gaussian Process', 'Basic')), 
-            aes(x = date, y = mean), col = 'red', size = 1) + 
-  geom_ribbon(data = subset(predPeak4, alarmFit %in% c('Gaussian Process', 'Basic')),
-              aes(x = date, ymin=lower, ymax=upper), alpha=0.3, fill = 'red') +
-  facet_wrap(~alarmFit, nrow = 1) +
-  ylim(0, 8000)
-
 ```
 
 

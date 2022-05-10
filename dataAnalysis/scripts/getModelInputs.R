@@ -46,7 +46,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
         ### inits
         initsList <- list(beta = runif(1, 1/7, 1),
                           delta = runif(1, 0, 1),
-                          H = runif(1, 0, maxI/N/3))
+                          H = runif(1, 0, maxI/N/4))
         
         ### MCMC specifications
         niter <- 800000
