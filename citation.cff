@@ -1,9 +1,18 @@
-cff-version: 1.0.0
-message: "If you use this software, please cite it as below."
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: epidemicBCM
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
 authors:
-  - family-names: Ward
-    given-names: Caitlin
-    orcid: https://orcid.org/0000-0002-0806-0222
-title: "ceward18/epidemicBCM"
+  - given-names: Caitlin
+    family-names: Ward
+    email: caitlin.ward@ucalgary.ca
+    affiliation: University of Calgary
+    orcid: 'https://orcid.org/0000-0002-0806-0222'
+repository: 'https://github.com/ceward18/epidemicBCM'
 version: 1.0.0
-date-released: 2022-05-11
+date-released: '2022-05-11'
