@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
-#SBATCH --time=120:00:00
+#SBATCH --time=144:00:00
 #SBATCH --mem 64000M
 #SBATCH --partition=cpu2019
 #SBATCH --array=8-14
