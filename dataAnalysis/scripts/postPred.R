@@ -7,7 +7,7 @@ postPred <- function(incData, N, I0, R0, lengthI,
                      alarmFit, infPeriod, smoothWindow, 
                      paramsPost, alarmSamples) {
   
-  source('./scripts/modelCodesSim.R')
+  source('../scripts/modelCodesSim.R')
   
   # want to predict out 100 days from last observed time point
   nDaysPred <- 100
@@ -22,7 +22,7 @@ postPred <- function(incData, N, I0, R0, lengthI,
   modelInputs <- getModelInput(alarmFit, 
                                c(incData, rep(1, nDaysPred)), 
                                infPeriod, smoothWindow, 
-                               N, I0, R0)
+                               N, I0, R0, lengthI)
   
   modelInputs$constantsList$bw <- smoothWindow
   

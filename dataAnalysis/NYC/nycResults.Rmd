@@ -18,7 +18,7 @@ library(scales)
 library(kableExtra)
 
 # functions to calculate the alarms
-source('./scripts/modelCodes.R')
+source('../scripts/modelCodes.R')
 
 theme_set(theme_bw() + 
             theme(strip.background = element_rect(fill = 'white'),
@@ -250,7 +250,7 @@ ggplot(subset(nyc, peak== '2'), aes(x = date, y = smoothedCases)) +
 #### Estimated Alarm Functions
 
 ```{r}
-ggplot(subset(alarmAll, peak== '2' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+ggplot(subset(alarmAll, peak== '2' ), aes(x = xAlarm, y = mean)) +  
   geom_line() +
   geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
   facet_wrap(~alarmFit, nrow = 1) +

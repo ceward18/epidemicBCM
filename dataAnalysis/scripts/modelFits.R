@@ -10,8 +10,8 @@
 fitAlarmModel <- function(incData, N, I0, R0, lengthI,
                           infPeriod, alarmFit, smoothWindow, seed) {
   
-  source('./scripts/modelCodes.R')
-  source('./scripts/getModelInputs.R')
+  source('../scripts/modelCodes.R')
+  source('../scripts/getModelInputs.R')
   
   # get appropriate model code
   modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
@@ -21,7 +21,7 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
 
   # model-specific constants, data, and inits
   modelInputs <- getModelInput(alarmFit, incData, infPeriod, smoothWindow, 
-                               N, I0, R0)
+                               N, I0, R0, lengthI)
   
   ### MCMC specifications
   niter <- modelInputs$niter

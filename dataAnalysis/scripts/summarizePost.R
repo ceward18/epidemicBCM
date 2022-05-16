@@ -11,10 +11,10 @@ library(coda)
 library(nimble)
 
 # source relevant scripts
-source('./scripts/modelCodes.R')
-source('./scripts/getModelInputs.R')
-source('./scripts/postPred.R')
-source('./scripts/getWAIC.R')
+source('../scripts/modelCodes.R')
+source('../scripts/getModelInputs.R')
+source('../scripts/postPred.R')
+source('../scripts/getWAIC.R')
 
 summarizePost <- function(resThree, incData, N, I0, R0, lengthI, 
                           alarmBase, alarmFit, infPeriod, smoothWindow) {
@@ -126,8 +126,17 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
     betaSamples <- paramsPost[,'beta']
     
     # by xAlarm
-    R0SamplesAlarm <- sapply(1:ncol(alarmSamples), function(k)
-      betaSamples[k] * (1 - alarmSamples[,k]) * lengthI)
+    if (infPeriod == 'fixed') {
+      R0SamplesAlarm <- sapply(1:ncol(alarmSamples), function(k)
+        betaSamples[k] * (1 - alarmSamples[,k]) * lengthI)
+    } else {
+      
+      rateISamples <- paramsPost[,'rateI']
+      
+      R0SamplesAlarm <- sapply(1:ncol(alarmSamples), function(k)
+        betaSamples[k] * (1 - alarmSamples[,k]) / rateISamples[k])
+    }
+    
     
     postMeans <- rowMeans(R0SamplesAlarm)
     postCI <- apply(R0SamplesAlarm, 1, quantile, probs = c(0.025, 0.975))
@@ -143,8 +152,14 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
     alarmTimeSamples3 <- t(resThree[[3]][,grep('alarm', colnames(resThree[[3]]))])
     alarmTimeSamples <- cbind(alarmTimeSamples1, alarmTimeSamples2, alarmTimeSamples3)
     
-    R0Samples <- sapply(1:ncol(alarmTimeSamples), function(k)
-      betaSamples[k] * (1 - alarmTimeSamples[,k]) * lengthI)
+    if (infPeriod == 'fixed') {
+      R0Samples <- sapply(1:ncol(alarmTimeSamples), function(k)
+        betaSamples[k] * (1 - alarmTimeSamples[,k]) * lengthI)
+    } else {
+      R0Samples <- sapply(1:ncol(alarmTimeSamples), function(k)
+        betaSamples[k] * (1 - alarmTimeSamples[,k]) / rateISamples[k])
+    }
+    
     
   } else if (alarmFit == 'betatSpline') {
     
@@ -154,7 +169,13 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                               upper = NA)
     
     # beta samples already calculated (matrix)
-    R0Samples <- betaSamples * lengthI
+    # each row is a time point, each column is an iteration
+    if (infPeriod == 'fixed') {
+      R0Samples <- betaSamples * lengthI
+    } else {
+      rateISamples <- paramsPost[,'rateI']
+      R0Samples <- t(t(betaSamples) / rateISamples)
+    }
     
   } else if (alarmFit == 'basic') {
     
@@ -164,7 +185,13 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
                               upper = NA)
     
     betaSamples <- paramsPost[,'beta']
-    R0Samples <- betaSamples * lengthI
+    
+    if (infPeriod == 'fixed') {
+      R0Samples <- betaSamples * lengthI
+    } else {
+      rateISamples <- paramsPost[,'rateI']
+      R0Samples <- betaSamples / rateISamples
+    }
     
     R0Samples <- matrix(rep(R0Samples, length(incData)),
                         nrow = length(incData),

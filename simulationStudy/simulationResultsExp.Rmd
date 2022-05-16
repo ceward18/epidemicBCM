@@ -104,7 +104,7 @@ paramsPostAll$noConverge[is.na(paramsPostAll$noConverge)] <- 0
 
 paramsPostAll$param <- factor(paramsPostAll$param , 
                               levels = c('beta', 'delta', 'H', 'k', 'nu', 'x0', 'rateI'),
-                              labels=c('beta', 'delta', 'H', 'k', 'nu', 'x[0]', 'rateI'))
+                              labels=c('beta', 'delta', 'H', 'k', 'nu', 'x[0]', 'gamma'))
 
 paramsPostAll$smoothWindow <- factor(paramsPostAll$smoothWindow , 
                                      labels=c('14-day smoothing', '30-day smoothing'))
@@ -333,14 +333,15 @@ from each scenario.
 ```{r}
 
 simNumber <- 1
+nDays <- 100
 
 # get true epidemic curves for each scenario
-trueCurveThresh14 <- readRDS(paste0('./Data/thresh_exp_14.rds'))[simNumber,]
-trueCurveThresh30 <- readRDS(paste0('./Data/thresh_exp_30.rds'))[simNumber,]
-trueCurveHill14 <- readRDS(paste0('./Data/hill_exp_14.rds'))[simNumber,]
-trueCurveHill30 <- readRDS(paste0('./Data/hill_exp_30.rds'))[simNumber,]
-trueCurvePower14 <- readRDS(paste0('./Data/power_exp_14.rds'))[simNumber,]
-trueCurvePower30 <- readRDS(paste0('./Data/power_exp_30.rds'))[simNumber,]
+trueCurveThresh14 <- readRDS(paste0('./Data/thresh_exp_14.rds'))[simNumber,1:nDays]
+trueCurveThresh30 <- readRDS(paste0('./Data/thresh_exp_30.rds'))[simNumber,1:nDays]
+trueCurveHill14 <- readRDS(paste0('./Data/hill_exp_14.rds'))[simNumber,1:nDays]
+trueCurveHill30 <- readRDS(paste0('./Data/hill_exp_30.rds'))[simNumber,1:nDays]
+trueCurvePower14 <- readRDS(paste0('./Data/power_exp_14.rds'))[simNumber,1:nDays]
+trueCurvePower30 <- readRDS(paste0('./Data/power_exp_30.rds'))[simNumber,1:nDays]
 
 trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 6),
                          truth = c(trueCurveThresh14, trueCurveThresh30,

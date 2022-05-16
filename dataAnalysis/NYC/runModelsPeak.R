@@ -15,7 +15,6 @@ nyc <- read.csv('./Data/nycClean.csv')
 
 peak <- c('1', '2', '3', '4')
 alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betatSpline', 'basic')
-infPeriod <- 'fixed'
 
 # 56 possibilities (7 alarmFits, 4 peaks, 2 infPeriods)
 allModelsFixed <- expand.grid(peak = peak,
@@ -29,7 +28,7 @@ allModels <- rbind.data.frame(allModelsFixed, allModelsExp)
 
 # constants for all models
 N <- nyc$Population[1]
-lengthI <- 7
+lengthI <- 5
 smoothWindow <- 30
 
 # batches by alarmFit (7 batches total)
@@ -66,7 +65,7 @@ for (i in batchIdx) {
     
     # currently infectious
     I0 <- sum(nyc$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
-    R0 <- nyc$cumulativeCases[idxStart] - I0
+    R0 <- nyc$cumulativeCases[idxStart-1] - I0
     
     
     # run three chains in parallel
@@ -79,7 +78,7 @@ for (i in batchIdx) {
         library(nimble)
         
         # source relevant scripts
-        source('./scripts/modelFits.R')
+        source('../scripts/modelFits.R')
         
         fitAlarmModel(incData = incData, N = N, I0 = I0, R0 = R0, 
                       lengthI = lengthI, infPeriod = infPeriod_i, 
@@ -89,8 +88,7 @@ for (i in batchIdx) {
     })
     stopCluster(cl)
     
-    
-    source('./scripts/summarizePost.R')
+    source('../scripts/summarizePost.R')
     
     # debugonce(summarizePost)
     postSummaries <- summarizePost(resThree = resThree, incData = incData,

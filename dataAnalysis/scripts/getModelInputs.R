@@ -7,19 +7,17 @@
 
 
 getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
-                          N, I0, R0) {
+                          N, I0, R0, lengthI) {
     
     # constants that are the same for all models
     S0 <- N - I0 - R0
     tau <- length(incData)
     
-    # for fixed infectious period
-    lengthI <- 7
-    
     # for exponential infectious period
     # puts 95% probability of mean infectious period between 6 and 8 days
-    bb <- 1350
-    aa <- 1/7*bb
+    bb <- 500
+    aa <- 1/5*bb
+    # pgamma(1/4, aa, bb) - pgamma(1/6, aa, bb)
     
     if (alarmFit == 'thresh') {
         
@@ -264,7 +262,6 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
         xAlarm <- NULL
         
     }
-    
     
     # adjust specs if model is exponential infectious period
     if (infPeriod == 'exp') {
