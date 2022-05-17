@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=6
 #SBATCH --time=96:00:00
 #SBATCH --mem 64000M
-#SBATCH --partition=cpu2019
+#SBATCH --partition=cpu2021
 #SBATCH --array=1-3,7-10,14
 #SBATCH --output=./out/Array.%A_%a.out
 #SBATCH --error=./err/Array.%A_%a.error
