@@ -1,6 +1,6 @@
 #!/bin/bash
 ####### Reserve computing resources #############
-#SBATCH --job-name=BCM_NYC
+#SBATCH --job-name=BCM_Montreal
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6

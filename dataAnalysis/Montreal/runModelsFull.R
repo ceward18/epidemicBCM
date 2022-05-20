@@ -49,7 +49,7 @@ incData <- incData[-c(1:idxStart)]
 
 # currently infectious
 I0 <- sum(montreal$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
-R0 <- montreal$cumulativeCases[idxStart] - I0
+R0 <- montreal$cumulativeCases[idxStart-1] - I0
 
 # run three chains in parallel
 cl <- makeCluster(3)
