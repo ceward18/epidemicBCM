@@ -1,5 +1,5 @@
 ################################################################################
-# Run models by peak for NYC
+# Run models by peak for montreal
 # for each peak run 7 different models
 #   thresh, hill, power, gp, spline, betat, basic
 ################################################################################
@@ -11,8 +11,8 @@ idx <- as.numeric(task_id)
 library(parallel)
 
 ### read data
-nyc <- read.csv('./Data/nycClean.csv')
-nyc <- nyc[1:745,]
+montreal <- read.csv('./Data/montrealClean.csv')
+montreal <- montreal[1:max(which(montreal$peak == 5)),]
 
 peak <- c('full')
 alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betatSpline', 'basic')
@@ -28,8 +28,8 @@ allModelsExp <- expand.grid(peak = peak,
 allModels <- rbind.data.frame(allModelsFixed, allModelsExp)
 
 # constants for all models
-N <- nyc$Population[1]
-lengthI <- 7
+N <- montreal$Population[1]
+lengthI <- 5
 smoothWindow <- 30
 
 peak_i <- allModels$peak[idx]
@@ -41,15 +41,15 @@ print(paste('Running alarm:', alarmFit_i,
             ', infPeriod:', infPeriod_i))
 
 # get data 
-incData <- nyc$smoothedCases
+incData <- montreal$smoothedCases
 
 # initialize current number of infectious and removed individuals
 idxStart <- 5
 incData <- incData[-c(1:idxStart)]
 
 # currently infectious
-I0 <- sum(nyc$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
-R0 <- nyc$cumulativeCases[idxStart] - I0
+I0 <- sum(montreal$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
+R0 <- montreal$cumulativeCases[idxStart] - I0
 
 # run three chains in parallel
 cl <- makeCluster(3)
