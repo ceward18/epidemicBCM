@@ -44,7 +44,7 @@ print(paste('Running alarm:', alarmFit_i,
 incData <- montreal$smoothedCases
 
 # initialize current number of infectious and removed individuals
-idxStart <- 5
+idxStart <- 15
 incData <- incData[-c(1:idxStart)]
 
 # currently infectious

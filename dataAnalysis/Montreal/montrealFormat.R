@@ -30,6 +30,7 @@ movingAverage <- function(x, bw) {
 
 ### Read in data from Montreal website
 montreal <-read.csv2("https://santemontreal.qc.ca/fileadmin/fichiers/Campagnes/coronavirus/situation-montreal/courbe.csv") 
+montreal <- montreal[!is.na(montreal$Nouveaux.cas),]
 
 montreal <- montreal[,c('Date', 'Nouveaux.cas')]
 colnames(montreal) <- c('date', 'dailyCases')

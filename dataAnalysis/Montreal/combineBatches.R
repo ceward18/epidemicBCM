@@ -3,7 +3,6 @@
 ################################################################################
 
 library(nimble)
-source('./scripts/modelCodes.R')
 
 outputFiles <- list.files('./Output')
 
@@ -41,24 +40,6 @@ alarmAll <- alarmAll[!is.na(alarmAll$mean),]
 rownames(alarmAll) <- NULL
 
 saveRDS(alarmAll, './resultsFinal/alarmPostAll.rds')
-
-################################################################################
-# posterior predictions
-
-postPredFiles <- outputFiles[grep('epiPredPost', outputFiles)]
-
-postPredAll <- readRDS(paste0('./Output/', postPredFiles[1]))
-
-for (i in 2:length(postPredFiles)) {
-    postPred_i <- readRDS(paste0('./Output/', postPredFiles[i]))
-    postPredAll <-rbind.data.frame(postPredAll, postPred_i)
-}
-
-# remove models that didn't estimate posterior predictions (betat)
-postPredAll <- postPredAll[!is.na(postPredAll$mean),]
-
-
-saveRDS(postPredAll, './resultsFinal/postPredAll.rds')
 
 ################################################################################
 # posterior parameters 

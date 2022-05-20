@@ -1,5 +1,5 @@
 ---
-title: "New York City BCM Analysis"
+title: "Montreal BCM Analysis"
 author: "Caitlin Ward"
 output: html_document
 ---
@@ -37,10 +37,10 @@ infPeriodSpec <- 'exp'
 
 ```{r}
 ### read data
-nyc <- read.csv('./Data/nycClean.csv')
-nyc$date <- as.Date(nyc$date)
+montreal <- read.csv('./Data/montrealClean.csv')
+montreal$date <- as.Date(montreal$date)
 
-ggplot(nyc, aes(x = date, y = smoothedCases, col = factor(peak))) +
+ggplot(montreal, aes(x = date, y = smoothedCases, col = factor(peak))) +
   geom_point() + 
   labs(col = "Peak", x = "Date", y = "Incidence")
 
@@ -114,57 +114,37 @@ r0All <- r0All[order(r0All$alarmFit,
                      r0All$time),]
 
 ################################################################################
-# # posterior predictions
-# postPredAll <- readRDS('./resultsFinal/postPredAll.rds')
-# 
-# ### remove those that did not converge (TEMPORARY)
-# postPredAll <- merge(postPredAll, notConvergeModels,
-#                      by = c('alarmFit', 'infPeriod', 'peak'),
-#                      all.x = T)
-# postPredAll$noConverge[is.na(postPredAll$noConverge)] <- 0
-# 
-# # format for better plotting
-# postPredAll$alarmFit <- factor(postPredAll$alarmFit,
-#                                levels = c('spline', 'gp', 'thresh', 'hill', 
-#                                           'power', 'betat',  'basic'),
-#                                labels = c('Spline', 'Gaussian Process', 
-#                                           'Threshold', 'Hill', 'Power',
-#                                           'Beta[t]', 'Basic'))
-# postPredAll <- postPredAll[order(postPredAll$alarmFit, 
-#                                  postPredAll$peak, 
-#                                  postPredAll$time),]
-
-################################################################################
-# format NYC data to merge with R0 and postPred - those always start at "time 1"
+# format montreal data to merge with R0 - those always start at "time 1"
 
 # add 100 empty
-nycNew <- nyc
-nycNew[nrow(nycNew)+100,] <- NA
+montrealNew <- montreal
 
-# add dates to extended rows
-nycNew$date[(nrow(nycNew)-99):nrow(nycNew)] <- seq(nycNew$date[nrow(nycNew)-100]+1,
-                                                   nycNew$date[nrow(nycNew)-100] + 100,
-                                                   1)
+idxStart <- 15
 
-nycNew$timeFull <- 1:nrow(nycNew)-5
-nycNew$timeFull[1:5] <- NA
-nycNew$timePeak4 <- nycNew$timePeak3 <- nycNew$timePeak2 <- nycNew$timePeak1 <- NA
+montrealNew$timeFull <- 1:nrow(montrealNew)-idxStart
+montrealNew$timeFull[1:idxStart] <- NA
+montrealNew$timePeak5 <- montrealNew$timePeak4 <- montrealNew$timePeak3 <- 
+    montrealNew$timePeak2 <- montrealNew$timePeak1 <- NA
 
 # peak 1 time 1 is row 6
-nycNew$timePeak1[6:(max(which(nycNew$peak == 1)) + 99)] <- 
-  1:(max(which(nycNew$peak == 1)) + 99 - 5)
+montrealNew$timePeak1[6:(max(which(montrealNew$peak == 1)) + 99)] <-
+  1:(max(which(montrealNew$peak == 1)) + 99 - 5)
 
-nycNew$timePeak2[(min(which(nycNew$peak == 2)) + 1):(max(which(nycNew$peak == 2)) + 99)] <-
-  (min(which(nycNew$peak == 2)) + 1):(max(which(nycNew$peak == 2)) + 99) -
-  min(which(nycNew$peak == 2)) 
+montrealNew$timePeak2[(min(which(montrealNew$peak == 2)) + 1):(max(which(montrealNew$peak == 2)) + 99)] <-
+  (min(which(montrealNew$peak == 2)) + 1):(max(which(montrealNew$peak == 2)) + 99) -
+  min(which(montrealNew$peak == 2))
 
-nycNew$timePeak3[(min(which(nycNew$peak == 3)) + 1):(max(which(nycNew$peak == 3)) + 99)] <-
-  (min(which(nycNew$peak == 3)) + 1):(max(which(nycNew$peak == 3)) + 99) -
-  min(which(nycNew$peak == 3))
+montrealNew$timePeak3[(min(which(montrealNew$peak == 3)) + 1):(max(which(montrealNew$peak == 3)) + 99)] <-
+  (min(which(montrealNew$peak == 3)) + 1):(max(which(montrealNew$peak == 3)) + 99) -
+  min(which(montrealNew$peak == 3))
 
-nycNew$timePeak4[(min(which(nycNew$peak == 4)) + 1):(max(which(nycNew$peak == 4)) + 99)] <-
-  (min(which(nycNew$peak == 4)) + 1):(max(which(nycNew$peak == 4)) + 99) -
-  min(which(nycNew$peak == 4)) 
+montrealNew$timePeak4[(min(which(montrealNew$peak == 4)) + 1):(max(which(montrealNew$peak == 4)) + 99)] <-
+  (min(which(montrealNew$peak == 4)) + 1):(max(which(montrealNew$peak == 4)) + 99) -
+  min(which(montrealNew$peak == 4))
+
+montrealNew$timePeak5[(min(which(montrealNew$peak == 5)) + 1):(max(which(montrealNew$peak == 5)) + 99)] <-
+  (min(which(montrealNew$peak == 5)) + 1):(max(which(montrealNew$peak == 5)) + 99) -
+  min(which(montrealNew$peak == 5))
 
 ################################################################################
 # WAIC
@@ -194,7 +174,7 @@ waicAll$pWAIC <- round(waicAll$pWAIC, 2)
 #### Data
 
 ```{r}
-ggplot(subset(nyc, peak== '1'), aes(x = date, y = smoothedCases)) +
+ggplot(subset(montreal, peak== '1'), aes(x = date, y = smoothedCases)) +
   geom_line() + 
   labs(x = "Date", y = "Incidence")
 ```
@@ -213,7 +193,7 @@ ggplot(subset(alarmAll, peak== '1' & noConverge == 0), aes(x = xAlarm, y = mean)
 
 ```{r}
 r0Peak1 <- subset(r0All, peak == '1' & noConverge == 0)
-r0Peak1 <- merge(r0Peak1, nycNew, 
+r0Peak1 <- merge(r0Peak1, montrealNew, 
                  by.x = 'time', by.y = 'timePeak1', 
                  all.x = T)
 
@@ -241,7 +221,7 @@ kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))],
 #### Data
 
 ```{r}
-ggplot(subset(nyc, peak== '2'), aes(x = date, y = smoothedCases)) +
+ggplot(subset(montreal, peak== '2'), aes(x = date, y = smoothedCases)) +
   geom_line() + 
   labs(x = "Date", y = "Incidence")
 ```
@@ -260,7 +240,7 @@ ggplot(subset(alarmAll, peak== '2' ), aes(x = xAlarm, y = mean)) +
 
 ```{r}
 r0Peak2 <- subset(r0All, peak == '2' & noConverge == 0)
-r0Peak2 <- merge(r0Peak2, nycNew, 
+r0Peak2 <- merge(r0Peak2, montrealNew, 
                  by.x = 'time', by.y = 'timePeak2', 
                  all.x = T)
 
@@ -289,7 +269,7 @@ kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))],
 #### Data
 
 ```{r}
-ggplot(subset(nyc, peak== '3'), aes(x = date, y = smoothedCases)) +
+ggplot(subset(montreal, peak== '3'), aes(x = date, y = smoothedCases)) +
   geom_line() + 
   labs(x = "Date", y = "Incidence")
 ```
@@ -308,7 +288,7 @@ ggplot(subset(alarmAll, peak== '3' & noConverge == 0), aes(x = xAlarm, y = mean)
 
 ```{r}
 r0Peak3 <- subset(r0All, peak == '3' & noConverge == 0)
-r0Peak3 <- merge(r0Peak3, nycNew, 
+r0Peak3 <- merge(r0Peak3, montrealNew, 
                  by.x = 'time', by.y = 'timePeak3', 
                  all.x = T)
 
@@ -337,7 +317,7 @@ kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))],
 #### Data
 
 ```{r}
-ggplot(subset(nyc, peak== '4'), aes(x = date, y = smoothedCases)) +
+ggplot(subset(montreal, peak== '4'), aes(x = date, y = smoothedCases)) +
   geom_line() + 
   labs(x = "Date", y = "Incidence")
 ```
@@ -356,7 +336,7 @@ ggplot(subset(alarmAll, peak== '4' & noConverge == 0), aes(x = xAlarm, y = mean)
 
 ```{r}
 r0Peak4 <- subset(r0All, peak == '4' & noConverge == 0)
-r0Peak4 <- merge(r0Peak4, nycNew, 
+r0Peak4 <- merge(r0Peak4, montrealNew, 
                  by.x = 'time', by.y = 'timePeak4', 
                  all.x = T)
 
@@ -384,7 +364,7 @@ kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))],
 #### Data
 
 ```{r}
-ggplot(nyc, aes(x = date, y = smoothedCases)) +
+ggplot(montreal, aes(x = date, y = smoothedCases)) +
   geom_line() + 
   labs(x = "Date", y = "Incidence")
 ```
@@ -403,7 +383,7 @@ ggplot(subset(alarmAll, peak== 'full' & noConverge == 0), aes(x = xAlarm, y = me
 
 ```{r}
 r0PeakFull <- subset(r0All, peak == 'full' & noConverge == 0)
-r0PeakFull <- merge(r0PeakFull, nycNew, 
+r0PeakFull <- merge(r0PeakFull, montrealNew, 
                     by.x = 'time', by.y = 'timeFull', 
                     all.x = T)
 

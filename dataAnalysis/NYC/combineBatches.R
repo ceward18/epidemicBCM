@@ -3,7 +3,6 @@
 ################################################################################
 
 library(nimble)
-source('./scripts/modelCodes.R')
 
 outputFiles <- list.files('./Output')
 
