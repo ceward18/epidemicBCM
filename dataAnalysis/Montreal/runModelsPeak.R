@@ -67,11 +67,12 @@ for (i in batchIdx) {
     I0 <- sum(montreal$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
     R0 <- montreal$cumulativeCases[idxStart] - I0
     
+    Rstar0 <- nyc$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)]
     
     # run three chains in parallel
     cl <- makeCluster(3)
     clusterExport(cl, list('incData',  'infPeriod_i', 'alarmFit_i',
-                           'N', 'I0', 'R0', 'lengthI', 'smoothWindow'))
+                           'N', 'I0', 'R0', 'Rstar0', 'lengthI', 'smoothWindow'))
     
     resThree <- parLapplyLB(cl, 1:3, function(x) {
         
@@ -80,7 +81,7 @@ for (i in batchIdx) {
         # source relevant scripts
         source('../scripts/modelFits.R')
         
-        fitAlarmModel(incData = incData, N = N, I0 = I0, R0 = R0, 
+        fitAlarmModel(incData = incData, N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0,
                       lengthI = lengthI, infPeriod = infPeriod_i, 
                       alarmFit = alarmFit_i, smoothWindow = smoothWindow,
                       seed = x)
