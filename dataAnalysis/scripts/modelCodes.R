@@ -200,23 +200,33 @@ RstarUpdate <- nimbleFunction(
     calcNodes <- model$getDependencies(target) 
     # percent <- if(!is.null(control$percent)) control$percent else 0.05   
     
+    ignoreIdx <- if(!is.null(control$ignoreIdx)) control$ignoreIdx else 0
+    
     # number of update attempts at each iteration
     nUpdates <- 500
   },                                                                  # setup can't return anything
   run = function() {
-    currentValue <- model[[target]]                                   
-    currentLogProb <- model$getLogProb(calcNodes)                    
+    currentValue0 <- model[[target]] 
+    currentLogProb <- model$getLogProb(calcNodes)    
     
-    # repeat proposal many times 
+    nTimePoints0 <- length(currentValue0)
+    allIdx <- 1:nTimePoints0
+    validIdx <- allIdx[(length(ignoreIdx) + 1):nTimePoints0]
+    
+    fixedValues <- currentValue0[ignoreIdx]
+    currentValue <- currentValue0[validIdx]
+    
+    nTimePoints <- length(currentValue)
+    
+    
+    # repeat proposal many times
     for (it in 1:nUpdates) {
-      
+
       # three possible moves:
       moveType <- ceiling(runif(1, 0, 3))
-      
+
       proposalValue <- currentValue
-      
-      nTimePoints <- length(currentValue)
-      
+
       if (moveType == 1) {
         # add a removal time
         addIdx <- runif(1, 1, nTimePoints + 1)
@@ -255,7 +265,7 @@ RstarUpdate <- nimbleFunction(
       }
       
       # put proposal value in model
-      model[[target]] <<- proposalValue                                
+      model[[target]] <<- c(fixedValues, proposalValue)                                
       proposalLogProb <- model$calculate(calcNodes)                     
       logAcceptanceRatio <- proposalLogProb - currentLogProb + g            
       
@@ -268,7 +278,7 @@ RstarUpdate <- nimbleFunction(
         
       } else {
         # reject proposal and revert model to current state
-        model[[target]] <<- currentValue
+        model[[target]] <<- c(fixedValues, currentValue)
         
         # current full conditional (calculate overwrites the stored value)
         currentLogProb <- model$calculate(calcNodes) 
@@ -284,7 +294,6 @@ RstarUpdate <- nimbleFunction(
     reset = function() {}
   )
 )
-
 assign('RstarUpdate', RstarUpdate, envir = .GlobalEnv)
 
 ################################################################################
@@ -298,7 +307,7 @@ SIR_thresh_fixed <-  nimbleCode({
   I[1] <- I0
   
   # removal times for those initially infectious
-  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+  Rstar[1:lengthI] <- Rstar0[1:lengthI]
   
   ### rest of time points
   for(t in 1:tau) {
@@ -378,7 +387,7 @@ SIR_hill_fixed <-  nimbleCode({
   I[1] <- I0
   
   # removal times for those initially infectious
-  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+  Rstar[1:lengthI] <- Rstar0[1:lengthI]
   
   ### rest of time points
   for(t in 1:tau) {
@@ -460,7 +469,7 @@ SIR_power_fixed <-  nimbleCode({
   I[1] <- I0
   
   # removal times for those initially infectious
-  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+  Rstar[1:lengthI] <- Rstar0[1:lengthI]
   
   ### rest of time points
   for(t in 1:tau) {
@@ -539,7 +548,7 @@ SIR_spline_fixed <-  nimbleCode({
   I[1] <- I0
   
   # removal times for those initially infectious
-  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+  Rstar[1:lengthI] <- Rstar0[1:lengthI]
   
   ### rest of time points
   for(t in 1:tau) {
@@ -642,7 +651,7 @@ SIR_gp_fixed <-  nimbleCode({
   I[1] <- I0
   
   # removal times for those initially infectious
-  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+  Rstar[1:lengthI] <- Rstar0[1:lengthI]
   
   ### rest of time points
   for(t in 1:tau) {
@@ -724,7 +733,7 @@ SIR_basic_fixed <-  nimbleCode({
   I[1] <- I0
   
   # removal times for those initially infectious
-  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+  Rstar[1:lengthI] <- Rstar0[1:lengthI]
   
   ### rest of time points
   for(t in 1:tau) {
@@ -789,7 +798,7 @@ SIR_betatSpline_fixed <-  nimbleCode({
   I[1] <- I0
   
   # removal times for those initially infectious
-  Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+  Rstar[1:lengthI] <- Rstar0[1:lengthI]
   
   ### rest of time points
   for(t in 1:tau) {

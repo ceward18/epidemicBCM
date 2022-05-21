@@ -7,7 +7,7 @@
 #   smoothWindow - width of smoothing window 
 ################################################################################
 
-fitAlarmModel <- function(incData, N, I0, R0, lengthI,
+fitAlarmModel <- function(incData, N, I0, R0, Rstar0, lengthI,
                           infPeriod, alarmFit, smoothWindow, seed) {
   
   source('../scripts/modelCodes.R')
@@ -21,7 +21,7 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
 
   # model-specific constants, data, and inits
   modelInputs <- getModelInput(alarmFit, incData, infPeriod, smoothWindow, 
-                               N, I0, R0, lengthI)
+                               N, I0, R0, Rstar0, lengthI)
   
   ### MCMC specifications
   niter <- modelInputs$niter
@@ -46,10 +46,12 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
   
   # if exponential infectious period, need to use special proposal
   if (infPeriod == 'exp') {
+    
     myConfig$removeSamplers('Rstar') # Nodes will be expanded
-    myConfig$addSampler(target = c('Rstar'),
-                        type = "RstarUpdate")
-    myConfig$addMonitors(c('Rstar'))
+    myConfig$addSampler(target = 'Rstar',
+                        type = "RstarUpdate",
+                        control = list(ignoreIdx = 1:length(Rstar0)))
+    
     
     myConfig$removeSampler('rateI')
     myConfig$addSampler(target = 'rateI', type = "slice")
@@ -86,9 +88,13 @@ fitAlarmModel <- function(incData, N, I0, R0, lengthI,
                                        propCov = diag(c(0.2, 0.2, 1, 800))))
     
   }
+  myConfig$addMonitors(c('Rstar'))
+  # browser()
   
   myMCMC <- buildMCMC(myConfig)
   compiled <- compileNimble(myModel, myMCMC) 
+  
+
   
   runMCMC(compiled$myMCMC, 
           niter = niter, 

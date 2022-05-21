@@ -3,7 +3,7 @@
 ################################################################################
 
 
-postPred <- function(incData, N, I0, R0, lengthI,
+postPred <- function(incData, N, I0, R0, Rstar0, lengthI,
                      alarmFit, infPeriod, smoothWindow, 
                      paramsPost, alarmSamples) {
   
@@ -22,7 +22,7 @@ postPred <- function(incData, N, I0, R0, lengthI,
   modelInputs <- getModelInput(alarmFit, 
                                c(incData, rep(1, nDaysPred)), 
                                infPeriod, smoothWindow, 
-                               N, I0, R0, lengthI)
+                               N, I0, R0, Rstar0, lengthI)
   
   modelInputs$constantsList$bw <- smoothWindow
   

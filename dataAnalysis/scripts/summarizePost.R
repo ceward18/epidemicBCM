@@ -16,7 +16,7 @@ source('../scripts/getModelInputs.R')
 source('../scripts/postPred.R')
 source('../scripts/getWAIC.R')
 
-summarizePost <- function(resThree, incData, N, I0, R0, lengthI, 
+summarizePost <- function(resThree, incData, N, I0, R0, Rstar0, lengthI, 
                           alarmBase, alarmFit, infPeriod, smoothWindow) {
   
   if (!alarmFit %in% c('betatSpline', 'basic')) {
@@ -214,7 +214,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
   # not including for now as it is time consuming
   # if (!alarmFit %in% c('betatSpline')) {
   #   
-  #   postPredInc <- postPred(incData, N, I0, R0, lengthI,
+  #   postPredInc <- postPred(incData, N, I0, R0, Rstar0, lengthI,
   #                           alarmFit, infPeriod, smoothWindow, 
   #                           cbind(paramsPost, RstarPost), alarmSamples)
   # 
@@ -264,7 +264,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, lengthI,
   } 
   
   waic <- getWAIC(samples = samples, incData = incData, 
-                  N = N, I0 = I0, R0 = R0, lengthI = lengthI,
+                  N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0, lengthI = lengthI,
                   infPeriod = infPeriod, 
                   alarmFit = alarmFit, smoothWindow = smoothWindow)
   

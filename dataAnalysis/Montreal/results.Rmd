@@ -127,23 +127,23 @@ montrealNew$timePeak5 <- montrealNew$timePeak4 <- montrealNew$timePeak3 <-
     montrealNew$timePeak2 <- montrealNew$timePeak1 <- NA
 
 # peak 1 time 1 is row 6
-montrealNew$timePeak1[6:(max(which(montrealNew$peak == 1)) + 99)] <-
-  1:(max(which(montrealNew$peak == 1)) + 99 - 5)
+montrealNew$timePeak1[(idxStart + 1):(max(which(montrealNew$peak == 1)))] <-
+  1:(max(which(montrealNew$peak == 1)) - idxStart)
 
-montrealNew$timePeak2[(min(which(montrealNew$peak == 2)) + 1):(max(which(montrealNew$peak == 2)) + 99)] <-
-  (min(which(montrealNew$peak == 2)) + 1):(max(which(montrealNew$peak == 2)) + 99) -
+montrealNew$timePeak2[(min(which(montrealNew$peak == 2)) + 1):(max(which(montrealNew$peak == 2)))] <-
+  (min(which(montrealNew$peak == 2)) + 1):(max(which(montrealNew$peak == 2))) -
   min(which(montrealNew$peak == 2))
 
-montrealNew$timePeak3[(min(which(montrealNew$peak == 3)) + 1):(max(which(montrealNew$peak == 3)) + 99)] <-
-  (min(which(montrealNew$peak == 3)) + 1):(max(which(montrealNew$peak == 3)) + 99) -
+montrealNew$timePeak3[(min(which(montrealNew$peak == 3)) + 1):(max(which(montrealNew$peak == 3)))] <-
+  (min(which(montrealNew$peak == 3)) + 1):(max(which(montrealNew$peak == 3))) -
   min(which(montrealNew$peak == 3))
 
-montrealNew$timePeak4[(min(which(montrealNew$peak == 4)) + 1):(max(which(montrealNew$peak == 4)) + 99)] <-
-  (min(which(montrealNew$peak == 4)) + 1):(max(which(montrealNew$peak == 4)) + 99) -
+montrealNew$timePeak4[(min(which(montrealNew$peak == 4)) + 1):(max(which(montrealNew$peak == 4)))] <-
+  (min(which(montrealNew$peak == 4)) + 1):(max(which(montrealNew$peak == 4))) -
   min(which(montrealNew$peak == 4))
 
-montrealNew$timePeak5[(min(which(montrealNew$peak == 5)) + 1):(max(which(montrealNew$peak == 5)) + 99)] <-
-  (min(which(montrealNew$peak == 5)) + 1):(max(which(montrealNew$peak == 5)) + 99) -
+montrealNew$timePeak5[(min(which(montrealNew$peak == 5)) + 1):(max(which(montrealNew$peak == 5)))] <-
+  (min(which(montrealNew$peak == 5)) + 1):(max(which(montrealNew$peak == 5))) -
   min(which(montrealNew$peak == 5))
 
 ################################################################################
@@ -229,7 +229,7 @@ ggplot(subset(montreal, peak== '2'), aes(x = date, y = smoothedCases)) +
 #### Estimated Alarm Functions
 
 ```{r}
-ggplot(subset(alarmAll, peak== '2' ), aes(x = xAlarm, y = mean)) +  
+ggplot(subset(alarmAll, peak== '2'  & noConverge == 0), aes(x = xAlarm, y = mean)) +  
   geom_line() +
   geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
   facet_wrap(~alarmFit, nrow = 1) +
@@ -357,6 +357,54 @@ kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))],
       row.names = F) %>% 
   kable_styling()
 ```
+
+
+### Peak 5
+
+#### Data
+
+```{r}
+ggplot(subset(montreal, peak== '5'), aes(x = date, y = smoothedCases)) +
+  geom_line() + 
+  labs(x = "Date", y = "Incidence")
+```
+
+#### Estimated Alarm Functions
+
+```{r}
+ggplot(subset(alarmAll, peak== '5' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+  geom_line() +
+  geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
+  facet_wrap(~alarmFit, nrow = 1) +
+  labs(x = '30-day incidence', y = 'Alarm')
+```
+
+#### Estimated R0 Functions
+
+```{r}
+r0Peak5 <- subset(r0All, peak == '5' & noConverge == 0)
+r0Peak5 <- merge(r0Peak5, montrealNew, 
+                 by.x = 'time', by.y = 'timePeak5', 
+                 all.x = T)
+
+ggplot(r0Peak5, aes(x = date, y = mean)) +  
+  geom_line() +
+  geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
+  facet_wrap(~alarmFit, nrow = 1) +
+  labs(x = 'Date', y = 'R0') + 
+  ylim(0.5, 2) + 
+  geom_hline(yintercept = 1, linetype = 2)
+```
+
+#### WAIC
+
+```{r}
+waicPeak <- waicAll[waicAll$peak == '5',]
+kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))], 
+      row.names = F) %>% 
+  kable_styling()
+```
+
 
 
 ### Full

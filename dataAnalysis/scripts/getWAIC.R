@@ -5,7 +5,7 @@
 # called from summarize post after samples have been combined across chains
 ################################################################################
 
-getWAIC <- function(samples, incData, N, I0, R0, lengthI,
+getWAIC <- function(samples, incData, N, I0, R0, Rstar0, lengthI,
                     infPeriod, alarmFit, smoothWindow) {
     
     source('../scripts/modelCodes.R')
@@ -15,7 +15,7 @@ getWAIC <- function(samples, incData, N, I0, R0, lengthI,
     
     # model-specific constants, data, and inits
     modelInputs <- getModelInput(alarmFit, incData, infPeriod, smoothWindow, 
-                                 N, I0, R0, lengthI)
+                                 N, I0, R0, Rstar0, lengthI)
 
     ### create nimble model
     myModel <- nimbleModel(modelCode, 

@@ -7,7 +7,7 @@
 
 
 getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
-                          N, I0, R0, lengthI) {
+                          N, I0, R0, Rstar0, lengthI) {
     
     # constants that are the same for all models
     S0 <- N - I0 - R0
@@ -31,7 +31,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
                               N = N,
                               S0 = S0,
                               I0 = I0,
-                              probRstar = rep(1/lengthI, lengthI),
+                              Rstar0 = Rstar0,
                               lengthI = lengthI,
                               n = n,
                               xAlarm = xAlarm,
@@ -44,7 +44,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
         ### inits
         initsList <- list(beta = runif(1, 1/7, 1),
                           delta = runif(1, 0, 1),
-                          H = runif(1, 0, maxI/N/4))
+                          H = runif(1, 0, maxI/N/3))
         
         ### MCMC specifications
         niter <- 800000
@@ -63,7 +63,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
                               N = N,
                               S0 = S0,
                               I0 = I0,
-                              probRstar = rep(1/lengthI, lengthI),
+                              Rstar0 = Rstar0,
                               lengthI = lengthI,
                               n = n,
                               xAlarm = xAlarm,
@@ -96,7 +96,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
                               N = N,
                               S0 = S0,
                               I0 = I0,
-                              probRstar = rep(1/lengthI, lengthI),
+                              Rstar0 = Rstar0,
                               lengthI = lengthI,
                               n = n,
                               xAlarm = xAlarm)
@@ -127,7 +127,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
                               N = N,
                               S0 = S0,
                               I0 = I0,
-                              probRstar = rep(1/lengthI, lengthI),
+                              Rstar0 = Rstar0,
                               xAlarm = xAlarm,
                               n = n,
                               maxI = maxI,
@@ -181,7 +181,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
                               N = N,
                               S0 = S0,
                               I0 = I0,
-                              probRstar = rep(1/lengthI, lengthI),
+                              Rstar0 = Rstar0,
                               lengthI = lengthI,
                               dists = distMat,
                               mu0 = 1,
@@ -218,7 +218,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
                               I0 = I0,
                               timeVec = timeVec,
                               lengthI = lengthI,
-                              probRstar = rep(1/lengthI, lengthI),
+                              Rstar0 = Rstar0,
                               nb = nb)
         
         ### data
@@ -232,8 +232,8 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
         
         
         ### MCMC specifications
-        niter <- 600000
-        nburn <- 400000
+        niter <- 700000
+        nburn <- 500000
         nthin <- 10
         
         xAlarm <- NULL
@@ -244,7 +244,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
                               N = N,
                               S0 = S0,
                               I0 = I0,
-                              probRstar = rep(1/lengthI, lengthI),
+                              Rstar0 = Rstar0,
                               lengthI = lengthI)
         
         ### data
@@ -268,16 +268,19 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
         
         # adjust constants
         constantsList$lengthI <- NULL
-        constantsList$probRstar <- NULL
+        constantsList$Rstar0 <- NULL
         constantsList$aa <- aa
         constantsList$bb <- bb
         
         # add initial value for rateI
         initsList$rateI <- rgamma(1, aa, bb)
         
+        # add initial value for Rstar (everyone removed lengthI days later)
+        initsList$Rstar = c(Rstar0, 
+                            dataList$Istar[1:(tau-lengthI)])
+        
     }
     
-
     list(constantsList = constantsList,
          dataList = dataList,
          initsList = initsList,
