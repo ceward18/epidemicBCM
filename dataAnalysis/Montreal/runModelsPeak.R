@@ -67,7 +67,7 @@ for (i in batchIdx) {
     I0 <- sum(montreal$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
     R0 <- montreal$cumulativeCases[idxStart] - I0
     
-    Rstar0 <- nyc$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)]
+    Rstar0 <- montreal$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)]
     
     # run three chains in parallel
     cl <- makeCluster(3)
