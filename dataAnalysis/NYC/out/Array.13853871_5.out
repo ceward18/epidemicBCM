@@ -1,8 +1,0 @@
-[1] "Running alarm: spline , peak: 1 , infPeriod: fixed"
-WAIC was calculated as NaN.  You may need to add monitors to model latent states, in order for a valid WAIC calculation.
-[1] "Running alarm: spline , peak: 2 , infPeriod: fixed"
-WAIC was calculated as NaN.  You may need to add monitors to model latent states, in order for a valid WAIC calculation.
-[1] "Running alarm: spline , peak: 3 , infPeriod: fixed"
-WAIC was calculated as NaN.  You may need to add monitors to model latent states, in order for a valid WAIC calculation.
-[1] "Running alarm: spline , peak: 4 , infPeriod: fixed"
-WAIC was calculated as NaN.  You may need to add monitors to model latent states, in order for a valid WAIC calculation.
