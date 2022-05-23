@@ -78,8 +78,9 @@ source('../scripts/summarizePost.R')
 
 # debugonce(summarizePost)
 postSummaries <- summarizePost(resThree = resThree, incData = incData,
-                               N = N, I0 = I0, R0 = R0, lengthI = lengthI,
-                               alarmFit = alarmFit_i, infPeriod = infPeriod_i, 
+                               N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0,
+                               lengthI = lengthI, alarmFit = alarmFit_i, 
+                               infPeriod = infPeriod_i, 
                                smoothWindow = smoothWindow)
 
 # save results in separate files

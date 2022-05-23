@@ -14,8 +14,12 @@ getWAIC <- function(samples, incData, N, I0, R0, Rstar0, lengthI,
     modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
     
     # model-specific constants, data, and inits
-    modelInputs <- getModelInput(alarmFit, incData, infPeriod, smoothWindow, 
-                                 N, I0, R0, Rstar0, lengthI)
+    modelInputs <- getModelInput(alarmFit = alarmFit, incData = incData,
+                                 infPeriod = infPeriod, 
+                                 smoothWindow = smoothWindow, 
+                                 N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0, 
+                                 lengthI = lengthI)
+
 
     ### create nimble model
     myModel <- nimbleModel(modelCode, 
