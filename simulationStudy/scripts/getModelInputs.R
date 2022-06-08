@@ -139,7 +139,9 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
             initsList <- list(beta = runif(1, 1/7, 5/7),
                               b = rnorm(nb, 0, 4),
                               knots = as.vector(quantile(xAlarm, 
-                                                         probs = sort(runif(nb - 1, 0, 0.4)))))
+                                                         probs = sort(runif(nb - 1, 
+                                                                            0, 
+                                                                            0.4)))))
             
             cond <- all(splineAlarm(xAlarm, initsList$b, initsList$knots) >= 0) & 
                 all(splineAlarm(xAlarm, initsList$b, initsList$knots) <= 1)
@@ -166,8 +168,8 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
         midDist <- getl(maxDist)
         
         # parameters of inverse gamma distribution for prior on lengthscale
-        vals <- round(optim(c(3, 2), myF, lower = c(2.001, 1.001), method = 'L-BFGS-B',
-                            mid = midDist)$par, 2)
+        vals <- round(optim(c(3, 2), myF, lower = c(2.001, 1.001), 
+                            method = 'L-BFGS-B', mid = midDist)$par, 2)
         
         constantsList <- list(tau = tau,
                               N = N,
@@ -216,7 +218,9 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow) {
         ### inits
         initsList <- list(b = rnorm(nb, 0, 4),
                           knots = as.vector(quantile(timeVec, 
-                                                     probs = sort(runif(nb - 1, 0, 0.4)))))
+                                                     probs = sort(runif(nb - 1, 
+                                                                        0, 
+                                                                        0.4)))))
         
         
         ### MCMC specifications

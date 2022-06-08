@@ -16,21 +16,22 @@ source('../scripts/getModelInputs.R')
 source('../scripts/postPred.R')
 source('../scripts/getWAIC.R')
 
-summarizePost <- function(resThree, incData, N, I0, R0, Rstar0, lengthI, 
-                          alarmBase, alarmFit, infPeriod, smoothWindow) {
+summarizePost <- function(resThree, incData, smoothI, 
+                          N, I0, R0, Rstar0, lengthI, 
+                          alarmBase, alarmFit, infPeriod) {
   
   if (!alarmFit %in% c('betatSpline', 'basic')) {
-    paramSamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[1]]))]
-    paramSamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[2]]))]
-    paramSamples3 <- resThree[[3]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[3]]))]
+    paramSamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[1]]))]
+    paramSamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[2]]))]
+    paramSamples3 <- resThree[[3]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[3]]))]
   } else if (alarmFit == 'betatSpline') {
-    paramSamples1 <- resThree[[1]][,-grep('beta|Rstar', colnames(resThree[[1]]))]
-    paramSamples2 <- resThree[[2]][,-grep('beta|Rstar', colnames(resThree[[2]]))]
-    paramSamples3 <- resThree[[3]][,-grep('beta|Rstar', colnames(resThree[[3]]))]
+    paramSamples1 <- resThree[[1]][,-grep('beta|Rstar|R0', colnames(resThree[[1]]))]
+    paramSamples2 <- resThree[[2]][,-grep('beta|Rstar|R0', colnames(resThree[[2]]))]
+    paramSamples3 <- resThree[[3]][,-grep('beta|Rstar|R0', colnames(resThree[[3]]))]
   } else if (alarmFit == 'basic') {
-    paramSamples1 <- resThree[[1]][,-grep('Rstar', colnames(resThree[[1]])), drop = F]
-    paramSamples2 <- resThree[[2]][,-grep('Rstar', colnames(resThree[[2]])), drop = F]
-    paramSamples3 <- resThree[[3]][,-grep('Rstar', colnames(resThree[[3]])), drop = F]
+    paramSamples1 <- resThree[[1]][,-grep('Rstar|R0', colnames(resThree[[1]])), drop = F]
+    paramSamples2 <- resThree[[2]][,-grep('Rstar|R0', colnames(resThree[[2]])), drop = F]
+    paramSamples3 <- resThree[[3]][,-grep('Rstar|R0', colnames(resThree[[3]])), drop = F]
   }
   
   RstarSamples1 <-  resThree[[1]][,grep('Rstar', colnames(resThree[[1]]))]
@@ -78,7 +79,7 @@ summarizePost <- function(resThree, incData, N, I0, R0, Rstar0, lengthI,
     } else {
       n <- 50
     }
-    maxI <- ceiling(max(movingAverage(incData, smoothWindow)) + 1)
+    maxI <- ceiling(max(smoothI))
     xAlarm <- seq(0, maxI, length.out = n)
     
     postAlarm <- data.frame(xAlarm = xAlarm, 
@@ -118,90 +119,16 @@ summarizePost <- function(resThree, incData, N, I0, R0, Rstar0, lengthI,
   
   ##############################################################################
   ### Posterior distribution of reproductive number
-  ### R0 = beta(1-a) * lengthI, beta * lengthI
   
-  if (!alarmFit %in% c('betatSpline', 'basic')) {
-    
-    # want R0 by xAlarm and epidemic time
-    betaSamples <- paramsPost[,'beta']
-    
-    # by xAlarm
-    if (infPeriod == 'fixed') {
-      R0SamplesAlarm <- sapply(1:ncol(alarmSamples), function(k)
-        betaSamples[k] * (1 - alarmSamples[,k]) * lengthI)
-    } else {
-      
-      rateISamples <- paramsPost[,'rateI']
-      
-      R0SamplesAlarm <- sapply(1:ncol(alarmSamples), function(k)
-        betaSamples[k] * (1 - alarmSamples[,k]) / rateISamples[k])
-    }
-    
-    
-    postMeans <- rowMeans(R0SamplesAlarm)
-    postCI <- apply(R0SamplesAlarm, 1, quantile, probs = c(0.025, 0.975))
-    postR0Alarm <- data.frame(xAlarm = xAlarm,
-                              mean = postMeans,
-                              lower = postCI[1,],
-                              upper = postCI[2,])
-    rownames(postR0Alarm) <- NULL
-    
-    # by time
-    alarmTimeSamples1 <- t(resThree[[1]][,grep('alarm', colnames(resThree[[1]]))])
-    alarmTimeSamples2 <- t(resThree[[2]][,grep('alarm', colnames(resThree[[2]]))])
-    alarmTimeSamples3 <- t(resThree[[3]][,grep('alarm', colnames(resThree[[3]]))])
-    alarmTimeSamples <- cbind(alarmTimeSamples1, alarmTimeSamples2, alarmTimeSamples3)
-    
-    if (infPeriod == 'fixed') {
-      R0Samples <- sapply(1:ncol(alarmTimeSamples), function(k)
-        betaSamples[k] * (1 - alarmTimeSamples[,k]) * lengthI)
-    } else {
-      R0Samples <- sapply(1:ncol(alarmTimeSamples), function(k)
-        betaSamples[k] * (1 - alarmTimeSamples[,k]) / rateISamples[k])
-    }
-    
-    
-  } else if (alarmFit == 'betatSpline') {
-    
-    postR0Alarm <- data.frame(xAlarm = NA, 
-                              mean = NA,
-                              lower = NA,
-                              upper = NA)
-    
-    # beta samples already calculated (matrix)
-    # each row is a time point, each column is an iteration
-    if (infPeriod == 'fixed') {
-      R0Samples <- betaSamples * lengthI
-    } else {
-      rateISamples <- paramsPost[,'rateI']
-      R0Samples <- t(t(betaSamples) / rateISamples)
-    }
-    
-  } else if (alarmFit == 'basic') {
-    
-    postR0Alarm <- data.frame(xAlarm = NA, 
-                              mean = NA,
-                              lower = NA,
-                              upper = NA)
-    
-    betaSamples <- paramsPost[,'beta']
-    
-    if (infPeriod == 'fixed') {
-      R0Samples <- betaSamples * lengthI
-    } else {
-      rateISamples <- paramsPost[,'rateI']
-      R0Samples <- betaSamples / rateISamples
-    }
-    
-    R0Samples <- matrix(rep(R0Samples, length(incData)),
-                        nrow = length(incData),
-                        ncol = length(R0Samples),
-                        byrow = T)
-    
-  }
+  R0Samples1 <-  resThree[[1]][,grep('R0', colnames(resThree[[1]]))]
+  R0Samples2 <-  resThree[[2]][,grep('R0', colnames(resThree[[2]]))]
+  R0Samples3 <-  resThree[[3]][,grep('R0', colnames(resThree[[3]]))]
   
-  postMeans <- rowMeans(R0Samples)
-  postCI <- apply(R0Samples, 1, quantile, probs = c(0.025, 0.975))
+  # combine posterior parameters with posterior R0
+  R0Samples <- rbind(R0Samples1, R0Samples2, R0Samples3)
+  
+  postMeans <- colMeans(R0Samples)
+  postCI <- apply(R0Samples, 2, quantile, probs = c(0.025, 0.975))
   postR0 <- data.frame(time = 1:length(incData),
                        mean = postMeans,
                        lower = postCI[1,],
@@ -263,10 +190,9 @@ summarizePost <- function(resThree, incData, N, I0, R0, Rstar0, lengthI,
     
   } 
   
-  waic <- getWAIC(samples = samples, incData = incData, 
+  waic <- getWAIC(samples = samples, incData = incData, smoothI = smoothI, 
                   N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0, lengthI = lengthI,
-                  infPeriod = infPeriod, 
-                  alarmFit = alarmFit, smoothWindow = smoothWindow)
+                  infPeriod = infPeriod, alarmFit = alarmFit)
   
   ### output
   list(gdiag = gdiag,
@@ -274,7 +200,6 @@ summarizePost <- function(resThree, incData, N, I0, R0, Rstar0, lengthI,
        postAlarm = postAlarm,
        postEpiPred = postEpiPred,
        postBeta = postBeta,
-       postR0Alarm = postR0Alarm,
        postR0 = postR0,
        waic= waic)
   

@@ -5,8 +5,8 @@
 # called from summarize post after samples have been combined across chains
 ################################################################################
 
-getWAIC <- function(samples, incData, N, I0, R0, Rstar0, lengthI,
-                    infPeriod, alarmFit, smoothWindow) {
+getWAIC <- function(samples, incData, smoothI, N, I0, R0, Rstar0, lengthI,
+                    infPeriod, alarmFit) {
     
     source('../scripts/modelCodes.R')
 
@@ -14,9 +14,9 @@ getWAIC <- function(samples, incData, N, I0, R0, Rstar0, lengthI,
     modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
     
     # model-specific constants, data, and inits
-    modelInputs <- getModelInput(alarmFit = alarmFit, incData = incData,
+    modelInputs <- getModelInput(alarmFit = alarmFit, 
+                                 incData = incData, smoothI = smoothI,
                                  infPeriod = infPeriod, 
-                                 smoothWindow = smoothWindow, 
                                  N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0, 
                                  lengthI = lengthI)
 

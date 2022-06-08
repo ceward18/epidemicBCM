@@ -9,27 +9,36 @@ idx <- as.numeric(task_id)
 
 ### load libraries
 library(parallel)
+library(nimble)
+
+### source scripts (for movingAverage function)
+source('../scripts/modelCodes.R')
 
 ### read data
 nyc <- read.csv('./Data/nycClean.csv')
+nyc$smoothedCases <- round(movingAverage(nyc$dailyCases, 7))
+nyc$cumulativeCases <- cumsum(nyc$smoothedCases)
 
 peak <- c('1', '2', '3', '4')
 alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betatSpline', 'basic')
+smoothWindow <- c(14, 30)
 
 # 56 possibilities (7 alarmFits, 4 peaks, 2 infPeriods)
 allModelsFixed <- expand.grid(peak = peak,
                               alarmFit = alarmFit,
+                              smoothWindow = smoothWindow,
                               infPeriod = 'fixed')
 allModelsExp <- expand.grid(peak = peak,
                               alarmFit = alarmFit,
+                            smoothWindow = smoothWindow,
                               infPeriod = 'exp')
 
+# 112
 allModels <- rbind.data.frame(allModelsFixed, allModelsExp)
 
 # constants for all models
 N <- nyc$Population[1]
 lengthI <- 5
-smoothWindow <- 30
 
 # batches by alarmFit (7 batches total)
 batchSize <- 4
@@ -41,16 +50,24 @@ for (i in batchIdx) {
     peak_i <- allModels$peak[i]
     alarmFit_i <- allModels$alarmFit[i]
     infPeriod_i <- allModels$infPeriod[i]
+    smoothWindow_i <- allModels$smoothWindow[i]
     
     print(paste('Running alarm:', alarmFit_i,
                 ', peak:', peak_i, 
+                ', smoothing:', smoothWindow_i, 
                 ', infPeriod:', infPeriod_i))
+    
+    # smoothed incidence to inform alarm function 
+    # (shifted so alarm is informed only by data up to time t-1)
+    nyc$smoothI <- head(movingAverage(c(0, nyc$dailyCases), smoothWindow_i), -1)
     
     # get data for the specified peak
     if (peak_i == 'full') {
         incData <- nyc$smoothedCases
+        smoothI <- nyc$smoothI
     } else {
         incData <- nyc$smoothedCases[which(nyc$peak == peak_i)]
+        smoothI <- nyc$smoothI[which(nyc$peak == peak_i)]
     }
     
     # initialize current number of infectious and removed individuals
@@ -58,9 +75,11 @@ for (i in batchIdx) {
     if (peak_i %in% c('full', '1')) {
         idxStart <- 5
         incData <- incData[-c(1:idxStart)]
+        smoothI <- smoothI[-c(1:idxStart)]
     } else {
         idxStart <- min(which(nyc$peak == peak_i))
         incData <- incData[-1]
+        smoothI <- smoothI[-1]
     }
     
     # currently infectious
@@ -72,8 +91,8 @@ for (i in batchIdx) {
     
     # run three chains in parallel
     cl <- makeCluster(3)
-    clusterExport(cl, list('incData',  'infPeriod_i', 'alarmFit_i',
-                           'N', 'I0', 'R0', 'Rstar0', 'lengthI', 'smoothWindow'))
+    clusterExport(cl, list('incData', 'smoothI', 'infPeriod_i', 'alarmFit_i',
+                           'N', 'I0', 'R0', 'Rstar0', 'lengthI'))
     
     resThree <- parLapplyLB(cl, 1:3, function(x) {
         
@@ -82,10 +101,10 @@ for (i in batchIdx) {
         # source relevant scripts
         source('../scripts/modelFits.R')
         
-        fitAlarmModel(incData = incData, N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0,
+        fitAlarmModel(incData = incData, smoothI = smoothI,
+                      N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0,
                       lengthI = lengthI, infPeriod = infPeriod_i, 
-                      alarmFit = alarmFit_i, smoothWindow = smoothWindow,
-                      seed = x)
+                      alarmFit = alarmFit_i, seed = x)
         
     })
     stopCluster(cl)
@@ -94,10 +113,10 @@ for (i in batchIdx) {
     
     # debugonce(summarizePost)
     postSummaries <- summarizePost(resThree = resThree, incData = incData,
+                                   smoothI = smoothI,
                                    N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0,
                                    lengthI = lengthI, alarmFit = alarmFit_i, 
-                                   infPeriod = infPeriod_i, 
-                                   smoothWindow = smoothWindow)
+                                   infPeriod = infPeriod_i)
     
     # save results in separate files
     modelInfo <- data.frame(alarmFit = alarmFit_i,
@@ -110,7 +129,6 @@ for (i in batchIdx) {
         alarmPost <- cbind.data.frame(postSummaries$postAlarm, modelInfo)
         epiPredPost <- cbind.data.frame(postSummaries$postEpiPred, modelInfo)
         betaPost <- cbind.data.frame(postSummaries$postBeta, modelInfo)
-        R0AlarmPost <- cbind.data.frame(postSummaries$postR0Alarm, modelInfo)
         R0Post <- cbind.data.frame(postSummaries$postR0, modelInfo)
         waicPost <- cbind.data.frame(postSummaries$waic, modelInfo)
         
@@ -125,8 +143,6 @@ for (i in batchIdx) {
                                         cbind.data.frame(postSummaries$postEpiPred, modelInfo))
         betaPost <- rbind.data.frame(betaPost, 
                                      cbind.data.frame(postSummaries$postBeta, modelInfo))
-        R0AlarmPost <- rbind.data.frame(R0AlarmPost, 
-                                        cbind.data.frame(postSummaries$postR0Alarm, modelInfo))
         R0Post <- rbind.data.frame(R0Post, 
                                    cbind.data.frame(postSummaries$postR0, modelInfo))
         waicPost <- rbind.data.frame(waicPost, 
@@ -136,13 +152,12 @@ for (i in batchIdx) {
 } # end loop
 
 # save output in RDS form
-saveRDS(gr, paste0('./Output/grBatch', idx, '.rds'))
-saveRDS(paramsPost, paste0('./Output/paramsPostBatch', idx, '.rds'))
-saveRDS(alarmPost, paste0('./Output/alarmPostBatch', idx, '.rds'))
-saveRDS(epiPredPost, paste0('./Output/epiPredPostBatch', idx, '.rds'))
-saveRDS(betaPost, paste0('./Output/betaPostBatch', idx, '.rds'))
-saveRDS(R0AlarmPost, paste0('./Output/R0AlarmPostBatch', idx, '.rds'))
-saveRDS(R0Post, paste0('./Output/R0PostBatch', idx, '.rds'))
-saveRDS(waicPost, paste0('./Output/waicPostBatch', idx, '.rds'))
+saveRDS(gr, paste0('./OutputNew/grBatch', idx, '.rds'))
+saveRDS(paramsPost, paste0('./OutputNew/paramsPostBatch', idx, '.rds'))
+saveRDS(alarmPost, paste0('./OutputNew/alarmPostBatch', idx, '.rds'))
+saveRDS(epiPredPost, paste0('./OutputNew/epiPredPostBatch', idx, '.rds'))
+saveRDS(betaPost, paste0('./OutputNew/betaPostBatch', idx, '.rds'))
+saveRDS(R0Post, paste0('./OutputNew/R0PostBatch', idx, '.rds'))
+saveRDS(waicPost, paste0('./OutputNew/waicPostBatch', idx, '.rds'))
 
 

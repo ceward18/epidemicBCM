@@ -325,6 +325,8 @@ SIR_thresh_fixed <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) * lengthI
   }
   
   for (i in 1:n) {
@@ -361,6 +363,9 @@ SIR_thresh_exp <-  nimbleCode({
     # update S and I
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+    
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) / rateI
     
   }
   
@@ -405,6 +410,8 @@ SIR_hill_fixed <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) * lengthI
   }
   
   for (i in 1:n) {
@@ -443,6 +450,8 @@ SIR_hill_exp <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) / rateI
   }
   
   for (i in 1:n) {
@@ -487,6 +496,9 @@ SIR_power_fixed <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) * lengthI
+    
   }
   
   for (i in 1:n) {
@@ -522,6 +534,9 @@ SIR_power_exp <-  nimbleCode({
     # update S and I
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+    
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) / rateI
     
   }
   
@@ -565,6 +580,9 @@ SIR_spline_fixed <-  nimbleCode({
     # update S and I
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+    
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) * lengthI
     
   }
   
@@ -613,6 +631,9 @@ SIR_spline_exp <-  nimbleCode({
     # update S and I
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+    
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) / rateI
     
   }
   
@@ -669,6 +690,8 @@ SIR_gp_fixed <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) * lengthI
   }
   
   yAlarm[1] <- 0
@@ -707,6 +730,8 @@ SIR_gp_exp <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- (beta * (1 - alarm[t])) / rateI
   }
   
   yAlarm[1] <- 0
@@ -748,6 +773,8 @@ SIR_basic_fixed <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- beta * lengthI
   }
   
   # priors
@@ -777,6 +804,8 @@ SIR_basic_exp <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- beta / rateI
   }
   
   # priors
@@ -813,6 +842,8 @@ SIR_betatSpline_fixed <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- beta[t] * lengthI
   }
   
   log(beta[1:tau]) <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])
@@ -853,6 +884,8 @@ SIR_betatSpline_exp <-  nimbleCode({
     S[t + 1] <- S[t] - Istar[t]
     I[t + 1] <- I[t] + Istar[t] - Rstar[t]
     
+    # estimate reproductive number
+    R0[t] <- beta[t] / rateI
   }
   
   log(beta[1:tau]) <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])

@@ -6,7 +6,7 @@
 ################################################################################
 
 
-getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
+getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
                           N, I0, R0, Rstar0, lengthI) {
     
     # constants that are the same for all models
@@ -15,14 +15,12 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
     
     # for exponential infectious period
     # puts 95% probability of mean infectious period between 6 and 8 days
-    bb <- 500
+    bb <- 1000
     aa <- 1/5*bb
-    # pgamma(1/4, aa, bb) - pgamma(1/6, aa, bb)
     
     if (alarmFit == 'thresh') {
         
         ### constants
-        smoothI <- c(0, movingAverage(incData, smoothWindow))
         maxI <- ceiling(max(smoothI))
         n <- 50
         xAlarm <- seq(0, maxI, length.out = n)
@@ -47,14 +45,13 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
                           H = runif(1, 0, maxI/N/3))
         
         ### MCMC specifications
-        niter <- 800000
-        nburn <- 600000
+        niter <- 600000
+        nburn <- 400000
         nthin <- 10
         
     } else if (alarmFit == 'hill') {
         
         ### constants
-        smoothI <- c(0, movingAverage(incData, smoothWindow))
         maxI <- ceiling(max(smoothI))
         n <- 50
         xAlarm <- seq(0, maxI, length.out = n)
@@ -87,7 +84,6 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
     } else if (alarmFit == 'power') {
         
         ### constants 
-        smoothI <- c(0, movingAverage(incData, smoothWindow))
         maxI <- ceiling(max(smoothI))
         n <- 50
         xAlarm <- seq(0, maxI, length.out = n)
@@ -118,7 +114,6 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
         
         ### constants
         n <- 50
-        smoothI <- c(0, movingAverage(incData, smoothWindow))
         maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         nb <- 3
@@ -163,7 +158,6 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
         
         ### constants
         n <- 10
-        smoothI <- c(0, movingAverage(incData, smoothWindow))
         maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         distMat <- as.matrix(dist(matrix(xAlarm)))
@@ -280,7 +274,7 @@ getModelInput <- function(alarmFit, incData, infPeriod, smoothWindow,
                             dataList$Istar[1:(tau-lengthI)])
         
     }
-    
+
     list(constantsList = constantsList,
          dataList = dataList,
          initsList = initsList,

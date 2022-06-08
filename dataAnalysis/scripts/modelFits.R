@@ -4,11 +4,10 @@
 #   incData - observed incidence data
 #   infPeriod - type of infectious period (fixed or exponential)
 #   alarmFit - type of function to use to describe the alarm
-#   smoothWindow - width of smoothing window 
 ################################################################################
 
-fitAlarmModel <- function(incData, N, I0, R0, Rstar0, lengthI,
-                          infPeriod, alarmFit, smoothWindow, seed) {
+fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
+                          infPeriod, alarmFit, seed) {
   
   source('../scripts/modelCodes.R')
   source('../scripts/getModelInputs.R')
@@ -20,7 +19,7 @@ fitAlarmModel <- function(incData, N, I0, R0, Rstar0, lengthI,
   set.seed(seed + 3)
 
   # model-specific constants, data, and inits
-  modelInputs <- getModelInput(alarmFit, incData, infPeriod, smoothWindow, 
+  modelInputs <- getModelInput(alarmFit, incData, smoothI, infPeriod,
                                N, I0, R0, Rstar0, lengthI)
   
   ### MCMC specifications
@@ -87,10 +86,8 @@ fitAlarmModel <- function(incData, N, I0, R0, Rstar0, lengthI,
                         control = list(adaptInterval = 100,
                                        propCov = diag(c(0.2, 0.2, 1, 800))))
     
-  }
-  myConfig$addMonitors(c('Rstar'))
-  # browser()
-  
+  } 
+  myConfig$addMonitors(c('Rstar', 'R0'))
   myMCMC <- buildMCMC(myConfig)
   compiled <- compileNimble(myModel, myMCMC) 
   

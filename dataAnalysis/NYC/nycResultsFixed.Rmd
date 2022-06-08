@@ -28,7 +28,7 @@ theme_set(theme_bw() +
                   legend.title = element_text(size = 18),
                   legend.text = element_text(size = 16)))
 
-infPeriodSpec <- 'exp'
+infPeriodSpec <- 'fixed'
 
 ```
 
@@ -202,7 +202,7 @@ ggplot(subset(nyc, peak== '1'), aes(x = date, y = smoothedCases)) +
 #### Estimated Alarm Functions
 
 ```{r}
-ggplot(subset(alarmAll, peak== '1' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+ggplot(subset(alarmAll, peak== '1'), aes(x = xAlarm, y = mean)) +  
   geom_line() +
   geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
   facet_wrap(~alarmFit, nrow = 1) +
@@ -212,7 +212,7 @@ ggplot(subset(alarmAll, peak== '1' & noConverge == 0), aes(x = xAlarm, y = mean)
 #### Estimated R0 Functions
 
 ```{r}
-r0Peak1 <- subset(r0All, peak == '1' & noConverge == 0)
+r0Peak1 <- subset(r0All, peak == '1')
 r0Peak1 <- merge(r0Peak1, nycNew, 
                  by.x = 'time', by.y = 'timePeak1', 
                  all.x = T)
@@ -259,7 +259,7 @@ ggplot(subset(alarmAll, peak== '2' ), aes(x = xAlarm, y = mean)) +
 #### Estimated R0 Functions
 
 ```{r}
-r0Peak2 <- subset(r0All, peak == '2' & noConverge == 0)
+r0Peak2 <- subset(r0All, peak == '2')
 r0Peak2 <- merge(r0Peak2, nycNew, 
                  by.x = 'time', by.y = 'timePeak2', 
                  all.x = T)
@@ -297,7 +297,7 @@ ggplot(subset(nyc, peak== '3'), aes(x = date, y = smoothedCases)) +
 #### Estimated Alarm Functions
 
 ```{r}
-ggplot(subset(alarmAll, peak== '3' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+ggplot(subset(alarmAll, peak== '3'), aes(x = xAlarm, y = mean)) +  
   geom_line() +
   geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
   facet_wrap(~alarmFit, nrow = 1) +
@@ -307,7 +307,7 @@ ggplot(subset(alarmAll, peak== '3' & noConverge == 0), aes(x = xAlarm, y = mean)
 #### Estimated R0 Functions
 
 ```{r}
-r0Peak3 <- subset(r0All, peak == '3' & noConverge == 0)
+r0Peak3 <- subset(r0All, peak == '3')
 r0Peak3 <- merge(r0Peak3, nycNew, 
                  by.x = 'time', by.y = 'timePeak3', 
                  all.x = T)
@@ -345,7 +345,7 @@ ggplot(subset(nyc, peak== '4'), aes(x = date, y = smoothedCases)) +
 #### Estimated Alarm Functions
 
 ```{r}
-ggplot(subset(alarmAll, peak== '4' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+ggplot(subset(alarmAll, peak== '4'), aes(x = xAlarm, y = mean)) +  
   geom_line() +
   geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
   facet_wrap(~alarmFit, nrow = 1) +
@@ -355,7 +355,7 @@ ggplot(subset(alarmAll, peak== '4' & noConverge == 0), aes(x = xAlarm, y = mean)
 #### Estimated R0 Functions
 
 ```{r}
-r0Peak4 <- subset(r0All, peak == '4' & noConverge == 0)
+r0Peak4 <- subset(r0All, peak == '4')
 r0Peak4 <- merge(r0Peak4, nycNew, 
                  by.x = 'time', by.y = 'timePeak4', 
                  all.x = T)
@@ -392,7 +392,7 @@ ggplot(nyc, aes(x = date, y = smoothedCases)) +
 #### Estimated Alarm Functions
 
 ```{r}
-ggplot(subset(alarmAll, peak== 'full' & noConverge == 0), aes(x = xAlarm, y = mean)) +  
+ggplot(subset(alarmAll, peak== 'full'), aes(x = xAlarm, y = mean)) +  
   geom_line() +
   geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
   facet_wrap(~alarmFit, nrow = 1) +
@@ -402,7 +402,7 @@ ggplot(subset(alarmAll, peak== 'full' & noConverge == 0), aes(x = xAlarm, y = me
 #### Estimated R0 Functions
 
 ```{r}
-r0PeakFull <- subset(r0All, peak == 'full' & noConverge == 0)
+r0PeakFull <- subset(r0All, peak == 'full')
 r0PeakFull <- merge(r0PeakFull, nycNew, 
                     by.x = 'time', by.y = 'timeFull', 
                     all.x = T)
@@ -431,7 +431,7 @@ kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))],
 #### Estimated Alarm Functions
 
 ```{r}
-ggplot(subset(alarmAll, noConverge == 0), aes(x = xAlarm, y = mean, 
+ggplot(alarmAll, aes(x = xAlarm, y = mean, 
                                               group =  alarmFit)) +  
   geom_line(aes(col = alarmFit)) +
   geom_ribbon(aes(ymin=lower, ymax=upper, fill = alarmFit), alpha=0.3) +
