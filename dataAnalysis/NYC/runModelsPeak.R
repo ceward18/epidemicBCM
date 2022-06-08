@@ -121,7 +121,8 @@ for (i in batchIdx) {
     # save results in separate files
     modelInfo <- data.frame(alarmFit = alarmFit_i,
                             infPeriod = infPeriod_i,
-                            peak = peak_i)
+                            peak = peak_i,
+                            smoothWindow = smoothWindow_i)
     
     if (i == batchIdx[1]) {
         gr <- cbind.data.frame(postSummaries$gdiag, modelInfo)
