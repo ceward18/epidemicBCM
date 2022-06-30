@@ -1,5 +1,6 @@
 ################################################################################
 # Output plots as pdf images for SSC PRESENTATION
+# ALSO ONE PLOT FOR BAYESM
 ################################################################################
 
 library(openxlsx)
@@ -385,4 +386,67 @@ ggplot() +
     ggtitle('Posterior mean estimates of the alarm function') 
 dev.off()
 
+
+################################################################################
+# BAYESM PLOT
+
+
+# for a randomly selected simulation
+set.seed(1)
+simNumber <- round(runif(1, 0.5, 50.5))
+
+nDays <- 100
+
+# get true epidemic curves for each scenario
+trueCurveThresh14 <- readRDS(paste0('./Data/thresh_', infPeriodSpec, '_14.rds'))[simNumber,1:nDays]
+trueCurveThresh30 <- readRDS(paste0('./Data/thresh_', infPeriodSpec, '_30.rds'))[simNumber,1:nDays]
+trueCurveHill14 <- readRDS(paste0('./Data/hill_', infPeriodSpec, '_14.rds'))[simNumber,1:nDays]
+trueCurveHill30 <- readRDS(paste0('./Data/hill_', infPeriodSpec, '_30.rds'))[simNumber,1:nDays]
+trueCurvePower14 <- readRDS(paste0('./Data/power_', infPeriodSpec, '_14.rds'))[simNumber,1:nDays]
+trueCurvePower30 <- readRDS(paste0('./Data/power_', infPeriodSpec, '_30.rds'))[simNumber,1:nDays]
+
+trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 6),
+                         truth = c(trueCurveThresh14, trueCurveThresh30,
+                                   trueCurveHill14, trueCurveHill30,
+                                   trueCurvePower14, trueCurvePower30),
+                         alarmGen = c(rep('thresh', length(trueCurveThresh14)*2),
+                                      rep('hill', length(trueCurveThresh14)*2),
+                                      rep('power', length(trueCurveThresh14)*2)),
+                         smoothWindow = rep(rep(c(14, 30), each = length(trueCurveThresh14)), 3))
+
+# merge with posterior predictions
+postPredAll <- readRDS('./resultsFinal/postPredAll.rds')
+postPredAll <- postPredAll[postPredAll$simNumber == simNumber & 
+                               postPredAll$infPeriod == infPeriodSpec,]
+
+# format for better plotting
+postPredAll$alarmFit <- factor(postPredAll$alarmFit,
+                               levels = c('basic', 'power', 'thresh', 'hill', 'spline', 'gp'),
+                               labels = c('No Behavioral Change', 'Power', 'Threshold', 'Hill',
+                                          'Spline', 'Behavioral Change'))
+
+myCol <- 'blue'
+
+theme_set(theme_bw() + 
+              theme(strip.background = element_rect(fill = 'white'),
+                    strip.text = element_text(size = 28),
+                    axis.title = element_text(size = 26),
+                    axis.text = element_text(size = 24),
+                    plot.title = element_text(size = 36, h = 0.5),
+                    panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(),))
+
+pdf('../../nycBCMAnalysis/figures/simPostPred.pdf', height = 4.5, width = 12)
+ggplot() +
+    geom_line(data = subset(trueCurves, alarmGen == 'hill' & smoothWindow == 30),
+              aes(x = time, y = truth)) + 
+    geom_line(data = subset(postPredAll, alarmGen == 'hill' & smoothWindow == 30 
+                            & alarmFit %in% c('No Behavioral Change', 'Behavioral Change')),
+              aes(x = time, y = mean), col = myCol, size = 1) + 
+    geom_ribbon(data=subset(postPredAll, alarmGen == 'hill' & smoothWindow == 30 
+                            & alarmFit %in% c('No Behavioral Change', 'Behavioral Change')),
+                aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = myCol) +
+    facet_wrap(~alarmFit, nrow = 1) +
+    labs(x = 'Epidemic time', y = 'Incidence') 
+dev.off()
 
