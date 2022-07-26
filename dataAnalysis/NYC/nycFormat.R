@@ -37,12 +37,6 @@ colnames(nyc) <- c('date', 'dailyCases')
 # format dates
 nyc$date <- as.Date(nyc$date, format = '%m/%d/%Y')
 
-# 7-day moving average of cases to account for reporting delays
-nyc$smoothedCases <- round(movingAverage(nyc$dailyCases, 3))
-
-# cumulative cases
-nyc$cumulativeCases <- cumsum(nyc$smoothedCases)
-
 # population
 nyc$Population <- 8.419*1e6
 

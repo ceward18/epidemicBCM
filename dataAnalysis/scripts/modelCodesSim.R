@@ -142,7 +142,7 @@ SIR_thresh_fixed <-  nimbleCode({
     I[1] <- I0
     
     # removal times for those initially infectious
-    Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+    Rstar[1:lengthI] <- Rstar0[1:lengthI]
     
     ### first time point for incidence based alarm
     # compute alarm
@@ -252,7 +252,7 @@ SIR_hill_fixed <-  nimbleCode({
     I[1] <- I0
     
     # removal times for those initially infectious
-    Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+    Rstar[1:lengthI] <- Rstar0[1:lengthI]
     
     ### first time point for incidence based alarm
     # compute alarm
@@ -364,7 +364,7 @@ SIR_power_fixed <-  nimbleCode({
     I[1] <- I0
     
     # removal times for those initially infectious
-    Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+    Rstar[1:lengthI] <- Rstar0[1:lengthI]
     
     ### first time point for incidence based alarm
     # compute alarm
@@ -473,7 +473,7 @@ SIR_spline_fixed <-  nimbleCode({
     I[1] <- I0
     
     # removal times for those initially infectious
-    Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+    Rstar[1:lengthI] <- Rstar0[1:lengthI]
     
     ### first time point for incidence based alarm
     # compute alarm
@@ -606,7 +606,7 @@ SIR_gp_fixed <-  nimbleCode({
     I[1] <- I0
     
     # removal times for those initially infectious
-    Rstar[1:lengthI] ~ dmulti(size = I0, prob = probRstar[1:lengthI])
+    Rstar[1:lengthI] <- Rstar0[1:lengthI]
     
     ### first time point for incidence based alarm
     smoothI[1] <- 0

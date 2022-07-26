@@ -5,6 +5,7 @@
 library(nimble)
 
 outputFiles <- list.files('./Output')
+outputFiles <- outputFiles[grep('Batch', outputFiles)]
 
 ################################################################################
 
