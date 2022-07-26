@@ -129,7 +129,7 @@ for (i in batchIdx) {
         gr <- cbind.data.frame(postSummaries$gdiag, modelInfo)
         paramsPost <- cbind.data.frame(postSummaries$postParams, modelInfo)
         alarmPost <- cbind.data.frame(postSummaries$postAlarm, modelInfo)
-        postPredFit <- cbind.data.frame(postSummaries$postPredFit, modelInfo)
+        postPredFits <- cbind.data.frame(postSummaries$postPredFit, modelInfo)
         betaPost <- cbind.data.frame(postSummaries$postBeta, modelInfo)
         R0Post <- cbind.data.frame(postSummaries$postR0, modelInfo)
         waicPost <- cbind.data.frame(postSummaries$waic, modelInfo)
@@ -141,7 +141,7 @@ for (i in batchIdx) {
                                        cbind.data.frame(postSummaries$postParams, modelInfo))
         alarmPost <- rbind.data.frame(alarmPost, 
                                       cbind.data.frame(postSummaries$postAlarm, modelInfo))
-        postPredFit <- rbind.data.frame(postPredFit, 
+        postPredFits <- rbind.data.frame(postPredFits, 
                                         cbind.data.frame(postSummaries$postPredFit, modelInfo))
         betaPost <- rbind.data.frame(betaPost, 
                                      cbind.data.frame(postSummaries$postBeta, modelInfo))
@@ -157,7 +157,7 @@ for (i in batchIdx) {
 saveRDS(gr, paste0('./Output/grBatch', idx, '.rds'))
 saveRDS(paramsPost, paste0('./Output/paramsPostBatch', idx, '.rds'))
 saveRDS(alarmPost, paste0('./Output/alarmPostBatch', idx, '.rds'))
-saveRDS(postPredFit, paste0('./Output/postPredFitBatch', idx, '.rds'))
+saveRDS(postPredFits, paste0('./Output/postPredFitBatch', idx, '.rds'))
 saveRDS(betaPost, paste0('./Output/betaPostBatch', idx, '.rds'))
 saveRDS(R0Post, paste0('./Output/R0PostBatch', idx, '.rds'))
 saveRDS(waicPost, paste0('./Output/waicPostBatch', idx, '.rds'))
