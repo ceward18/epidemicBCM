@@ -13,8 +13,6 @@ Building model
 Setting data and initial values
 Running calculate on model
   [Note] Any error reports that follow may simply reflect missing values in model variables.
-Error in if (xout >= max(x)) { : missing value where TRUE/FALSE needed
-
 Checking model sizes and dimensions
   [Note] This model is not fully initialized. This is not an error.
          To see which variables are not initialized, use model$initializeInfo().
@@ -31,9 +29,6 @@ Setting data and initial values
 Running calculate on model
   [Note] Any error reports that follow may simply reflect missing values in model variables.
 Checking model sizes and dimensions
-  [Note] This model is not fully initialized. This is not an error.
-         To see which variables are not initialized, use model$initializeInfo().
-         For more information on model initialization, see help(modelInitialization).
 Compiling
   [Note] This may take a minute.
   [Note] Use 'showCompilerOutput = TRUE' to see C++ compilation details.
@@ -46,8 +41,6 @@ Building model
 Setting data and initial values
 Running calculate on model
   [Note] Any error reports that follow may simply reflect missing values in model variables.
-Error in if (xout >= max(x)) { : missing value where TRUE/FALSE needed
-
 Checking model sizes and dimensions
   [Note] This model is not fully initialized. This is not an error.
          To see which variables are not initialized, use model$initializeInfo().
@@ -58,23 +51,4 @@ Compiling
 Compiling
   [Note] This may take a minute.
   [Note] Use 'showCompilerOutput = TRUE' to see C++ compilation details.
-Defining model
-Building model
-Setting data and initial values
-Running calculate on model
-  [Note] Any error reports that follow may simply reflect missing values in model variables.
-Checking model sizes and dimensions
-  [Note] This model is not fully initialized. This is not an error.
-         To see which variables are not initialized, use model$initializeInfo().
-         For more information on model initialization, see help(modelInitialization).
-Compiling
-  [Note] This may take a minute.
-  [Note] Use 'showCompilerOutput = TRUE' to see C++ compilation details.
-Monitored nodes are valid for WAIC.
-Compiling
-  [Note] This may take a minute.
-  [Note] Use 'showCompilerOutput = TRUE' to see C++ compilation details.
-Error in rep(xi, length.out = nvar) : 
-  attempt to replicate an object of type 'closure'
-Calls: rbind.data.frame
-Execution halted
+slurmstepd: error: *** JOB 15264560 ON mc43 CANCELLED AT 2022-07-26T12:03:25 ***
