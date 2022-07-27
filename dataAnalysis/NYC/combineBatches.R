@@ -4,8 +4,8 @@
 
 library(nimble)
 
-outputFolder <- 'OutputNew'
-resultsFolder <- 'resultsFinalNew'
+outputFolder <- 'Output'
+resultsFolder <- 'resultsFinal'
 
 outputFiles <- list.files(paste0('./', outputFolder))
 
@@ -22,7 +22,6 @@ for (i in 2:length(grFiles)) {
     gr_i <- readRDS(paste0('./', outputFolder, '/', grFiles[i]))
     grAll <-rbind.data.frame(grAll, gr_i)
 }
-
 
 saveRDS(grAll, paste0('./', resultsFolder, '/grAll.rds'))
 
@@ -45,9 +44,9 @@ rownames(alarmAll) <- NULL
 saveRDS(alarmAll, paste0('./', resultsFolder, '/alarmPostAll.rds'))
 
 ################################################################################
-# posterior predictions
+# posterior predictive fit
 
-postPredFiles <- outputFiles[grep('epiPredPost', outputFiles)]
+postPredFiles <- outputFiles[grep('postPredFit', outputFiles)]
 
 postPredAll <- readRDS(paste0('./', outputFolder, '/', postPredFiles[1]))
 
@@ -60,7 +59,7 @@ for (i in 2:length(postPredFiles)) {
 postPredAll <- postPredAll[!is.na(postPredAll$mean),]
 
 
-saveRDS(postPredAll,  paste0('./', resultsFolder, '/postPredAll.rds'))
+saveRDS(postPredAll,  paste0('./', resultsFolder, '/postPredFitAll.rds'))
 
 ################################################################################
 # posterior parameters 

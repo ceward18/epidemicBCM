@@ -16,25 +16,30 @@ source('../scripts/modelCodes.R')
 
 ### read data
 dat <- read.csv('./Data/nycClean.csv')
-dat$smoothedCases <- round(movingAverage(dat$dailyCases, 4))
+dat$smoothedCases <- round(movingAverage(dat$dailyCases, 7))
 dat$cumulativeCases <- cumsum(dat$smoothedCases)
 
 peak <- c('1', '2', '3', '4')
 alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betatSpline', 'basic')
-smoothWindow <- c(14, 30)
+smoothWindow <- c(14, 30, 45, 60)
 
-# 56 possibilities (7 alarmFits, 4 peaks, 2 infPeriods)
-allModelsFixed <- expand.grid(peak = peak,
-                              alarmFit = alarmFit,
+# 160 possibilities (5 alarmFits, 4 peaks, 4 smoothing windows, 2 infPeriods)
+allModelsAlarm <- expand.grid(peak = peak,
+                              alarmFit = alarmFit[1:5],
                               smoothWindow = smoothWindow,
-                              infPeriod = 'fixed')
-allModelsExp <- expand.grid(peak = peak,
-                              alarmFit = alarmFit,
-                            smoothWindow = smoothWindow,
-                              infPeriod = 'exp')
+                              infPeriod = c('fixed', 'exp'))
 
-# 112
-allModels <- rbind.data.frame(allModelsFixed, allModelsExp)
+# 16 possibilities (2 alarmFits, 4 peaks, 2 infPeriods)
+allModelsNoAlarm <- expand.grid(peak = peak,
+                                 alarmFit = alarmFit[6:7],
+                                 smoothWindow = 1,
+                                 infPeriod = c('fixed', 'exp'))
+
+# 176
+allModels <- rbind.data.frame(allModelsAlarm, allModelsNoAlarm)
+allModels <- allModels[order(allModels$infPeriod, allModels$alarmFit,
+                             allModels$smoothWindow, allModels$peak),]
+rownames(allModels) <- NULL
 
 # constants for all models
 N <- dat$Population[1]
@@ -117,7 +122,7 @@ for (i in batchIdx) {
                                    N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0,
                                    lengthI = lengthI, alarmFit = alarmFit_i, 
                                    infPeriod = infPeriod_i)
-
+    
     
     # save results in separate files
     modelInfo <- data.frame(alarmFit = alarmFit_i,
@@ -142,7 +147,7 @@ for (i in batchIdx) {
         alarmPost <- rbind.data.frame(alarmPost, 
                                       cbind.data.frame(postSummaries$postAlarm, modelInfo))
         postPredFits <- rbind.data.frame(postPredFits, 
-                                        cbind.data.frame(postSummaries$postPredFit, modelInfo))
+                                         cbind.data.frame(postSummaries$postPredFit, modelInfo))
         betaPost <- rbind.data.frame(betaPost, 
                                      cbind.data.frame(postSummaries$postBeta, modelInfo))
         R0Post <- rbind.data.frame(R0Post, 

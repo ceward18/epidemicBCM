@@ -1,8 +1,0 @@
-[1] "Running alarm: gp , peak: 1 , smoothing: 30 , infPeriod: exp"
-Stochastic parents of data are:  beta rateI logit_yAlarm[2] logit_yAlarm[3] logit_yAlarm[4] logit_yAlarm[5] logit_yAlarm[6] logit_yAlarm[7] logit_yAlarm[8] logit_yAlarm[9] logit_yAlarm[10] .
-[1] "Running alarm: gp , peak: 2 , smoothing: 30 , infPeriod: exp"
-Stochastic parents of data are:  beta rateI logit_yAlarm[2] logit_yAlarm[3] logit_yAlarm[4] logit_yAlarm[5] logit_yAlarm[6] logit_yAlarm[7] logit_yAlarm[8] logit_yAlarm[9] logit_yAlarm[10] .
-[1] "Running alarm: gp , peak: 3 , smoothing: 30 , infPeriod: exp"
-Stochastic parents of data are:  beta rateI logit_yAlarm[2] logit_yAlarm[3] logit_yAlarm[4] logit_yAlarm[5] logit_yAlarm[6] logit_yAlarm[7] logit_yAlarm[8] logit_yAlarm[9] logit_yAlarm[10] .
-[1] "Running alarm: gp , peak: 4 , smoothing: 30 , infPeriod: exp"
-Stochastic parents of data are:  beta rateI logit_yAlarm[2] logit_yAlarm[3] logit_yAlarm[4] logit_yAlarm[5] logit_yAlarm[6] logit_yAlarm[7] logit_yAlarm[8] logit_yAlarm[9] logit_yAlarm[10] .
