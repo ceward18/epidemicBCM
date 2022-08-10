@@ -42,11 +42,11 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
         ### inits
         initsList <- list(beta = runif(1, 1/7, 1),
                           delta = runif(1, 0, 1),
-                          H = runif(1, 0, maxI/N/3))
+                          H = runif(1, 0, maxI/N/4))
         
         ### MCMC specifications
-        niter <- 600000
-        nburn <- 400000
+        niter <- 700000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'hill') {
@@ -74,11 +74,11 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
         initsList <- list(beta = runif(1, 1/7, 1),
                           delta = runif(1, 0, 1),
                           nu = runif(1, 0, 10),
-                          x0 = max(rnorm(1, maxI/2, 10), 1))
+                          x0 = max(rnorm(1, maxI/4, 10), 1))
         
         ### MCMC specifications
-        niter <- 600000
-        nburn <- 400000
+        niter <- 700000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'power') {
@@ -106,8 +106,8 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
                           k = runif(1, 0, 1))
         
         ### MCMC specifications
-        niter <- 600000
-        nburn <- 400000
+        niter <- 700000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'spline') {
@@ -131,7 +131,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
         
         ### data
         dataList <- list(Istar = incData,
-                         smoothI= smoothI,
+                         smoothI = smoothI,
                          constrain_knots = 1,
                          constrain_min = 1,
                          constrain_max = 1)
@@ -226,8 +226,8 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
         
         
         ### MCMC specifications
-        niter <- 700000
-        nburn <- 500000
+        niter <- 800000
+        nburn <- 600000
         nthin <- 10
         
         xAlarm <- NULL

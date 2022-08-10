@@ -37,8 +37,8 @@ endDate <- as.Date('2021-11-01')
 nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 3
 
 # peak 4 - Dec 1, 2021 - Mar 15, 2022
-startDate <- as.Date('2021-12-01')
-endDate <- as.Date('2022-02-01')
+startDate <- as.Date('2021-11-15')
+endDate <- as.Date('2022-03-01')
 nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 4
 
 # plot(nyc$date[which(nyc$peak == 4)], nyc$dailyCases[which(nyc$peak == 4)], pch = 16)

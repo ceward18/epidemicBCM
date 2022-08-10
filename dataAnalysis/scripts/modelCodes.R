@@ -198,7 +198,6 @@ RstarUpdate <- nimbleFunction(
   contains = sampler_BASE,                     
   setup = function(model, mvSaved, target, control) {                 # REQUIRED setup arguments
     calcNodes <- model$getDependencies(target) 
-    # percent <- if(!is.null(control$percent)) control$percent else 0.05   
     
     ignoreIdx <- if(!is.null(control$ignoreIdx)) control$ignoreIdx else 0
     

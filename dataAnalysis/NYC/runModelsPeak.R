@@ -21,7 +21,7 @@ dat$cumulativeCases <- cumsum(dat$smoothedCases)
 
 peak <- c('1', '2', '3', '4')
 alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betatSpline', 'basic')
-smoothWindow <- c(14, 30, 45, 60)
+smoothWindow <- c(15, 30, 45, 60)
 
 # 160 possibilities (5 alarmFits, 4 peaks, 4 smoothing windows, 2 infPeriods)
 allModelsAlarm <- expand.grid(peak = peak,
@@ -91,6 +91,7 @@ for (i in batchIdx) {
     I0 <- sum(dat$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
     R0 <- dat$cumulativeCases[idxStart] - I0 
     
+    # not used for exponential models
     Rstar0 <- dat$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)]
     
     
@@ -122,6 +123,13 @@ for (i in batchIdx) {
                                    N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0,
                                    lengthI = lengthI, alarmFit = alarmFit_i, 
                                    infPeriod = infPeriod_i)
+    
+    # if the model did not converge save the chains so these can be examined later
+    if (!all(postSummaries$gdiag$gr < 1.1)) {
+        saveRDS(resThree, 
+                paste0('./Output/chains_', alarmFit_i, '_', infPeriod_i, '_peak', 
+                       peak_i, '_', smoothWindow_i, '.rds'))
+    }
     
     
     # save results in separate files

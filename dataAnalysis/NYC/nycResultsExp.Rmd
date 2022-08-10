@@ -4,6 +4,30 @@ author: "Caitlin Ward"
 output: html_document
 ---
 
+Fitting the behavioral change model to NYC data. 
+
+$$\pi^{(SI)}_t = 1 - \exp\left(-\beta(1 - a_t)\frac{I_t}{N}\right)$$
+
+
+Modeling each peak separately. Investigating the different alarm functions and different levels of smoothing to inform the alarm functions: 14 day, 30 day, 45 day, 60 day averages.
+
+Alarm functions:
+
+* Splines
+* Gaussian Processes
+* Threshold
+* Hill
+* Power
+
+Also comparing to a flexible spline model for $\beta_t$ and the standard approach with constant $\beta$ and no alarm function.
+
+Results provide:
+
+* Estimated alarm functions
+* Estimated $R_0(t)$
+* Posterior predictive fit of epidemic curves
+* WAIC
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 14, fig.height = 6,
                       warning = FALSE)
@@ -39,7 +63,7 @@ infPeriodSpec <- 'exp'
 ### read data
 dat <- read.csv('./Data/nycClean.csv')
 dat$date <- as.Date(dat$date)
-dat$smoothedCases <- round(movingAverage(dat$dailyCases, 4))
+dat$smoothedCases <- round(movingAverage(dat$dailyCases, 7))
 dat$cumulativeCases <- cumsum(dat$smoothedCases)
 
 ggplot(dat, aes(x = date, y = smoothedCases, col = factor(peak))) +
@@ -51,7 +75,7 @@ ggplot(dat, aes(x = date, y = smoothedCases, col = factor(peak))) +
 
 ## Gelman Rubin
 
-Number of models remaining with Gelman Rubin > 1.1.
+Number of models remaining with Gelman Rubin > 1.1. Separated by smoothing parameter. Still some work to do to achieve convergence for some models.
 
 ```{r}
 grAll <- readRDS('./resultsFinal/grAll.rds')
@@ -77,6 +101,19 @@ table(notConvergeModels$alarmFit,
 
 ```{r}
 ################################################################################
+
+### load posterior estimates of parameters
+paramsPostAll <- readRDS('./resultsFinal/paramsPostAll.rds')
+paramsPostAll <- paramsPostAll[paramsPostAll$infPeriod == infPeriodSpec,]
+
+# format for better plotting
+paramsPostAll$alarmFit <- factor(paramsPostAll$alarmFit,
+                         levels = c('spline', 'gp', 'thresh', 'hill', 'power',
+                                    'betatSpline', 'basic'),
+                         labels = c('Spline', 'GP', 
+                                    'Threshold', 'Hill', 'Power',
+                                    'Beta[t]', 'Basic'))
+
 ### load posterior estimates of alarm functions
 alarmAll <- readRDS('./resultsFinal/alarmPostAll.rds')
 alarmAll <- alarmAll[alarmAll$infPeriod == infPeriodSpec,]
@@ -205,6 +242,42 @@ ggplot(subset(dat, peak== '1'), aes(x = date, y = smoothedCases)) +
     labs(x = "Date", y = "Incidence")
 ```
 
+#### Recovery Rate Estimates
+
+Prior on recovery rate is highly concentrated on 0.2 and has an 84% probability 
+of being between 0.18 and 0.22. Lower recovery rates correspond to longer 
+infectious periods and larger recovery rates correspond to shorter infectious
+periods.
+
+```{r}
+paramsPeak <- paramsPostAll[paramsPostAll$peak == 1, -c(6:7)]
+paramsPeak <- paramsPeak[paramsPeak$param %in% c('rateI'),]
+paramsPeak <- paramsPeak[order(paramsPeak$smoothWindow, paramsPeak$alarmFit),]
+
+
+bb <- 1000
+aa <- 1/5*bb
+
+prior <- data.frame(param = 'rateI',
+                    mean = 0.2,
+                    lower = qgamma(0.025, aa, bb),
+                    upper = qgamma(0.975, aa, bb),
+                    alarmFit= 'Prior',
+                    smoothWindow = c(1, 14, 30, 45, 60))
+paramsPeak <- rbind.data.frame(paramsPeak, prior)
+paramsPeak$isPrior <- factor(ifelse(paramsPeak$alarmFit == 'Prior', 1, 0))
+
+ggplot(paramsPeak, aes(x = alarmFit, y = mean,ymin = lower, ymax = upper,
+                       col = isPrior)) +
+    geom_point() +
+    geom_errorbar(width = 0.4) +
+    facet_grid(~smoothWindow) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+    scale_color_manual(values = c('black', 'red')) +
+    guides(color = 'none')
+```
+
+
 #### Estimated Alarm Functions
 
 ```{r}
@@ -224,6 +297,13 @@ r0Peak1 <- merge(r0Peak1, datNew,
                  all.x = T)
 
 ggplot(r0Peak1, aes(x = date, y = mean)) +  
+    geom_line() +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
+    facet_grid(smoothWindow~alarmFit) +
+    labs(x = 'Date', y = 'R0') + 
+    geom_hline(yintercept = 1, linetype = 2)
+
+ggplot(subset(r0Peak1, alarmFit != 'Beta[t]'), aes(x = date, y = mean)) +  
     geom_line() +
     geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
     facet_grid(smoothWindow~alarmFit) +
@@ -273,6 +353,41 @@ kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))],
 ggplot(subset(dat, peak== '2'), aes(x = date, y = smoothedCases)) +
     geom_line() + 
     labs(x = "Date", y = "Incidence")
+```
+
+#### Recovery Rate Estimates
+
+Prior on recovery rate is highly concentrated on 0.2 and has an 84% probability 
+of being between 0.18 and 0.22. Lower recovery rates correspond to longer 
+infectious periods and larger recovery rates correspond to shorter infectious
+periods.
+
+```{r}
+paramsPeak <- paramsPostAll[paramsPostAll$peak == 2, -c(6:7)]
+paramsPeak <- paramsPeak[paramsPeak$param %in% c('rateI'),]
+paramsPeak <- paramsPeak[order(paramsPeak$smoothWindow, paramsPeak$alarmFit),]
+
+
+bb <- 1000
+aa <- 1/5*bb
+
+prior <- data.frame(param = 'rateI',
+                    mean = 0.2,
+                    lower = qgamma(0.025, aa, bb),
+                    upper = qgamma(0.975, aa, bb),
+                    alarmFit= 'Prior',
+                    smoothWindow = c(1, 14, 30, 45, 60))
+paramsPeak <- rbind.data.frame(paramsPeak, prior)
+paramsPeak$isPrior <- factor(ifelse(paramsPeak$alarmFit == 'Prior', 1, 0))
+
+ggplot(paramsPeak, aes(x = alarmFit, y = mean,ymin = lower, ymax = upper,
+                       col = isPrior)) +
+    geom_point() +
+    geom_errorbar(width = 0.4) +
+    facet_grid(~smoothWindow) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+    scale_color_manual(values = c('black', 'red')) +
+    guides(color = 'none')
 ```
 
 #### Estimated Alarm Functions
@@ -339,6 +454,41 @@ ggplot(subset(dat, peak== '3'), aes(x = date, y = smoothedCases)) +
     labs(x = "Date", y = "Incidence")
 ```
 
+#### Recovery Rate Estimates
+
+Prior on recovery rate is highly concentrated on 0.2 and has an 84% probability 
+of being between 0.18 and 0.22. Lower recovery rates correspond to longer 
+infectious periods and larger recovery rates correspond to shorter infectious
+periods.
+
+```{r}
+paramsPeak <- paramsPostAll[paramsPostAll$peak == 3, -c(6:7)]
+paramsPeak <- paramsPeak[paramsPeak$param %in% c('rateI'),]
+paramsPeak <- paramsPeak[order(paramsPeak$smoothWindow, paramsPeak$alarmFit),]
+
+
+bb <- 1000
+aa <- 1/5*bb
+
+prior <- data.frame(param = 'rateI',
+                    mean = 0.2,
+                    lower = qgamma(0.025, aa, bb),
+                    upper = qgamma(0.975, aa, bb),
+                    alarmFit= 'Prior',
+                    smoothWindow = c(1, 14, 30, 45, 60))
+paramsPeak <- rbind.data.frame(paramsPeak, prior)
+paramsPeak$isPrior <- factor(ifelse(paramsPeak$alarmFit == 'Prior', 1, 0))
+
+ggplot(paramsPeak, aes(x = alarmFit, y = mean,ymin = lower, ymax = upper,
+                       col = isPrior)) +
+    geom_point() +
+    geom_errorbar(width = 0.4) +
+    facet_grid(~smoothWindow) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+    scale_color_manual(values = c('black', 'red')) +
+    guides(color = 'none')
+```
+
 #### Estimated Alarm Functions
 
 ```{r}
@@ -403,6 +553,41 @@ ggplot(subset(dat, peak== '4'), aes(x = date, y = smoothedCases)) +
     labs(x = "Date", y = "Incidence")
 ```
 
+#### Recovery Rate Estimates
+
+Prior on recovery rate is highly concentrated on 0.2 and has an 84% probability 
+of being between 0.18 and 0.22. Lower recovery rates correspond to longer 
+infectious periods and larger recovery rates correspond to shorter infectious
+periods.
+
+```{r}
+paramsPeak <- paramsPostAll[paramsPostAll$peak == 4, -c(6:7)]
+paramsPeak <- paramsPeak[paramsPeak$param %in% c('rateI'),]
+paramsPeak <- paramsPeak[order(paramsPeak$smoothWindow, paramsPeak$alarmFit),]
+
+bb <- 1000
+aa <- 1/5*bb
+
+prior <- data.frame(param = 'rateI',
+                    mean = 0.2,
+                    lower = qgamma(0.025, aa, bb),
+                    upper = qgamma(0.975, aa, bb),
+                    alarmFit= 'Prior',
+                    smoothWindow = c(1, 14, 30, 45, 60))
+paramsPeak <- rbind.data.frame(paramsPeak, prior)
+paramsPeak$isPrior <- factor(ifelse(paramsPeak$alarmFit == 'Prior', 1, 0))
+
+ggplot(paramsPeak, aes(x = alarmFit, y = mean,ymin = lower, ymax = upper,
+                       col = isPrior)) +
+    geom_point() +
+    geom_errorbar(width = 0.4) +
+    facet_grid(~smoothWindow) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+    scale_color_manual(values = c('black', 'red')) +
+    guides(color = 'none')
+
+```
+
 #### Estimated Alarm Functions
 
 ```{r}
@@ -426,7 +611,6 @@ ggplot(r0Peak4, aes(x = date, y = mean)) +
     geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
     facet_grid(smoothWindow~alarmFit) +
     labs(x = 'Date', y = 'R0') + 
-    ylim(0.5, 2) + 
     geom_hline(yintercept = 1, linetype = 2)
 ```
 
@@ -455,91 +639,4 @@ kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))],
       row.names = F) %>% 
     kable_styling()
 ```
-
-
-### Full
-
-#### Data
-
-```{r}
-ggplot(dat, aes(x = date, y = smoothedCases)) +
-    geom_line() + 
-    labs(x = "Date", y = "Incidence")
-```
-
-#### Estimated Alarm Functions
-
-```{r}
-ggplot(subset(alarmAll, peak== 'full'), aes(x = xAlarm, y = mean)) +  
-    geom_line() +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
-    facet_wrap(~alarmFit, nrow = 1) +
-    labs(x = '30-day incidence', y = 'Alarm')
-```
-
-#### Estimated R0 Functions
-
-```{r}
-r0PeakFull <- subset(r0All, peak == 'full')
-r0PeakFull <- merge(r0PeakFull, datNew, 
-                    by.x = 'time', by.y = 'timeFull', 
-                    all.x = T)
-
-ggplot(r0PeakFull, aes(x = date, y = mean)) +  
-    geom_line() +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
-    facet_wrap(~alarmFit, nrow = 1) +
-    labs(x = 'Date', y = 'R0') + 
-    geom_hline(yintercept = 1, linetype = 2)
-```
-
-
-#### WAIC
-
-```{r}
-waicPeak <- waicAll[waicAll$peak == 'full',]
-kable(waicPeak[,-which(colnames(waicPeak) %in% c('peak', 'infPeriod'))], 
-      row.names = F)  %>% 
-    kable_styling()
-```
-
-
-## All together
-
-#### Estimated Alarm Functions
-
-```{r}
-ggplot(alarmAll, aes(x = xAlarm, y = mean, 
-                     group =  alarmFit)) +  
-    geom_line(aes(col = alarmFit)) +
-    geom_ribbon(aes(ymin=lower, ymax=upper, fill = alarmFit), alpha=0.3) +
-    facet_wrap(~peak, nrow = 2, scales = 'free_x') +
-    labs(x = '30-day incidence', y = 'Alarm', col = 'Alarm', fill = 'Alarm') 
-```
-
-#### Estimated R0 Functions
-
-```{r}
-
-r0PeakAll <- rbind.fill(r0Peak1, r0Peak2, r0Peak3, r0Peak4, r0PeakFull)
-
-ggplot(r0PeakAll, aes(x = date, y = mean, group = alarmFit)) +  
-    geom_line(aes(col = alarmFit)) +
-    geom_ribbon(aes(ymin=lower, ymax=upper, fill = alarmFit), alpha=0.3) +
-    facet_wrap(~peak.x, nrow = 2, scales = 'free') +
-    labs(x = 'Date', y = 'R0', col = 'Alarm', fill = 'Alarm') + 
-    geom_hline(yintercept = 1, linetype = 2)
-```
-
-
-#### WAIC 
-
-```{r}
-kable(waicAll[,-which(colnames(waicAll) %in% c('peak', 'infPeriod'))], 
-      row.names = F) %>% 
-    pack_rows(index = table(waicAll$peak))
-```
-
-
-
 
