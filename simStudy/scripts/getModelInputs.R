@@ -278,11 +278,6 @@ getModelInput <- function(alarmFit, incData, smoothWindow, prior) {
         xAlarm <- NULL
     }
     
-    ### MCMC specifications
-    niter <- 25
-    nburn <- 2
-    nthin <- 1
-    
     
     list(constantsList = constantsList,
          dataList = dataList,
