@@ -335,7 +335,7 @@ SIR_thresh_fixed <-  nimbleCode({
   # priors
   beta ~ dgamma(0.1, 0.1)
   delta ~ dbeta(1, 1)
-  H ~ dunif(0, maxI/N)
+  H ~ dunif(minI/N, maxI/N)
   
 })
 
@@ -375,7 +375,7 @@ SIR_thresh_exp <-  nimbleCode({
   # priors
   beta ~ dgamma(0.1, 0.1)
   delta ~ dbeta(1, 1)
-  H ~ dunif(0, maxI/N)
+  H ~ dunif(minI/N, maxI/N)
   rateI ~ dgamma(aa, bb)
   
 })
@@ -420,8 +420,8 @@ SIR_hill_fixed <-  nimbleCode({
   # priors
   beta ~ dgamma(0.1, 0.1)
   delta ~ dbeta(1, 1)
-  nu ~ dgamma(0.1, 0.1)
-  x0 ~ dunif(1, maxI)
+  nu ~ dunif(0, 100)
+  x0 ~ dunif(minI, maxI)
   
 })
 
@@ -460,8 +460,8 @@ SIR_hill_exp <-  nimbleCode({
   # priors
   beta ~ dgamma(0.1, 0.1)
   delta ~ dbeta(1, 1)
-  nu ~ dgamma(0.1, 0.1)
-  x0 ~ dunif(1, maxI)
+  nu ~ dunif(0, 100)
+  x0 ~ dunif(minI, maxI)
   rateI ~ dgamma(aa, bb)
   
 })

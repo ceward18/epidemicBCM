@@ -82,11 +82,19 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
     # block sampler for transmission parameters
     paramsForBlock <- c('beta', 'delta', 'nu', 'x0')
     myConfig$removeSampler(paramsForBlock)
-    myConfig$addSampler(target = paramsForBlock, type = "RW_block",
-                        control = list(adaptInterval = 100,
-                                       propCov = diag(c(0.2, 0.2, 1, 800))))
+    myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
     
+  } else if (alarmFit == 'spline') {
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('b', 'knots')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock[1], type = "AF_slice")
+      myConfig$addSampler(target = paramsForBlock[2], type = "AF_slice")
+     
   } 
+  
+  
   myConfig$addMonitors(c('Rstar', 'R0'))
   myMCMC <- buildMCMC(myConfig)
   compiled <- compileNimble(myModel, myMCMC) 

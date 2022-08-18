@@ -21,6 +21,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
     if (alarmFit == 'thresh') {
         
         ### constants
+        minI <- floor(min(smoothI))
         maxI <- ceiling(max(smoothI))
         n <- 50
         xAlarm <- seq(0, maxI, length.out = n)
@@ -33,7 +34,8 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
                               lengthI = lengthI,
                               n = n,
                               xAlarm = xAlarm,
-                              maxI = maxI)
+                              maxI = maxI,
+                              minI = minI)
         
         ### data
         dataList <- list(Istar = incData,
@@ -52,6 +54,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
     } else if (alarmFit == 'hill') {
         
         ### constants
+        minI <- floor(min(smoothI))
         maxI <- ceiling(max(smoothI))
         n <- 50
         xAlarm <- seq(0, maxI, length.out = n)
@@ -64,6 +67,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
                               lengthI = lengthI,
                               n = n,
                               xAlarm = xAlarm,
+                              minI = minI,
                               maxI = maxI)
         
         ### data
