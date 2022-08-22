@@ -51,39 +51,32 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
                         type = "RstarUpdate",
                         control = list(ignoreIdx = 1:length(Rstar0)))
     
-    
     myConfig$removeSampler('rateI')
     myConfig$addSampler(target = 'rateI', type = "slice")
   }
   
-  # if gaussian process model, use slice sampling
-  if (alarmFit == 'gp') {
-    
-    paramsForSlice <- c('beta', 'l', 'sigma')
-    myConfig$removeSampler(paramsForSlice)
-    myConfig$addSampler(target = paramsForSlice[1], type = "slice")
-    myConfig$addSampler(target = paramsForSlice[2], type = "slice")
-    myConfig$addSampler(target = paramsForSlice[3], type = "slice")
-    
-  } else if (alarmFit == 'thresh') {
+  # customize samplers depending on model being fitted
+  if (alarmFit == 'thresh') {
     
     # block sampler for transmission parameters
-    paramsForBlock <- c('beta', 'delta')
+    paramsForBlock <- c('beta', 'delta', 'rateI')
     myConfig$removeSampler(paramsForBlock)
-    myConfig$addSampler(target = paramsForBlock, type = "RW_block",
-                        control = list(adaptInterval = 100,
-                                       propCov = diag(c(0.1, 0.1))))
-    
-    myConfig$removeSampler('H')
-    myConfig$addSampler(target = 'H', type = "slice")
+    myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
     
   } else if (alarmFit == 'hill') {
     
     # block sampler for transmission parameters
-    paramsForBlock <- c('beta', 'delta', 'nu', 'x0')
+    paramsForBlock <- c('beta', 'delta', 'nu', 'x0', 'rateI')
     myConfig$removeSampler(paramsForBlock)
     myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
     
+  } else if (alarmFit == 'power') {
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'k', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      
   } else if (alarmFit == 'spline') {
       
       # block sampler for transmission parameters
@@ -91,15 +84,30 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       myConfig$removeSampler(paramsForBlock)
       myConfig$addSampler(target = paramsForBlock[1], type = "AF_slice")
       myConfig$addSampler(target = paramsForBlock[2], type = "AF_slice")
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
      
+  } else if (alarmFit == 'gp') {
+      
+      # if gaussian process model, use slice sampling
+      paramsForSlice <- c('l', 'sigma')
+      myConfig$removeSampler(paramsForSlice)
+      myConfig$addSampler(target = paramsForSlice[1], type = "slice")
+      myConfig$addSampler(target = paramsForSlice[2], type = "slice")
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      
   } 
-  
   
   myConfig$addMonitors(c('Rstar', 'R0'))
   myMCMC <- buildMCMC(myConfig)
   compiled <- compileNimble(myModel, myMCMC) 
-  
-
   
   runMCMC(compiled$myMCMC, 
           niter = niter, 

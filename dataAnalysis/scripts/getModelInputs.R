@@ -118,6 +118,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
         
         ### constants
         n <- 50
+        minI <- floor(min(smoothI))
         maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         nb <- 3
@@ -129,6 +130,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
                               Rstar0 = Rstar0,
                               xAlarm = xAlarm,
                               n = n,
+                              minI = minI,
                               maxI = maxI,
                               lengthI = lengthI,
                               nb = nb)
@@ -145,10 +147,11 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
             initsList <- list(beta = runif(1, 1/7, 1),
                               b = rnorm(nb, 0, 4),
                               knots = as.vector(quantile(xAlarm, 
-                                                         probs = sort(runif(nb - 1, 0.1, 0.8)))))
+                                                         probs = sort(runif(nb - 1, 0.2, 0.8)))))
             
             cond <- all(splineAlarm(xAlarm, initsList$b, initsList$knots) >= 0) & 
-                all(splineAlarm(xAlarm, initsList$b, initsList$knots) <= 1)
+                all(splineAlarm(xAlarm, initsList$b, initsList$knots) <= 1) & 
+                all(initsList$knots > minI)
             
             if (cond) break
         }
@@ -226,7 +229,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod,
         ### inits
         initsList <- list(b = rnorm(nb, 0, 4),
                           knots = as.vector(quantile(timeVec, 
-                                                     probs = sort(runif(nb - 1, 0, 0.4)))))
+                                                     probs = sort(runif(nb - 1, 0.2, 0.5)))))
         
         
         ### MCMC specifications

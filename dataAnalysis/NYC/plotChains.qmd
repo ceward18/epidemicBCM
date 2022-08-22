@@ -55,6 +55,28 @@ plotAlarmChains <- function(chains) {
 
 ```
 
+
+## Models that didn't converge
+
+```{r}
+grAll <- readRDS('./resultsFinal/grAll.rds')
+grAll <- grAll[grAll$infPeriod == 'exp',]
+
+# which didn't converge
+notConverge <- grAll[which(grAll$gr > 1.1),  ]
+notConvergeModels <-  notConverge[
+    !duplicated(notConverge
+                [,-which(colnames(notConverge) %in% c('gr', 'grUpper', 'param'))]),
+    c('alarmFit', 'infPeriod', 'smoothWindow', 'peak')]
+notConvergeModels$noConverge <- 1
+
+
+table(notConvergeModels$peak,
+      notConvergeModels$smoothWindow,
+      notConvergeModels$alarmFit)
+```
+
+
 ## Threshold Models
 
 ```{r}
@@ -118,14 +140,6 @@ plotAlarmChains(chains)
 
 ### Peak 2
 
-#### 15-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_thresh_exp_peak2_15.rds')
-
-plotThreshChains(chains)
-plotAlarmChains(chains)
-```
 
 #### 30-day smoothing
 
@@ -165,6 +179,33 @@ plotThreshChains(chains)
 plotAlarmChains(chains)
 ```
 
+#### 30-day smoothing
+
+```{r}
+chains <- readRDS('Output/chains_thresh_exp_peak3_30.rds')
+
+plotThreshChains(chains)
+plotAlarmChains(chains)
+```
+
+#### 45-day smoothing
+
+```{r}
+chains <- readRDS('Output/chains_thresh_exp_peak3_45.rds')
+
+plotThreshChains(chains)
+plotAlarmChains(chains)
+```
+
+#### 60-day smoothing
+
+```{r}
+chains <- readRDS('Output/chains_thresh_exp_peak3_60.rds')
+
+plotThreshChains(chains)
+plotAlarmChains(chains)
+```
+
 ### Peak 4
 
 #### 15-day smoothing
@@ -191,6 +232,102 @@ plotAlarmChains(chains)
 chains <- readRDS('Output/chains_thresh_exp_peak4_45.rds')
 
 plotThreshChains(chains)
+plotAlarmChains(chains)
+```
+
+## Hill
+
+```{r}
+plotHillChains <- function(chains) {
+    
+    par(mfrow = c(2,3))
+    
+    param <- 'beta'
+    plotParamChains(chains, param)
+    
+    param <- 'delta'
+    plotParamChains(chains, param)
+    
+    param <- 'nu'
+    plotParamChains(chains, param)
+    
+    param <- 'x0'
+    plotParamChains(chains, param)
+    
+    param <- 'rateI'
+    plotParamChains(chains, param)
+    
+}
+```
+
+### Peak 2
+
+
+#### 60-day smoothing
+
+```{r}
+chains <- readRDS('Output/chains_hill_exp_peak2_60.rds')
+
+plotHillChains(chains)
+```
+
+```{r}
+
+plotAlarmChains(chains)
+```
+
+### Peak 4
+
+
+#### 60-day smoothing
+
+```{r}
+chains <- readRDS('Output/chains_hill_exp_peak4_60.rds')
+
+plotHillChains(chains)
+```
+
+```{r}
+
+plotAlarmChains(chains)
+```
+
+## Power
+
+```{r}
+plotPowerChains <- function(chains) {
+    
+    par(mfrow = c(1,3))
+    
+    param <- 'beta'
+    plotParamChains(chains, param)
+    
+    param <- 'k'
+    plotParamChains(chains, param)
+    
+    param <- 'rateI'
+    plotParamChains(chains, param)
+    
+}
+```
+
+### Peak 4
+
+#### 30-day smoothing
+
+```{r}
+chains <- readRDS('Output/chains_power_exp_peak4_30.rds')
+
+plotPowerChains(chains)
+plotAlarmChains(chains)
+```
+
+#### 45-day smoothing
+
+```{r}
+chains <- readRDS('Output/chains_power_exp_peak4_45.rds')
+
+plotPowerChains(chains)
 plotAlarmChains(chains)
 ```
 
@@ -300,6 +437,8 @@ plotGPChains <- function(chains) {
 
 ### Peak 1
 
+#### 60-day smoothing
+
 ```{r}
 chains <- readRDS('Output/chains_gp_exp_peak1_60.rds')
 
@@ -309,12 +448,16 @@ plotAlarmChains(chains)
 
 ### Peak 4
 
+#### 15-day smoothing
+
 ```{r}
 chains <- readRDS('Output/chains_gp_exp_peak4_15.rds')
 
 plotGPChains(chains)
 plotAlarmChains(chains)
 ```
+
+#### 45-day smoothing
 
 ```{r}
 chains <- readRDS('Output/chains_gp_exp_peak4_45.rds')
@@ -323,6 +466,8 @@ plotGPChains(chains)
 plotAlarmChains(chains)
 ```
 
+#### 60-day smoothing
+
 ```{r}
 chains <- readRDS('Output/chains_gp_exp_peak4_60.rds')
 
@@ -330,165 +475,6 @@ plotGPChains(chains)
 plotAlarmChains(chains)
 ```
 
-## Hill
-
-```{r}
-plotHillChains <- function(chains) {
-    
-    par(mfrow = c(2,3))
-    
-    param <- 'beta'
-    plotParamChains(chains, param)
-    
-    param <- 'delta'
-    plotParamChains(chains, param)
-    
-    param <- 'nu'
-    plotParamChains(chains, param)
-    
-    param <- 'x0'
-    plotParamChains(chains, param)
-    
-    param <- 'rateI'
-    plotParamChains(chains, param)
-    
-}
-```
-
-### Peak 2
-
-#### 15-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_hill_exp_peak2_15.rds')
-
-plotHillChains(chains)
-```
-
-```{r}
-
-plotAlarmChains(chains)
-```
-
-
-#### 30-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_hill_exp_peak2_30.rds')
-
-plotHillChains(chains)
-```
-
-```{r}
-
-plotAlarmChains(chains)
-```
-
-#### 45-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_hill_exp_peak2_45.rds')
-
-plotHillChains(chains)
-```
-
-```{r}
-
-plotAlarmChains(chains)
-```
-
-#### 60-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_hill_exp_peak2_60.rds')
-
-plotHillChains(chains)
-```
-
-```{r}
-
-plotAlarmChains(chains)
-```
-
-### Peak 4
-
-#### 15-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_hill_exp_peak4_15.rds')
-
-plotHillChains(chains)
-```
-
-```{r}
-
-plotAlarmChains(chains)
-```
-
-#### 45-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_hill_exp_peak4_45.rds')
-
-plotHillChains(chains)
-```
-
-```{r}
-
-plotAlarmChains(chains)
-```
-
-#### 60-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_hill_exp_peak4_60.rds')
-
-plotHillChains(chains)
-```
-
-```{r}
-
-plotAlarmChains(chains)
-```
-
-## Power
-
-```{r}
-plotPowerChains <- function(chains) {
-    
-    par(mfrow = c(1,3))
-    
-    param <- 'beta'
-    plotParamChains(chains, param)
-    
-    param <- 'k'
-    plotParamChains(chains, param)
-    
-    param <- 'rateI'
-    plotParamChains(chains, param)
-    
-}
-```
-
-### Peak 4
-
-#### 30-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_power_exp_peak4_30.rds')
-
-plotPowerChains(chains)
-plotAlarmChains(chains)
-```
-
-#### 45-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_power_exp_peak4_45.rds')
-
-plotPowerChains(chains)
-plotAlarmChains(chains)
-```
 
 ## Spline
 
@@ -529,6 +515,9 @@ plotSplineChains <- function(chains) {
 chains <- readRDS('Output/chains_spline_exp_peak2_15.rds')
 
 plotSplineChains(chains)
+```
+
+```{r}
 plotAlarmChains(chains)
 ```
 
@@ -538,8 +527,12 @@ plotAlarmChains(chains)
 chains <- readRDS('Output/chains_spline_exp_peak2_30.rds')
 
 plotSplineChains(chains)
+```
+
+```{r}
 plotAlarmChains(chains)
 ```
+
 
 #### 45-day smoothing
 
@@ -547,8 +540,12 @@ plotAlarmChains(chains)
 chains <- readRDS('Output/chains_spline_exp_peak2_45.rds')
 
 plotSplineChains(chains)
+```
+
+```{r}
 plotAlarmChains(chains)
 ```
+
 
 #### 60-day smoothing
 
@@ -556,8 +553,12 @@ plotAlarmChains(chains)
 chains <- readRDS('Output/chains_spline_exp_peak2_60.rds')
 
 plotSplineChains(chains)
+```
+
+```{r}
 plotAlarmChains(chains)
 ```
+
 
 ### Peak 4
 
@@ -567,8 +568,25 @@ plotAlarmChains(chains)
 chains <- readRDS('Output/chains_spline_exp_peak4_15.rds')
 
 plotSplineChains(chains)
+```
+
+```{r}
 plotAlarmChains(chains)
 ```
+
+
+#### 30-day smoothing
+
+```{r}
+chains <- readRDS('Output/chains_spline_exp_peak4_30.rds')
+
+plotSplineChains(chains)
+```
+
+```{r}
+plotAlarmChains(chains)
+```
+
 
 #### 45-day smoothing
 
@@ -576,8 +594,12 @@ plotAlarmChains(chains)
 chains <- readRDS('Output/chains_spline_exp_peak4_45.rds')
 
 plotSplineChains(chains)
+```
+
+```{r}
 plotAlarmChains(chains)
 ```
+
 
 #### 60-day smoothing
 
@@ -585,5 +607,9 @@ plotAlarmChains(chains)
 chains <- readRDS('Output/chains_spline_exp_peak4_60.rds')
 
 plotSplineChains(chains)
+```
+
+```{r}
 plotAlarmChains(chains)
 ```
+

@@ -420,7 +420,7 @@ SIR_hill_fixed <-  nimbleCode({
   # priors
   beta ~ dgamma(0.1, 0.1)
   delta ~ dbeta(1, 1)
-  nu ~ dunif(0, 100)
+  nu ~ dunif(0, 200)
   x0 ~ dunif(minI, maxI)
   
 })
@@ -460,7 +460,7 @@ SIR_hill_exp <-  nimbleCode({
   # priors
   beta ~ dgamma(0.1, 0.1)
   delta ~ dbeta(1, 1)
-  nu ~ dunif(0, 100)
+  nu ~ dunif(0, 200)
   x0 ~ dunif(minI, maxI)
   rateI ~ dgamma(aa, bb)
   
@@ -599,7 +599,7 @@ SIR_spline_fixed <-  nimbleCode({
     b[i] ~ dnorm(0, sd = 100)
   }
   for (i in 1:(nb - 1)) {
-    knots[i] ~ dunif(min = 1, max = maxI)
+    knots[i] ~ dunif(min = minI, max = maxI)
   }
   
   # constrain knots to be ordered
@@ -650,7 +650,7 @@ SIR_spline_exp <-  nimbleCode({
     b[i] ~ dnorm(0, sd = 100)
   }
   for (i in 1:(nb - 1)) {
-    knots[i] ~ dunif(min = 1, max = maxI)
+    knots[i] ~ dunif(min = minI, max = maxI)
   }
   rateI ~ dgamma(aa, bb)
   
