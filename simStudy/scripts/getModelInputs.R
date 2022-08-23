@@ -37,6 +37,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow, prior) {
         ### constants
         smoothI <- c(0, movingAverage(incData, smoothWindow))
         n <- 100
+        minI <- floor(min(smoothI))
         maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         
@@ -47,6 +48,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow, prior) {
                               bb = bb,
                               n = n,
                               xAlarm = xAlarm,
+                              minI = minI,
                               maxI = maxI)
         
         ### data
@@ -69,6 +71,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow, prior) {
         ### constants
         smoothI <- c(0, movingAverage(incData, smoothWindow))
         n <- 50
+        minI <- floor(min(smoothI))
         maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         
@@ -79,6 +82,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow, prior) {
                               bb = bb,
                               n = n,
                               xAlarm = xAlarm,
+                              minI = minI,
                               maxI = maxI)
         
         ### data
@@ -132,6 +136,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow, prior) {
         ### constants
         smoothI <- c(0, movingAverage(incData, smoothWindow))
         n <- 50
+        minI <- floor(min(smoothI))
         maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         nb <- 3
@@ -141,6 +146,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow, prior) {
                               I0 = I0,
                               xAlarm = xAlarm,
                               n = n,
+                              minI = minI,
                               maxI = maxI,
                               aa = aa,
                               bb = bb,
@@ -277,8 +283,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow, prior) {
         
         xAlarm <- NULL
     }
-    
-    
+
     list(constantsList = constantsList,
          dataList = dataList,
          initsList = initsList,

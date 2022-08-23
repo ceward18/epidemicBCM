@@ -103,7 +103,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       myConfig$removeSampler(paramsForBlock)
       myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
       
-  } 
+  }
   
   myConfig$addMonitors(c('Rstar', 'R0'))
   myMCMC <- buildMCMC(myConfig)

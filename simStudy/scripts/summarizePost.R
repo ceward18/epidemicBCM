@@ -16,21 +16,22 @@ source('./scripts/getModelInputs.R')
 source('./scripts/postPred.R')
 source('./scripts/getWAIC.R')
 
-summarizePost <- function(resThree, incData, alarmBase, alarmFit, smoothWindow, prior) {
+summarizePost <- function(resThree, incData, alarmBase, alarmFit,
+                          smoothWindow, prior, epiSize) {
     
     
     if (!alarmFit %in% c('betat', 'basic', 'betatSpline')) {
-        paramsamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[1]]))]
-        paramsamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[2]]))]
-        paramsamples3 <- resThree[[3]][,-grep('alarm|yAlarm|Rstar', colnames(resThree[[3]]))]
+        paramsamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[1]]))]
+        paramsamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[2]]))]
+        paramsamples3 <- resThree[[3]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[3]]))]
     } else if (alarmFit %in% c('betat', 'betatSpline')) {
-        paramsamples1 <- resThree[[1]][,-grep('beta\\[|Rstar', colnames(resThree[[1]]))]
-        paramsamples2 <- resThree[[2]][,-grep('beta\\[|Rstar', colnames(resThree[[2]]))]
-        paramsamples3 <- resThree[[3]][,-grep('beta\\[|Rstar', colnames(resThree[[3]]))]
+        paramsamples1 <- resThree[[1]][,-grep('beta\\[|Rstar|R0', colnames(resThree[[1]]))]
+        paramsamples2 <- resThree[[2]][,-grep('beta\\[|Rstar|R0', colnames(resThree[[2]]))]
+        paramsamples3 <- resThree[[3]][,-grep('beta\\[|Rstar|R0', colnames(resThree[[3]]))]
     } else if (alarmFit == 'basic') {
-        paramsamples1 <- resThree[[1]][,-grep('Rstar', colnames(resThree[[1]]))]
-        paramsamples2 <- resThree[[2]][,-grep('Rstar', colnames(resThree[[2]]))]
-        paramsamples3 <- resThree[[3]][,-grep('Rstar', colnames(resThree[[3]]))]
+        paramsamples1 <- resThree[[1]][,-grep('Rstar|R0', colnames(resThree[[1]]))]
+        paramsamples2 <- resThree[[2]][,-grep('Rstar|R0', colnames(resThree[[2]]))]
+        paramsamples3 <- resThree[[3]][,-grep('Rstar|R0', colnames(resThree[[3]]))]
     }
     
     RstarSamples1 <-  resThree[[1]][,grep('Rstar', colnames(resThree[[1]]))]
@@ -110,8 +111,27 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, smoothWindow, 
     }
     
     ##############################################################################
+    ### Posterior distribution of reproductive number
+    
+    R0Samples1 <-  resThree[[1]][,grep('R0', colnames(resThree[[1]]))]
+    R0Samples2 <-  resThree[[2]][,grep('R0', colnames(resThree[[2]]))]
+    R0Samples3 <-  resThree[[3]][,grep('R0', colnames(resThree[[3]]))]
+    
+    # combine posterior parameters with posterior R0
+    R0Samples <- rbind(R0Samples1, R0Samples2, R0Samples3)
+    
+    postMeans <- colMeans(R0Samples)
+    postCI <- apply(R0Samples, 2, quantile, probs = c(0.025, 0.975))
+    postR0 <- data.frame(time = 1:length(incData),
+                         mean = postMeans,
+                         lower = postCI[1,],
+                         upper = postCI[2,])
+    rownames(postR0) <- NULL
+    
+    ##############################################################################
     ### posterior predictive forecasting assuming first 50 days have been observed
-    if (!alarmFit %in% c('betat', 'betatSpline')) {
+    
+    if (!alarmFit %in% c('betat', 'betatSpline') & epiSize == 'small') {
         
         postPredInc <- postPred(incData = incData, alarmFit = alarmFit, 
                                 smoothWindow = smoothWindow, prior = prior,
@@ -141,9 +161,9 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, smoothWindow, 
         
     } else if (alarmFit %in% c('gp', 'spline')) {
         
-        samps1 <- resThree[[1]][,-grep('alarm', colnames(resThree[[1]]))]
-        samps2 <- resThree[[2]][,-grep('alarm', colnames(resThree[[2]]))]
-        samps3 <- resThree[[3]][,-grep('alarm', colnames(resThree[[3]]))]
+        samps1 <- resThree[[1]][,-grep('alarm|R0', colnames(resThree[[1]]))]
+        samps2 <- resThree[[2]][,-grep('alarm|R0', colnames(resThree[[2]]))]
+        samps3 <- resThree[[3]][,-grep('alarm|R0', colnames(resThree[[3]]))]
         
         samples <- rbind(samps1, samps2, samps3)
         
@@ -175,7 +195,7 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, smoothWindow, 
     }
     
     waic <- getWAIC(samples = samples, incData = incData, alarmFit = alarmFit,
-                    smoothWindow = smoothWindow, prior = prior)
+                    smoothWindow = smoothWindow, prior = prior, epiSize = epiSize)
     
     ### output
     list(gdiag = gdiag,
@@ -183,6 +203,7 @@ summarizePost <- function(resThree, incData, alarmBase, alarmFit, smoothWindow, 
          postAlarm = postAlarm,
          postEpiPred = postEpiPred,
          postBeta = postBeta,
+         postR0 = postR0,
          waic= waic)
     
     

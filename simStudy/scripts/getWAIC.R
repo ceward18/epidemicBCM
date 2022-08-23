@@ -5,12 +5,12 @@
 # called from summarize post after samples have been combined across chains
 ################################################################################
 
-getWAIC <- function(samples, incData, alarmFit, smoothWindow, prior) {
+getWAIC <- function(samples, incData, alarmFit, smoothWindow, prior, epiSize) {
     
     source('./scripts/modelCodes.R')
     
     # constants that are the same for all models
-    tau <- 50
+    tau <- ifelse(epiSize == 'small', 50, 100)
     
     # only use the first 50 days of the incidence to define the model
     incData <- incData[1:tau]

@@ -15,18 +15,20 @@ alarmGen <- c('thresh', 'hill', 'power')
 alarmFit <- c('thresh', 'hill', 'power', 'spline', 'gp', 'betatSpline', 'basic')
 smoothWindow <- c(14, 30)
 priors <- 1:4
+epiSize <- c('small', 'large')
 
 allFits <- expand.grid(simNumber = 1:nSim,
-                           alarmGen = alarmGen,
-                           alarmFit = alarmFit,
-                           smoothWindow = smoothWindow,
-                           prior = priors,
-                           stringsAsFactors = FALSE)
+                       alarmGen = alarmGen,
+                       alarmFit = alarmFit,
+                       smoothWindow = smoothWindow,
+                       prior = priors,
+                       epiSize = epiSize,
+                       stringsAsFactors = FALSE)
 
 
 # 6000 rows
 allFits <- allFits[-which(allFits$alarmFit %in% alarmGen &
-                            allFits$alarmFit != allFits$alarmGen),]
+                              allFits$alarmFit != allFits$alarmGen),]
 rownames(allFits) <- 1:nrow(allFits)
 
 tmp <- allFits[seq(1,nrow(allFits), 25),]
@@ -37,99 +39,104 @@ batchSize <- 25
 batchIdx <- batchSize * (idx - 1) + 1:batchSize
 
 for (i in batchIdx) {
-  
-  simNumber_i <- allFits$simNumber[i]
-  alarmGen_i <- allFits$alarmGen[i]
-  alarmFit_i <- allFits$alarmFit[i]
-  smoothWindow_i <- allFits$smoothWindow[i]
-  prior_i <- allFits$prior[i]
-  
-  print(paste0('alarm Gen: ', alarmGen_i,
-               ', alarm fit: ', alarmFit_i, 
-               ', smoothing window: ', smoothWindow_i, 
-               ', prior: ', prior_i, 
-               ', simulation: ', simNumber_i))
-  
-  # load data
-  incData <- readRDS(paste0('./Data/', alarmGen_i, '_exp_', smoothWindow_i, '.rds'))
-  incData <- incData[,grep('Istar', colnames(incData))]
-  
-  # subset row corresponding to simulation number specified
-  incData <- incData[simNumber_i,]
-  
-  # only use the first 50 time points for model fitting
-  incDataFit <- incData[1:50]
-  
-  # run three chains in parallel
-  cl <- makeCluster(3)
-  clusterExport(cl, list('incDataFit', 'alarmFit_i', 'smoothWindow_i',
-                         'prior_i', 'simNumber_i'))
-  
-  resThree <- parLapplyLB(cl, 1:3, function(x) {
     
-    library(nimble)
+    simNumber_i <- allFits$simNumber[i]
+    alarmGen_i <- allFits$alarmGen[i]
+    alarmFit_i <- allFits$alarmFit[i]
+    smoothWindow_i <- allFits$smoothWindow[i]
+    prior_i <- allFits$prior[i]
+    epiSize_i <- allFits$epiSize[i]
     
-    # source relevant scripts
-    source('./scripts/modelFits.R')
+    print(paste0('alarm Gen: ', alarmGen_i,
+                 ', alarm fit: ', alarmFit_i, 
+                 ', smoothing window: ', smoothWindow_i, 
+                 ', prior: ', prior_i, 
+                 ', size: ', epiSize_i, 
+                 ', simulation: ', simNumber_i))
     
-    fitAlarmModel(incData = incDataFit, alarmFit = alarmFit_i,
-                  smoothWindow = smoothWindow_i, prior = prior_i,
-                  simNumber = simNumber_i, seed = x)
-  })
-  stopCluster(cl)
-  
-  source('./scripts/summarizePost.R')
-  
-  # debugonce(summarizePost)
-  postSummaries <- summarizePost(resThree = resThree, incData = incData,
-                                 alarmFit = alarmFit_i, smoothWindow = smoothWindow_i,
-                                 prior = prior_i)
-  
-  # save results in separate files
-  modelInfo <- data.frame(alarmGen = alarmGen_i,
-                          alarmFit = alarmFit_i,
-                          smoothWindow = smoothWindow_i,
-                          prior = prior_i,
-                          simNumber = simNumber_i)
-  
-  # gelman-rubin
-  # posterior parameters
-  # posterior alarm
-  # posterior predictions
-  if (i == batchIdx[1]) {
-    gr <- cbind.data.frame(postSummaries$gdiag, modelInfo)
+    # load data
+    if (epiSize_i == 'small') {
+        incData <- readRDS(paste0('./Data/', alarmGen_i, '_exp_', smoothWindow_i, '.rds'))
+    } else if (epiSize_i == 'large') {
+        incData <- readRDS(paste0('./Data/', alarmGen_i, '_exp_', smoothWindow_i, '_large.rds'))
+    }
+    incData <- incData[,grep('Istar', colnames(incData))]
     
-    paramsPost <- cbind.data.frame(postSummaries$postParams, modelInfo)
+    # subset row corresponding to simulation number specified
+    incData <- incData[simNumber_i,]
     
-    alarmPost <- cbind.data.frame(postSummaries$postAlarm, modelInfo)
+    # only use the first 50 time points for model fitting
+    if (epiSize_i == 'small') {
+        incDataFit <- incData[1:50]
+    } else if (epiSize_i == 'large') {
+        incDataFit <- incData[1:100]
+    }
     
-    epiPredPost <- cbind.data.frame(postSummaries$postEpiPred, modelInfo)
     
-    betaPost <- cbind.data.frame(postSummaries$postBeta, modelInfo)
+    # run three chains in parallel
+    cl <- makeCluster(3)
+    clusterExport(cl, list('incDataFit', 'alarmFit_i', 'smoothWindow_i',
+                           'prior_i', 'simNumber_i'))
     
-    waicPost <- cbind.data.frame(postSummaries$waic, modelInfo)
+    resThree <- parLapplyLB(cl, 1:3, function(x) {
+        
+        library(nimble)
+        
+        # source relevant scripts
+        source('./scripts/modelFits.R')
+        
+        fitAlarmModel(incData = incDataFit, alarmFit = alarmFit_i,
+                      smoothWindow = smoothWindow_i, prior = prior_i,
+                      simNumber = simNumber_i, seed = x)
+    })
+    stopCluster(cl)
     
-  } else {
-    gr <- rbind.data.frame(gr, 
-                           cbind.data.frame(postSummaries$gdiag, modelInfo))
+    source('./scripts/summarizePost.R')
     
-    paramsPost <- rbind.data.frame(paramsPost, 
-                                   cbind.data.frame(postSummaries$postParams, modelInfo))
+    # debugonce(summarizePost)
+    postSummaries <- summarizePost(resThree = resThree, incData = incData,
+                                   alarmFit = alarmFit_i, smoothWindow = smoothWindow_i,
+                                   prior = prior_i, epiSize = epiSize_i)
     
-    alarmPost <- rbind.data.frame(alarmPost, 
-                                  cbind.data.frame(postSummaries$postAlarm, modelInfo))
+    # save results in separate files
+    modelInfo <- data.frame(alarmGen = alarmGen_i,
+                            alarmFit = alarmFit_i,
+                            smoothWindow = smoothWindow_i,
+                            prior = prior_i,
+                            epiSize = epiSize_i,
+                            simNumber = simNumber_i)
     
-    epiPredPost <- rbind.data.frame(epiPredPost, 
-                                    cbind.data.frame(postSummaries$postEpiPred, modelInfo))
+    # gelman-rubin
+    # posterior parameters
+    # posterior alarm
+    # posterior predictions
+    if (i == batchIdx[1]) {
+        gr <- cbind.data.frame(postSummaries$gdiag, modelInfo)
+        paramsPost <- cbind.data.frame(postSummaries$postParams, modelInfo)
+        alarmPost <- cbind.data.frame(postSummaries$postAlarm, modelInfo)
+        epiPredPost <- cbind.data.frame(postSummaries$postEpiPred, modelInfo)
+        betaPost <- cbind.data.frame(postSummaries$postBeta, modelInfo)
+        R0Post <- cbind.data.frame(postSummaries$postR0, modelInfo)
+        waicPost <- cbind.data.frame(postSummaries$waic, modelInfo)
+        
+    } else {
+        gr <- rbind.data.frame(gr, 
+                               cbind.data.frame(postSummaries$gdiag, modelInfo))
+        paramsPost <- rbind.data.frame(paramsPost, 
+                                       cbind.data.frame(postSummaries$postParams, modelInfo))
+        alarmPost <- rbind.data.frame(alarmPost, 
+                                      cbind.data.frame(postSummaries$postAlarm, modelInfo))
+        epiPredPost <- rbind.data.frame(epiPredPost, 
+                                        cbind.data.frame(postSummaries$postEpiPred, modelInfo))
+        betaPost <- rbind.data.frame(betaPost, 
+                                     cbind.data.frame(postSummaries$postBeta, modelInfo))
+        R0Post <- rbind.data.frame(R0Post, 
+                                   cbind.data.frame(postSummaries$postR0, modelInfo))
+        waicPost <- rbind.data.frame(waicPost, 
+                                     cbind.data.frame(postSummaries$waic, modelInfo))
+        
+    }
     
-    betaPost <- rbind.data.frame(betaPost, 
-                                 cbind.data.frame(postSummaries$postBeta, modelInfo))
-    
-    waicPost <- rbind.data.frame(waicPost, 
-                                 cbind.data.frame(postSummaries$waic, modelInfo))
-    
-  }
-  
 } # end loop
 
 

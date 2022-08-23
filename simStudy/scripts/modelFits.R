@@ -47,45 +47,58 @@ fitAlarmModel <- function(incData,  alarmFit, smoothWindow, prior, simNumber, se
   myConfig$removeSamplers('Rstar') # Nodes will be expanded
   myConfig$addSampler(target = c('Rstar'),
                       type = "RstarUpdate")
-  myConfig$addMonitors(c('Rstar'))
+  myConfig$addMonitors(c('Rstar', 'R0'))
   
   myConfig$removeSampler('rateI')
   myConfig$addSampler(target = 'rateI', type = "slice")
   
-  # if gaussian process model, use slice sampling
-  if (alarmFit == 'gp') {
-    
-    paramsForSlice <- c('beta', 'l', 'sigma')
-    myConfig$removeSampler(paramsForSlice)
-    myConfig$addSampler(target = paramsForSlice[1], type = "slice")
-    myConfig$addSampler(target = paramsForSlice[2], type = "slice")
-    myConfig$addSampler(target = paramsForSlice[3], type = "slice")
-    
-  } else if (alarmFit == 'betat') {
-    
-    paramsForSlice <- c('l', 'sigma')
-    myConfig$removeSampler(paramsForSlice)
-    myConfig$addSampler(target = paramsForSlice[1], type = "slice")
-    myConfig$addSampler(target = paramsForSlice[2], type = "slice")
-    
-  } else if (alarmFit == 'thresh') {
-    
-    # block sampler for transmission parameters
-    paramsForBlock <- c('beta', 'delta', 'H')
-    myConfig$removeSampler(paramsForBlock)
-    myConfig$addSampler(target = paramsForBlock, type = "RW_block",
-                        control = list(adaptInterval = 100,
-                                       propCov = diag(c(0.2, 0.2, 0.0001))))
-    
+  if (alarmFit == 'thresh') {
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'delta', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      
   } else if (alarmFit == 'hill') {
-    
-    # block sampler for transmission parameters
-    paramsForBlock <- c('beta', 'delta', 'nu', 'x0')
-    myConfig$removeSampler(paramsForBlock)
-    myConfig$addSampler(target = paramsForBlock, type = "RW_block",
-                        control = list(adaptInterval = 100,
-                                       propCov = diag(c(0.2, 0.2, 1, 20))))
-    
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'delta', 'nu', 'x0', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      
+  } else if (alarmFit == 'power') {
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'k', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      
+  } else if (alarmFit == 'spline') {
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('b', 'knots')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock[1], type = "AF_slice")
+      myConfig$addSampler(target = paramsForBlock[2], type = "AF_slice")
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      
+  } else if (alarmFit == 'gp') {
+      
+      # if gaussian process model, use slice sampling
+      paramsForSlice <- c('l', 'sigma')
+      myConfig$removeSampler(paramsForSlice)
+      myConfig$addSampler(target = paramsForSlice[1], type = "slice")
+      myConfig$addSampler(target = paramsForSlice[2], type = "slice")
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      
   }
   
   myMCMC <- buildMCMC(myConfig)
