@@ -56,8 +56,11 @@ for (i in batchIdx) {
     
     # load data
     if (epiSize_i == 'small') {
+        print(paste0('./Data/', alarmGen_i, '_exp_', smoothWindow_i, '.rds'))
         incData <- readRDS(paste0('./Data/', alarmGen_i, '_exp_', smoothWindow_i, '.rds'))
+        
     } else if (epiSize_i == 'large') {
+        
         incData <- readRDS(paste0('./Data/', alarmGen_i, '_exp_', smoothWindow_i, '_large.rds'))
     }
     incData <- incData[,grep('Istar', colnames(incData))]
