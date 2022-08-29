@@ -60,7 +60,6 @@ toSave <- epiSims[nInf > 100,][1:nSim,]
 
 saveRDS(toSave, './Data/thresh_exp_14.rds')
 
-
 ################################################################################
 ### 30-day Incidence
 SIR_thresh_exp_30 <- nimbleModel(code = SIR_thresh_exp,
@@ -90,7 +89,6 @@ nInf <- rowSums(epiSims[,grep('Istar', colnames(epiSims))])
 toSave <- epiSims[nInf > 100,][1:nSim,]
 
 saveRDS(toSave, './Data/thresh_exp_30.rds')
-
 
 ################################################################################
 # Hill Alarm
