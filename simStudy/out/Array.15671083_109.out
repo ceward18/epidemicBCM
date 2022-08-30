@@ -2,3 +2,5 @@
 [1] "./Data/thresh_exp_30.rds"
 [1] "alarm Gen: thresh, alarm fit: betatSpline, smoothing window: 30, prior: 2, size: small, simulation: 2"
 [1] "./Data/thresh_exp_30.rds"
+[1] "alarm Gen: thresh, alarm fit: betatSpline, smoothing window: 30, prior: 2, size: small, simulation: 3"
+[1] "./Data/thresh_exp_30.rds"

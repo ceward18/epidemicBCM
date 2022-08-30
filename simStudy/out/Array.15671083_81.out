@@ -16,3 +16,5 @@
 [1] "./Data/hill_exp_14.rds"
 [1] "alarm Gen: hill, alarm fit: betatSpline, smoothing window: 14, prior: 2, size: small, simulation: 9"
 [1] "./Data/hill_exp_14.rds"
+[1] "alarm Gen: hill, alarm fit: betatSpline, smoothing window: 14, prior: 2, size: small, simulation: 10"
+[1] "./Data/hill_exp_14.rds"
