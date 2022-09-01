@@ -7,7 +7,7 @@ editor: visual
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(fig.width = 14, fig.height = 8)
+knitr::opts_chunk$set(fig.width = 10, fig.height = 6)
 
 library(openxlsx)
 library(ggplot2)
@@ -31,16 +31,14 @@ theme_set(theme_bw() +
 
 ```
 
-Comparing four priors for the rate paramteter describing the mean length of the
-infectious period.
+Comparing four priors for the rate paramteter describing the mean length of the infectious period.
 
-* Prior 1 - strong centered on truth
-* Prior 2 - strong but misspecified
-* Prior 3 - vague centered on truth
-* Prior 4 - vague and misspecified (typo in code - did not run)
+-   Prior 1 - strong centered on truth
+-   Prior 2 - strong but misspecified
+-   Prior 3 - vague centered on truth
+-   Prior 4 - vague and misspecified (typo in code - did not run)
 
 Done in the simulation setting, where the true value is 1/7 = 0.1429
-
 
 ```{r}
 pal <- c('black', 'orange', 'blue', 'magenta')
@@ -72,6 +70,67 @@ legend('topright', paste0('Prior ', 1:4),
        col = pal, lwd = 2, cex = 1.4)
 ```
 
+
+## Small vs. Large Epidemics
+
+Epidemics were simulated in both "small" and "large" settings.
+
+In the small setting, the population size was 1 million and epidemics typically 
+peaked around 400-500 cases per day. In the small setting, the first 50 days 
+were used for model fitting.
+
+In the large setting, the population size was 9 million and epidemics typically 
+peaked around 4000-5000 cases per day. In the large setting, all 100 days were used 
+for model fitting.
+
+```{r}
+# for the first simulation
+simNumber <- 1
+infPeriodSpec <- 'exp'
+
+nDays <- 100
+
+# get true epidemic curves for each scenario
+trueCurveThresh14 <- readRDS(paste0('./Data/thresh_', infPeriodSpec, '_14.rds'))[simNumber,1:nDays]
+trueCurveThresh30 <- readRDS(paste0('./Data/thresh_', infPeriodSpec, '_30.rds'))[simNumber,1:nDays]
+trueCurveHill14 <- readRDS(paste0('./Data/hill_', infPeriodSpec, '_14.rds'))[simNumber,1:nDays]
+trueCurveHill30 <- readRDS(paste0('./Data/hill_', infPeriodSpec, '_30.rds'))[simNumber,1:nDays]
+trueCurvePower14 <- readRDS(paste0('./Data/power_', infPeriodSpec, '_14.rds'))[simNumber,1:nDays]
+trueCurvePower30 <- readRDS(paste0('./Data/power_', infPeriodSpec, '_30.rds'))[simNumber,1:nDays]
+trueCurveThresh14_L <- readRDS(paste0('./Data/thresh_', infPeriodSpec, '_14_large.rds'))[simNumber,1:nDays]
+trueCurveThresh30_L <- readRDS(paste0('./Data/thresh_', infPeriodSpec, '_30_large.rds'))[simNumber,1:nDays]
+trueCurveHill14_L <- readRDS(paste0('./Data/hill_', infPeriodSpec, '_14_large.rds'))[simNumber,1:nDays]
+trueCurveHill30_L <- readRDS(paste0('./Data/hill_', infPeriodSpec, '_30_large.rds'))[simNumber,1:nDays]
+trueCurvePower14_L <- readRDS(paste0('./Data/power_', infPeriodSpec, '_14_large.rds'))[simNumber,1:nDays]
+trueCurvePower30_L <- readRDS(paste0('./Data/power_', infPeriodSpec, '_30_large.rds'))[simNumber,1:nDays]
+
+trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 12),
+                         truth = c(trueCurveThresh14, trueCurveThresh30,
+                                   trueCurveHill14, trueCurveHill30,
+                                   trueCurvePower14, trueCurvePower30,
+                                   trueCurveThresh14_L, trueCurveThresh30_L,
+                                   trueCurveHill14_L, trueCurveHill30_L,
+                                   trueCurvePower14_L, trueCurvePower30_L),
+                         alarmGen = rep(c(rep('thresh', length(trueCurveThresh14)*2),
+                                          rep('hill', length(trueCurveThresh14)*2),
+                                          rep('power', length(trueCurveThresh14)*2)), 2),
+                         smoothWindow = rep(rep(rep(c(14, 30), each = length(trueCurveThresh14)), 3), 2),
+                         epiSize = rep(c('small', 'large'), each = 600))
+
+ggplot(subset(trueCurves, epiSize == 'small'), aes(x = time, y = truth)) +
+    geom_line() + 
+    facet_grid(alarmGen ~ smoothWindow) + 
+    ggtitle('Small epidemics')
+
+ggplot(subset(trueCurves, epiSize == 'large'), aes(x = time, y = truth)) +
+    geom_line() + 
+    facet_grid(alarmGen ~ smoothWindow) + 
+    ggtitle('Large epidemics')
+```
+
+
+
+
 ## Gelman Rubin
 
 By smoothing used to inform alarm function in data generation and prior used. 50 simulated epidemics using hill, power, and threshold alarms.
@@ -81,10 +140,10 @@ grAll <- readRDS('./resultsFinal/grAll.rds')
 
 notConverge <- grAll[which(grAll$gr > 1.1),  ]
 notConvergeModels <-  notConverge[!duplicated(notConverge[,-which(colnames(notConverge) %in% 
-                                                                    c('gr', 'grUpper',
-                                                                      'param'))]),
+                                                                      c('gr', 'grUpper',
+                                                                        'param'))]),
                                   c('alarmGen', 'alarmFit',
-                                    'prior', 'smoothWindow', 'simNumber')]
+                                    'prior', 'smoothWindow', 'epiSize', 'simNumber')]
 
 notConvergeModels$noConverge <- 1
 
@@ -97,7 +156,8 @@ notConvergeModels$noConverge <- 1
 table(notConvergeModels$alarmGen, 
       notConvergeModels$alarmFit,
       notConvergeModels$smoothWindow,
-      notConvergeModels$prior)
+      notConvergeModels$prior,
+      notConvergeModels$epiSize)
 ```
 
 ## Gelman Rubin
@@ -124,11 +184,12 @@ paramsPostAll <- readRDS('./resultsFinal/paramsPostAll.rds')
 
 # merge with truth
 paramsPostAll <- merge(paramsPostAll, paramsTruth, by = c('param', 'alarmGen',
-                                                          'smoothWindow'),
+                                                          'smoothWindow', 'epiSize'),
                        all.x = T)
 
 paramsPostAll <- paramsPostAll[order(paramsPostAll$alarmGen, 
                                      paramsPostAll$smoothWindow,
+                                     paramsPostAll$epiSize,
                                      paramsPostAll$prior,
                                      paramsPostAll$simNumber, 
                                      paramsPostAll$param),]
@@ -136,7 +197,7 @@ paramsPostAll <- paramsPostAll[order(paramsPostAll$alarmGen,
 ### remove those that did not converge (TEMPORARY)
 paramsPostAll <- merge(paramsPostAll, notConvergeModels,
                        by = c('alarmGen', 'alarmFit', 'prior',
-                              'smoothWindow', 'simNumber'),
+                              'smoothWindow', 'epiSize', 'simNumber'),
                        all.x = T)
 
 paramsPostAll$noConverge[is.na(paramsPostAll$noConverge)] <- 0
@@ -157,14 +218,17 @@ paramsPostAll$smoothWindow <- factor(paramsPostAll$smoothWindow,
 
 paramsPostAll$prior <- factor(paramsPostAll$prior, 
                               labels=c('True/strong', 'Wrong/strong',
-                                       'True/vague'))
+                                       'True/vague', 'Wrong/vague'))
 ```
 
 ### Threshold Alarm
 
+#### Small Epidemics
+
 ```{r}
 ggplot(data = subset(paramsPostAll, alarmFit == 'thresh' & 
                          smoothWindow == '14-day smoothing' & 
+                         epiSize == 'small' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -178,6 +242,7 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'thresh' &
 
 ggplot(data = subset(paramsPostAll, alarmFit == 'thresh' & 
                          smoothWindow == '30-day smoothing' & 
+                         epiSize == 'small' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -190,12 +255,46 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'thresh' &
     labs(x = 'Simulation Number', y = '') 
 ```
 
+#### Large Epidemics
+
+```{r}
+ggplot(data = subset(paramsPostAll, alarmFit == 'thresh' & 
+                         smoothWindow == '14-day smoothing' & 
+                         epiSize == 'large' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior, scales = 'free',
+               labeller =  labeller(smoothWindow = label_value, 
+                                    param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '') 
+
+ggplot(data = subset(paramsPostAll, alarmFit == 'thresh' & 
+                         smoothWindow == '30-day smoothing' & 
+                         epiSize == 'large' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior, scales = 'free', 
+               labeller =  labeller(smoothWindow = label_value, 
+                                    param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '') 
+```
 
 ### Hill Alarm
 
+#### Small Epidemics
+
 ```{r}
 ggplot(data = subset(paramsPostAll, alarmFit == 'hill' & 
                          smoothWindow == '14-day smoothing' & 
+                         epiSize == 'small' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -209,6 +308,7 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'hill' &
 
 ggplot(data = subset(paramsPostAll, alarmFit == 'hill' & 
                          smoothWindow == '30-day smoothing' & 
+                         epiSize == 'small' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -221,12 +321,46 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'hill' &
     labs(x = 'Simulation Number', y = '') 
 ```
 
+#### Large Epidemics
+
+```{r}
+ggplot(data = subset(paramsPostAll, alarmFit == 'hill' & 
+                         smoothWindow == '14-day smoothing' & 
+                         epiSize == 'large' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior, scales = 'free',
+               labeller =  labeller(smoothWindow = label_value, 
+                                    param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '') 
+
+ggplot(data = subset(paramsPostAll, alarmFit == 'hill' & 
+                         smoothWindow == '30-day smoothing' & 
+                         epiSize == 'large' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior, scales = 'free', 
+               labeller =  labeller(smoothWindow = label_value, 
+                                    param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '') 
+```
 
 ### Power Alarm
+
+#### Small Epidemics
 
 ```{r}
 ggplot(data = subset(paramsPostAll, alarmFit == 'power' & 
                          smoothWindow == '14-day smoothing' & 
+                         epiSize == 'small' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -240,6 +374,39 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'power' &
 
 ggplot(data = subset(paramsPostAll, alarmFit == 'power' & 
                          smoothWindow == '30-day smoothing' & 
+                         epiSize == 'small' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior, scales = 'free', 
+               labeller =  labeller(smoothWindow = label_value, 
+                                    param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '') 
+```
+
+#### Large Epidemics
+
+```{r}
+ggplot(data = subset(paramsPostAll, alarmFit == 'power' & 
+                         smoothWindow == '14-day smoothing' & 
+                         epiSize == 'large' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior, scales = 'free',
+               labeller =  labeller(smoothWindow = label_value, 
+                                    param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '') 
+
+ggplot(data = subset(paramsPostAll, alarmFit == 'power' & 
+                         smoothWindow == '30-day smoothing' & 
+                         epiSize == 'large' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -254,9 +421,12 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'power' &
 
 ### Spline Alarm
 
+#### Small Epidemics
+
 ```{r}
 ggplot(data = subset(paramsPostAll, alarmFit == 'spline' & 
                          smoothWindow == '14-day smoothing' & 
+                         epiSize == 'small' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -269,6 +439,38 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'spline' &
 
 ggplot(data = subset(paramsPostAll, alarmFit == 'spline' & 
                          smoothWindow == '30-day smoothing' & 
+                         epiSize == 'small' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior + alarmGen, scales = 'free',
+               labeller =  labeller(smoothWindow = label_value, 
+                                    param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '')
+```
+
+#### Large Epidemics
+
+```{r}
+ggplot(data = subset(paramsPostAll, alarmFit == 'spline' & 
+                         smoothWindow == '14-day smoothing' & 
+                         epiSize == 'large' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior + alarmGen, scales = 'free',
+               labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '') 
+
+ggplot(data = subset(paramsPostAll, alarmFit == 'spline' & 
+                         smoothWindow == '30-day smoothing' & 
+                         epiSize == 'large' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -283,9 +485,12 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'spline' &
 
 ### Gaussian Process Alarm
 
+#### Small Epidemics
+
 ```{r}
 ggplot(data = subset(paramsPostAll, alarmFit == 'gp' & 
                          smoothWindow == '14-day smoothing' & 
+                         epiSize == 'small' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -298,6 +503,38 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'gp' &
 
 ggplot(data = subset(paramsPostAll, alarmFit == 'gp' & 
                          smoothWindow == '30-day smoothing' & 
+                         epiSize == 'small' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior + alarmGen, scales = 'free',
+               labeller =  labeller(smoothWindow = label_value, 
+                                    param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '')
+```
+
+#### Large Epidemics
+
+```{r}
+ggplot(data = subset(paramsPostAll, alarmFit == 'gp' & 
+                         smoothWindow == '14-day smoothing' & 
+                         epiSize == 'large' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior + alarmGen, scales = 'free',
+               labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '') 
+
+ggplot(data = subset(paramsPostAll, alarmFit == 'gp' & 
+                         smoothWindow == '30-day smoothing' & 
+                         epiSize == 'large' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -312,9 +549,12 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'gp' &
 
 ### No Behavioral Change
 
+#### Small Epidemics
+
 ```{r}
 ggplot(data = subset(paramsPostAll, alarmFit == 'basic' & 
-                         smoothWindow == '14-day smoothing' & 
+                         smoothWindow == '14-day smoothing' &
+                         epiSize == 'small' &  
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -327,6 +567,38 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'basic' &
 
 ggplot(data = subset(paramsPostAll, alarmFit == 'basic' & 
                          smoothWindow == '30-day smoothing' & 
+                         epiSize == 'small' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior + alarmGen, scales = 'free',
+               labeller =  labeller(smoothWindow = label_value, 
+                                    param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '')
+```
+
+#### Large Epidemics
+
+```{r}
+ggplot(data = subset(paramsPostAll, alarmFit == 'basic' & 
+                         smoothWindow == '14-day smoothing' & 
+                         epiSize == 'large' & 
+                         noConverge == 0), 
+       aes(x = simNumber, y = mean)) +
+    geom_point() + 
+    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
+                  position = position_dodge(width = 0.9)) +
+    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2)  +
+    facet_grid(param ~ prior + alarmGen, scales = 'free',
+               labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
+    labs(x = 'Simulation Number', y = '') 
+
+ggplot(data = subset(paramsPostAll, alarmFit == 'basic' & 
+                         smoothWindow == '30-day smoothing' & 
+                         epiSize == 'large' & 
                          noConverge == 0), 
        aes(x = simNumber, y = mean)) +
     geom_point() + 
@@ -368,7 +640,6 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'betatSpline' &
     labs(x = 'Simulation Number', y = '')
 ```
 
-
 ## Alarm Estimation
 
 ```{r}
@@ -377,65 +648,155 @@ paramsTruth <- read.xlsx('simParamsSummary.xlsx')
 paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'exp',]
 
 
-
+### small
 N <- 1e6
 
 xAlarm <- 0:400
 trueAlarmThresh14 <- thresholdAlarm(xAlarm, N = N, 
                                     delta = paramsTruth$delta[
                                         (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 14)],
+                                             paramsTruth$smoothWindow == 14 & 
+                                             paramsTruth$epiSize == 'small')],
                                     H = paramsTruth$H[
                                         (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 14)])
+                                             paramsTruth$smoothWindow == 14 & 
+                                             paramsTruth$epiSize == 'small')])
 trueAlarmThresh30 <- thresholdAlarm(xAlarm, N = N, 
                                     delta = paramsTruth$delta[
                                         (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 30)],
+                                             paramsTruth$smoothWindow == 30 & 
+                                             paramsTruth$epiSize == 'small')],
                                     H = paramsTruth$H[
                                         (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 30)])
+                                             paramsTruth$smoothWindow == 30 & 
+                                             paramsTruth$epiSize == 'small')])
 trueAlarmHill14 <- hillAlarm(xAlarm, 
                              nu = paramsTruth$nu[
                                  (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)],
+                                      paramsTruth$smoothWindow == 14 & 
+                                      paramsTruth$epiSize == 'small')],
                              x0 = paramsTruth$x0[
                                  (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)],
+                                      paramsTruth$smoothWindow == 14 & 
+                                      paramsTruth$epiSize == 'small')],
                              delta = paramsTruth$delta[
                                  (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)])
+                                      paramsTruth$smoothWindow == 14 & 
+                                      paramsTruth$epiSize == 'small')])
 trueAlarmHill30 <- hillAlarm(xAlarm, 
                              nu = paramsTruth$nu[
                                  (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)],
+                                      paramsTruth$smoothWindow == 30 & 
+                                      paramsTruth$epiSize == 'small')],
                              x0 = paramsTruth$x0[
                                  (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)],
+                                      paramsTruth$smoothWindow == 30 & 
+                                      paramsTruth$epiSize == 'small')],
                              delta = paramsTruth$delta[
                                  (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)])
+                                      paramsTruth$smoothWindow == 30 & 
+                                      paramsTruth$epiSize == 'small')])
 trueAlarmPower14 <- powerAlarm(xAlarm, N = N, 
                                k = paramsTruth$k[
                                    (paramsTruth$alarmGen == 'power' & 
-                                        paramsTruth$smoothWindow == 14)])
+                                        paramsTruth$smoothWindow == 14 & 
+                                        paramsTruth$epiSize == 'small')])
 trueAlarmPower30 <- powerAlarm(xAlarm, N = N, 
                                k = paramsTruth$k[
                                    (paramsTruth$alarmGen == 'power' & 
-                                        paramsTruth$smoothWindow == 30)])
+                                        paramsTruth$smoothWindow == 30 & 
+                                        paramsTruth$epiSize == 'small')])
 
-trueAlarms <- data.frame(xAlarm = rep(xAlarm, 6),
-                         trueAlarm = c(trueAlarmThresh14,
-                                       trueAlarmThresh30,
-                                       trueAlarmHill14,
-                                       trueAlarmHill30,
-                                       trueAlarmPower14,
-                                       trueAlarmPower30),
-                         alarmGen = c(rep('thresh', length(xAlarm)*2),
-                                      rep('hill', length(xAlarm)*2),
-                                      rep('power', length(xAlarm)*2)),
-                         smoothWindow = rep(rep(c(14, 30), 
-                                                each = length(xAlarm)), 3))
+trueAlarmsSmall <- data.frame(xAlarm = rep(xAlarm, 6),
+                              trueAlarm = c(trueAlarmThresh14,
+                                            trueAlarmThresh30,
+                                            trueAlarmHill14,
+                                            trueAlarmHill30,
+                                            trueAlarmPower14,
+                                            trueAlarmPower30),
+                              alarmGen = c(rep('thresh', length(xAlarm)*2),
+                                           rep('hill', length(xAlarm)*2),
+                                           rep('power', length(xAlarm)*2)),
+                              smoothWindow = rep(rep(c(14, 30), 
+                                                     each = length(xAlarm)), 3),
+                              epiSize = 'small')
+
+
+### large
+N <- 9e6
+
+xAlarm <- 0:5000
+trueAlarmThresh14 <- thresholdAlarm(xAlarm, N = N, 
+                                    delta = paramsTruth$delta[
+                                        (paramsTruth$alarmGen == 'thresh' & 
+                                             paramsTruth$smoothWindow == 14 & 
+                                             paramsTruth$epiSize == 'large')],
+                                    H = paramsTruth$H[
+                                        (paramsTruth$alarmGen == 'thresh' & 
+                                             paramsTruth$smoothWindow == 14 & 
+                                             paramsTruth$epiSize == 'large')])
+trueAlarmThresh30 <- thresholdAlarm(xAlarm, N = N, 
+                                    delta = paramsTruth$delta[
+                                        (paramsTruth$alarmGen == 'thresh' & 
+                                             paramsTruth$smoothWindow == 30 & 
+                                             paramsTruth$epiSize == 'large')],
+                                    H = paramsTruth$H[
+                                        (paramsTruth$alarmGen == 'thresh' & 
+                                             paramsTruth$smoothWindow == 30 & 
+                                             paramsTruth$epiSize == 'large')])
+trueAlarmHill14 <- hillAlarm(xAlarm, 
+                             nu = paramsTruth$nu[
+                                 (paramsTruth$alarmGen == 'hill' & 
+                                      paramsTruth$smoothWindow == 14 & 
+                                      paramsTruth$epiSize == 'large')],
+                             x0 = paramsTruth$x0[
+                                 (paramsTruth$alarmGen == 'hill' & 
+                                      paramsTruth$smoothWindow == 14 & 
+                                      paramsTruth$epiSize == 'large')],
+                             delta = paramsTruth$delta[
+                                 (paramsTruth$alarmGen == 'hill' & 
+                                      paramsTruth$smoothWindow == 14 & 
+                                      paramsTruth$epiSize == 'large')])
+trueAlarmHill30 <- hillAlarm(xAlarm, 
+                             nu = paramsTruth$nu[
+                                 (paramsTruth$alarmGen == 'hill' & 
+                                      paramsTruth$smoothWindow == 30 & 
+                                      paramsTruth$epiSize == 'large')],
+                             x0 = paramsTruth$x0[
+                                 (paramsTruth$alarmGen == 'hill' & 
+                                      paramsTruth$smoothWindow == 30 & 
+                                      paramsTruth$epiSize == 'large')],
+                             delta = paramsTruth$delta[
+                                 (paramsTruth$alarmGen == 'hill' & 
+                                      paramsTruth$smoothWindow == 30 & 
+                                      paramsTruth$epiSize == 'large')])
+trueAlarmPower14 <- powerAlarm(xAlarm, N = N, 
+                               k = paramsTruth$k[
+                                   (paramsTruth$alarmGen == 'power' & 
+                                        paramsTruth$smoothWindow == 14 & 
+                                        paramsTruth$epiSize == 'large')])
+trueAlarmPower30 <- powerAlarm(xAlarm, N = N, 
+                               k = paramsTruth$k[
+                                   (paramsTruth$alarmGen == 'power' & 
+                                        paramsTruth$smoothWindow == 30 & 
+                                        paramsTruth$epiSize == 'large')])
+
+trueAlarmsLarge <- data.frame(xAlarm = rep(xAlarm, 6),
+                              trueAlarm = c(trueAlarmThresh14,
+                                            trueAlarmThresh30,
+                                            trueAlarmHill14,
+                                            trueAlarmHill30,
+                                            trueAlarmPower14,
+                                            trueAlarmPower30),
+                              alarmGen = c(rep('thresh', length(xAlarm)*2),
+                                           rep('hill', length(xAlarm)*2),
+                                           rep('power', length(xAlarm)*2)),
+                              smoothWindow = rep(rep(c(14, 30), 
+                                                     each = length(xAlarm)), 3),
+                              epiSize = 'large')
+
+
+trueAlarms <- rbind.data.frame(trueAlarmsSmall, trueAlarmsLarge)
 
 ### load posterior estimates
 alarmAll <- readRDS('./resultsFinal/alarmPostAll.rds')
@@ -443,9 +804,9 @@ alarmAll$infPeriod <- 'exp'
 
 ### remove those that did not converge (TEMPORARY)
 alarmAll <- merge(alarmAll, notConvergeModels,
-                       by = c('alarmGen', 'alarmFit',  'prior',
-                              'smoothWindow', 'simNumber'),
-                       all.x = T)
+                  by = c('alarmGen', 'alarmFit',  'prior',
+                         'smoothWindow', 'epiSize', 'simNumber'),
+                  all.x = T)
 
 alarmAll$noConverge[is.na(alarmAll$noConverge)] <- 0
 
@@ -459,15 +820,15 @@ alarmAll$alarmFit <- factor(alarmAll$alarmFit,
 
 alarmAll$prior <- factor(alarmAll$prior, 
                          labels=c('True/strong', 'Wrong/strong',
-                                  'True/vague'))
+                                  'True/vague', 'Wrong/vague'))
 ```
-
 
 ### 14-day Smoothing Window
 
+#### Threshold Alarm
+
 ```{r}
-### smoothing window 14 days
-p1 <- ggplot() +  
+ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 14  & 
                                 alarmGen == 'thresh' & noConverge == 0), 
               aes(x = xAlarm, y = mean, group = simNumber), 
@@ -475,9 +836,14 @@ p1 <- ggplot() +
     geom_line(data = subset(trueAlarms, smoothWindow == 14 & 
                                 alarmGen == 'thresh'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_grid(prior~alarmFit, scales = 'free_x') 
+    facet_grid(prior~alarmFit + epiSize, scales = 'free_x') 
+```
 
-p2 <- ggplot() +  
+
+#### Hill Alarm
+
+```{r}
+ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 14  & 
                                 alarmGen == 'hill' & noConverge == 0), 
               aes(x = xAlarm, y = mean, group = simNumber), 
@@ -485,9 +851,14 @@ p2 <- ggplot() +
     geom_line(data = subset(trueAlarms, smoothWindow == 14 & 
                                 alarmGen == 'hill'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_grid(prior~alarmFit, scales = 'free_x') 
+    facet_grid(prior~alarmFit + epiSize, scales = 'free_x') 
+```
 
-p3 <- ggplot() +  
+
+#### Power Alarm
+
+```{r}
+ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 14  & 
                                 alarmGen == 'power' & noConverge == 0), 
               aes(x = xAlarm, y = mean, group = simNumber), 
@@ -495,19 +866,16 @@ p3 <- ggplot() +
     geom_line(data = subset(trueAlarms, smoothWindow == 14 & 
                                 alarmGen == 'power'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_grid(prior~alarmFit, scales = 'free_x') 
+    facet_grid(prior~alarmFit + epiSize, scales = 'free_x') 
 
-
-grid.arrange(p1, p2, p3, nrow = 3,
-             top=textGrob("14-day smoothing",
-                          gp = gpar(fontsize = 18, font = 1)))
 ```
 
 ### 30-day Smoothing Window
 
+#### Threshold Alarm
+
 ```{r}
-### smoothing window 14 days
-p1 <- ggplot() +  
+ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 30  & 
                                 alarmGen == 'thresh'  & noConverge == 0), 
               aes(x = xAlarm, y = mean, group = simNumber), 
@@ -515,9 +883,13 @@ p1 <- ggplot() +
     geom_line(data = subset(trueAlarms, smoothWindow == 30 & 
                                 alarmGen == 'thresh'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_grid(prior~alarmFit, scales = 'free_x') 
+    facet_grid(prior~alarmFit + epiSize, scales = 'free_x') 
+```
 
-p2 <- ggplot() +  
+#### Hill Alarm
+
+```{r}
+ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 30  & 
                                 alarmGen == 'hill' & noConverge == 0), 
               aes(x = xAlarm, y = mean, group = simNumber), 
@@ -525,9 +897,14 @@ p2 <- ggplot() +
     geom_line(data = subset(trueAlarms, smoothWindow == 30 & 
                                 alarmGen == 'hill'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_grid(prior~alarmFit, scales = 'free_x') 
+    facet_grid(prior~alarmFit + epiSize, scales = 'free_x') 
+```
 
-p3 <- ggplot() +  
+
+#### Power Alarm
+
+```{r}
+ggplot() +  
     geom_line(data = subset(alarmAll, smoothWindow == 30  & 
                                 alarmGen == 'power' & noConverge == 0), 
               aes(x = xAlarm, y = mean, group = simNumber), 
@@ -535,14 +912,9 @@ p3 <- ggplot() +
     geom_line(data = subset(trueAlarms, smoothWindow == 30 & 
                                 alarmGen == 'power'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red') +
-    facet_grid(prior~alarmFit, scales = 'free_x') 
+    facet_grid(prior~alarmFit + epiSize, scales = 'free_x') 
 
-
-grid.arrange(p1, p2, p3, nrow = 3,
-             top=textGrob("30-day smoothing",
-                          gp = gpar(fontsize = 18, font = 1)))
 ```
-
 
 ## Posterior Prediction
 
@@ -550,22 +922,6 @@ grid.arrange(p1, p2, p3, nrow = 3,
 simNumber <- 1
 nDays <- 100
 
-# get true epidemic curves for each scenario
-trueCurveThresh14 <- readRDS(paste0('./Data/thresh_exp_14.rds'))[simNumber,1:nDays]
-trueCurveThresh30 <- readRDS(paste0('./Data/thresh_exp_30.rds'))[simNumber,1:nDays]
-trueCurveHill14 <- readRDS(paste0('./Data/hill_exp_14.rds'))[simNumber,1:nDays]
-trueCurveHill30 <- readRDS(paste0('./Data/hill_exp_30.rds'))[simNumber,1:nDays]
-trueCurvePower14 <- readRDS(paste0('./Data/power_exp_14.rds'))[simNumber,1:nDays]
-trueCurvePower30 <- readRDS(paste0('./Data/power_exp_30.rds'))[simNumber,1:nDays]
-
-trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 6),
-                         truth = c(trueCurveThresh14, trueCurveThresh30,
-                                   trueCurveHill14, trueCurveHill30,
-                                   trueCurvePower14, trueCurvePower30),
-                         alarmGen = c(rep('thresh', length(trueCurveThresh14)*2),
-                                      rep('hill', length(trueCurveThresh14)*2),
-                                      rep('power', length(trueCurveThresh14)*2)),
-                         smoothWindow = rep(rep(c(14, 30), each = length(trueCurveThresh14)), 3))
 
 # merge with posterior predictions
 postPredAll <- readRDS('./resultsFinal/postPredAll.rds')
@@ -574,9 +930,9 @@ postPredAll <- postPredAll[postPredAll$simNumber == simNumber,]
 
 ### remove those that did not converge (TEMPORARY)
 postPredAll <- merge(postPredAll, notConvergeModels,
-                       by = c('alarmGen', 'alarmFit',  'prior',
-                              'smoothWindow', 'simNumber'),
-                       all.x = T)
+                     by = c('alarmGen', 'alarmFit',  'prior',
+                            'smoothWindow', 'epiSize', 'simNumber'),
+                     all.x = T)
 
 postPredAll$noConverge[is.na(postPredAll$noConverge)] <- 0
 
@@ -593,12 +949,11 @@ postPredAll$prior <- factor(postPredAll$prior,
                                      'True/vague'))
 ```
 
-
 ### 14-day Smoothing Window
 
 ```{r}
 p1 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'thresh' & smoothWindow == 14),
+    geom_line(data = subset(trueCurves, alarmGen == 'thresh' & smoothWindow == 14 & epiSize == 'small'),
               aes(x = time, y = truth)) + 
     geom_line(data = subset(postPredAll, alarmGen == 'thresh' & smoothWindow == 14 &
                                 noConverge == 0),
@@ -609,7 +964,7 @@ p1 <- ggplot() +
     facet_grid(prior~alarmFit, scales = 'free') 
 
 p2 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'hill' & smoothWindow == 14),
+    geom_line(data = subset(trueCurves, alarmGen == 'hill' & smoothWindow == 14 & epiSize == 'small'),
               aes(x = time, y = truth)) + 
     geom_line(data = subset(postPredAll, alarmGen == 'hill' & smoothWindow == 14 &
                                 noConverge == 0),
@@ -620,7 +975,7 @@ p2 <- ggplot() +
     facet_grid(prior~alarmFit, scales = 'free') 
 
 p3 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'power' & smoothWindow == 14),
+    geom_line(data = subset(trueCurves, alarmGen == 'power' & smoothWindow == 14 & epiSize == 'small'),
               aes(x = time, y = truth)) + 
     geom_line(data = subset(postPredAll, alarmGen == 'power' & smoothWindow == 14 &
                                 noConverge == 0),
@@ -638,7 +993,7 @@ grid.arrange(p1, p2, p3, nrow = 3,
 
 ```{r}
 p1 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'thresh' & smoothWindow == 30),
+    geom_line(data = subset(trueCurves, alarmGen == 'thresh' & smoothWindow == 30 & epiSize == 'small'),
               aes(x = time, y = truth)) + 
     geom_line(data = subset(postPredAll, alarmGen == 'thresh' & smoothWindow == 30 &
                                 noConverge == 0),
@@ -649,7 +1004,7 @@ p1 <- ggplot() +
     facet_grid(prior~alarmFit, scales = 'free') 
 
 p2 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'hill' & smoothWindow == 30),
+    geom_line(data = subset(trueCurves, alarmGen == 'hill' & smoothWindow == 30 & epiSize == 'small'),
               aes(x = time, y = truth)) + 
     geom_line(data = subset(postPredAll, alarmGen == 'hill' & smoothWindow == 30 &
                                 noConverge == 0),
@@ -660,7 +1015,7 @@ p2 <- ggplot() +
     facet_grid(prior~alarmFit, scales = 'free') 
 
 p3 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'power' & smoothWindow == 30),
+    geom_line(data = subset(trueCurves, alarmGen == 'power' & smoothWindow == 30 & epiSize == 'small'),
               aes(x = time, y = truth)) + 
     geom_line(data = subset(postPredAll, alarmGen == 'power' & smoothWindow == 30 &
                                 noConverge == 0),
@@ -673,228 +1028,4 @@ p3 <- ggplot() +
 grid.arrange(p1, p2, p3, nrow = 3,
              top=textGrob("30-day smoothing", gp = gpar(fontsize = 18, font = 1)))
 ```
-
-
-## Posterior for beta[t] when modeled explicitly
-
-For one simulation.
-
-```{r}
-# beta[t] depends on epidemic trajectory
-
-simNumber <- 4
-times <- 1:50
-
-# get true epidemic curves for each scenario
-trueCurveThresh14 <- readRDS(paste0('./Data/thresh_exp_14.rds'))[simNumber,times]
-trueCurveThresh30 <- readRDS(paste0('./Data/thresh_exp_30.rds'))[simNumber,times]
-trueCurveHill14 <- readRDS(paste0('./Data/hill_exp_14.rds'))[simNumber,times]
-trueCurveHill30 <- readRDS(paste0('./Data/hill_exp_30.rds'))[simNumber,times]
-trueCurvePower14 <- readRDS(paste0('./Data/power_exp_14.rds'))[simNumber,times]
-trueCurvePower30 <- readRDS(paste0('./Data/power_exp_30.rds'))[simNumber,times]
-
-
-# using epidemic trajectory and true parameters, find value of alarm[t]/beta[t]
-paramsTruth <- read.xlsx('simParamsSummary.xlsx')
-paramsTruth <- paramsTruth[paramsTruth$infPeriod == 'exp',]
-
-N <- 1e6
-trueAlarmThresh14 <- thresholdAlarm(movingAverage(trueCurveThresh14, 14),
-                                    N = N, 
-                                    delta = paramsTruth$delta[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 14)],
-                                    H = paramsTruth$H[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 14)])
-trueAlarmThresh30 <- thresholdAlarm(movingAverage(trueCurveThresh30, 30), 
-                                    N = N, 
-                                    delta = paramsTruth$delta[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 30)],
-                                    H = paramsTruth$H[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 30)])
-trueAlarmHill14 <- hillAlarm(movingAverage(trueCurveHill14, 14), 
-                             nu = paramsTruth$nu[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)],
-                             x0 = paramsTruth$x0[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)],
-                             delta = paramsTruth$delta[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)])
-trueAlarmHill30 <- hillAlarm(movingAverage(trueCurveHill30, 30), 
-                             nu = paramsTruth$nu[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)],
-                             x0 = paramsTruth$x0[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)],
-                             delta = paramsTruth$delta[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)])
-trueAlarmPower14 <- powerAlarm(movingAverage(trueCurvePower14, 14), 
-                               N = N, 
-                                k = paramsTruth$k[
-                                    (paramsTruth$alarmGen == 'power' & 
-                                         paramsTruth$smoothWindow == 14)])
-trueAlarmPower30 <- powerAlarm(movingAverage(trueCurvePower30, 30),
-                               N = N, 
-                                k = paramsTruth$k[
-                                    (paramsTruth$alarmGen == 'power' & 
-                                         paramsTruth$smoothWindow == 30)])
-
-trueAlarmsSim <- data.frame(time = rep(times, 6),
-                               trueAlarm = c(trueAlarmThresh14,
-                                             trueAlarmThresh30,
-                                             trueAlarmHill14,
-                                             trueAlarmHill30,
-                                             trueAlarmPower14,
-                                             trueAlarmPower30),
-                               alarmGen = c(rep('thresh', length(times)*2),
-                                            rep('hill', length(times)*2),
-                                            rep('power', length(times)*2)),
-                               smoothWindow = rep(rep(c(14, 30), each = length(times)), 3))
-
-# from true alarms, get true beta[t]
-trueBeta <- trueAlarmsSim
-trueBeta$trueBeta <- paramsTruth$beta[1] * (1 - trueBeta$trueAlarm)
-
-### load posterior estimates
-betaPostAll <- readRDS('./resultsFinal/betaPostAll.rds')
-betaPostAll <- betaPostAll[betaPostAll$simNumber == simNumber,]
-
-
-### remove those that did not converge (TEMPORARY)
-betaPostAll <- merge(betaPostAll, notConvergeModels,
-                       by = c('alarmGen', 'alarmFit',  'prior',
-                              'smoothWindow', 'simNumber'),
-                       all.x = T)
-
-betaPostAll$noConverge[is.na(betaPostAll$noConverge)] <- 0
-
-notConvergeBeta <-  betaPostAll[!duplicated(betaPostAll[,
-                                  c('alarmGen', 'alarmFit',
-                                    'prior', 'smoothWindow', 'simNumber')]),]
-
-
-# format for better plotting
-betaPostAll$alarmFit <- factor(betaPostAll$alarmFit,
-                               levels = c('basic', 'spline', 'gp', 'thresh',
-                                          'hill', 'power'),
-                               labels = c('Basic', 'Spline', 'Gaussian Process', 
-                                          'Threshold', 'Hill', 'Power'))
-
-betaPostAll$prior <- factor(betaPostAll$prior, 
-                            labels=c('True/strong', 'Wrong/strong',
-                                     'True/vague'))
-```
-
-### 14-day Smoothing
-
-```{r}
-ggplot() +  
-    geom_line(data = subset(betaPostAll, smoothWindow == 14 & noConverge == 0), 
-              aes(x = time, y = mean, group = simNumber), 
-              col = 'red') +
-  geom_ribbon(data=subset(betaPostAll, smoothWindow == 14 & noConverge == 0),
-               aes(x = time, ymin = lower, ymax = upper), 
-              alpha = 0.3, fill = 'red') +
-    geom_line(data = subset(trueBeta, smoothWindow == 14), 
-              aes(x = time, y = trueBeta), col = 'black') +
-  facet_grid(prior~smoothWindow + alarmGen, labeller = "label_both", scales = 'free')
-```
-
-### 30-day Smoothing
-
-```{r}
-ggplot() +  
-    geom_line(data = subset(betaPostAll, smoothWindow == 30 & noConverge == 0), 
-              aes(x = time, y = mean, group = simNumber), 
-              col = 'red') +
-  geom_ribbon(data=subset(betaPostAll, smoothWindow == 30 & noConverge == 0),
-               aes(x = time, ymin = lower, ymax = upper), 
-              alpha = 0.3, fill = 'red') +
-    geom_line(data = subset(trueBeta, smoothWindow == 30), 
-              aes(x = time, y = trueBeta), col = 'black') +
-  facet_grid(prior~smoothWindow + alarmGen, labeller = "label_both", scales = 'free')
-```
-
-## WAIC Comparison
-
-
-```{r}
-waicAll <- readRDS('./resultsFinal/waicAll.rds')
-
-### remove those that did not converge (TEMPORARY)
-waicAll <- merge(waicAll, notConvergeModels,
-                 by = c('alarmGen', 'alarmFit', 
-                        'prior', 'smoothWindow', 'simNumber'),
-                 all.x = T)
-
-waicAll$noConverge[is.na(waicAll$noConverge)] <- 0
-
-
-# summaries of WAIC values by model
-waicSummaries <- ddply(waicAll, .(alarmGen, alarmFit, smoothWindow, prior),
-                       summarize,
-                       nConverge = length(waic[noConverge == 0]),
-                       mean_WAIC = mean(waic[noConverge == 0]),
-                       mean_lppd = mean(lppd[noConverge == 0]),
-                       mean_pWAIC = mean(pWAIC[noConverge == 0]))
-waicSummaries <- waicSummaries[order(waicSummaries$mean_WAIC),]
-```
-
-### Threshold alarm with 14-day smoothing window
-
-```{r}
-tmp <- subset(waicSummaries, alarmGen == 'thresh' & smoothWindow == 14)
-tmp <- tmp[-which(colnames(tmp) %in% c('alarmGen', 'smoothWindow'))]
-kable(tmp, row.names = F)
-```
-
-### Threshold alarm with 30-day smoothing window
-
-```{r}
-tmp <- subset(waicSummaries, alarmGen == 'thresh' & smoothWindow == 30)
-tmp <- tmp[-which(colnames(tmp) %in% c('alarmGen', 'smoothWindow'))]
-kable(tmp, row.names = F)
-```
-
-### Hill alarm with 14-day smoothing window
-
-```{r}
-tmp <- subset(waicSummaries, alarmGen == 'hill' & smoothWindow == 14)
-tmp <- tmp[-which(colnames(tmp) %in% c('alarmGen', 'smoothWindow'))]
-kable(tmp, row.names = F)
-```
-
-### Hill alarm with 30-day smoothing window
-
-```{r}
-tmp <- subset(waicSummaries, alarmGen == 'hill' & smoothWindow == 30)
-tmp <- tmp[-which(colnames(tmp) %in% c('alarmGen', 'smoothWindow'))]
-kable(tmp, row.names = F)
-```
-
-### Power alarm with 14-day smoothing window
-
-```{r}
-tmp <- subset(waicSummaries, alarmGen == 'power' & smoothWindow == 14)
-tmp <- tmp[-which(colnames(tmp) %in% c('alarmGen', 'smoothWindow'))]
-kable(tmp, row.names = F)
-```
-
-### Power alarm with 30-day smoothing window
-
-```{r}
-tmp <- subset(waicSummaries, alarmGen == 'power' & smoothWindow == 30)
-tmp <- tmp[-which(colnames(tmp) %in% c('alarmGen', 'smoothWindow'))]
-kable(tmp, row.names = F)
-```
-
-
-
 

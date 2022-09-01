@@ -15,21 +15,21 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
     
     # for exponential infectious period
     if (prior == 1) {
-        # strong centered on truth
-        bb <- 1350
-        aa <- 1/7*bb
+        # strong centered on 1/5
+        bb <- 5633
+        aa <- 1/5 * bb
     } else if (prior == 2) {
-        # strong but misspecified
-        bb <- 4725
-        aa <- 1/2*bb
+        # strong centered on 1/2
+        bb <- 419
+        aa <- 1/2 * bb
     } else if (prior == 3) {
-        # vague centered on truth
-        bb <- 100
-        aa <- 1/7*bb
+        # vague centered on 1/5
+        bb <- 437
+        aa <- 1/5 * bb
     } else if (prior == 4) {
-        # vague and misspecified
-        bb <- 350
-        aa <- 1/2*bb
+        # vague centered on 1/2
+        bb <- 28
+        aa <- 1/2 * bb
     }
     
     if (alarmFit == 'thresh') {
@@ -62,7 +62,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
         
         ### MCMC specifications
         niter <- 700000
-        nburn <- 500000
+        nburn <- 400000
         nthin <- 10
         
     } else if (alarmFit == 'hill') {
@@ -96,7 +96,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
         
         ### MCMC specifications
         niter <- 700000
-        nburn <- 500000
+        nburn <- 400000
         nthin <- 10
         
     } else if (alarmFit == 'power') {
@@ -125,7 +125,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
         
         ### MCMC specifications
         niter <- 700000
-        nburn <- 500000
+        nburn <- 400000
         nthin <- 10
         
     } else if (alarmFit == 'spline') {
@@ -161,7 +161,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
             initsList <- list(beta = runif(1, 1/7, 1),
                               b = rnorm(nb, 0, 4),
                               knots = as.vector(quantile(xAlarm, 
-                                                         probs = sort(runif(nb - 1, 0.2, 0.8)))))
+                                                         probs = sort(runif(nb - 1, 0.4, 0.8)))))
             
             cond <- all(splineAlarm(xAlarm, initsList$b, initsList$knots) >= 0) & 
                 all(splineAlarm(xAlarm, initsList$b, initsList$knots) <= 1) & 
@@ -172,7 +172,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
         
         ### MCMC specifications
         niter <- 800000
-        nburn <- 600000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'gp') {
@@ -218,7 +218,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
         
         ### MCMC specifications
         niter <- 800000
-        nburn <- 600000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'betatSpline') {
@@ -248,13 +248,14 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
         
         ### MCMC specifications
         niter <- 800000
-        nburn <- 600000
+        nburn <- 500000
         nthin <- 10
         
         xAlarm <- NULL
         
     } else if (alarmFit == 'basic') {
         
+        ### constants
         constantsList <- list(tau = tau,
                               N = N,
                               S0 = S0,
@@ -270,7 +271,7 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
         
         
         ### MCMC specifications
-        niter <- 300000
+        niter <- 400000
         nburn <- 100000
         nthin <- 10
         

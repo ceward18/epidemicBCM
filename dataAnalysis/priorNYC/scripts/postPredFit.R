@@ -14,7 +14,8 @@ postPredFit <- function(incData, N, I0, R0, Rstar0, lengthI,
     
     # smoothI doesn't matter here
     modelInputs <- getModelInput(alarmFit = alarmFit, incData = incData, 
-                                 smoothI = incData, infPeriod= infPeriod, 
+                                 smoothI = movingAverage(incData, smoothWindow), 
+                                 infPeriod= infPeriod, 
                                  prior = prior, N = N, I0 = I0, R0 = R0,
                                  Rstar0 = Rstar0, lengthI = lengthI)
     
@@ -43,6 +44,7 @@ postPredFit <- function(incData, N, I0, R0, Rstar0, lengthI,
     sim_R <- simulator(myModelPred, dataNodes)
     sim_C <- compileNimble(sim_R)
     
+    sim_R$run(trueVals, 10)
     
     # get order of parameters
     parentNodes <- myModelPred$getParents(dataNodes, stochOnly = TRUE)

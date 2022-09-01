@@ -130,9 +130,15 @@ for (i in batchIdx) {
     
     # if the model did not converge save the chains so these can be examined later
     if (!all(postSummaries$gdiag$gr < 1.1)) {
+        
+        # create thinned version
+        resThree[[1]] <- resThree[[1]][seq(1,nrow(resThree[[1]]), 10),]
+        resThree[[2]] <- resThree[[2]][seq(1,nrow(resThree[[2]]), 10),]
+        resThree[[3]] <- resThree[[3]][seq(1,nrow(resThree[[3]]), 10),]
+        
         saveRDS(resThree, 
                 paste0('./Output/chains_', alarmFit_i, '_', infPeriod_i, '_peak', 
-                       peak_i, '_', smoothWindow_i, '.rds'))
+                       peak_i, '_', smoothWindow_i, '_', prior_i, '.rds'))
     }
     
     

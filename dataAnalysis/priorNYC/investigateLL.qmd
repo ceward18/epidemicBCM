@@ -1,0 +1,532 @@
+---
+title: "Likelihood investigation"
+format: 
+    html:
+        code-fold: true
+        self-contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 10, fig.height = 8)
+
+
+library(ggplot2)
+library(nimble)
+library(fields)
+
+source('./scripts/modelCodes.R')
+
+
+theme_set(theme_bw() + 
+              theme(strip.background = element_rect(fill = 'white'),
+                    strip.text = element_text(size = 18),
+                    axis.title = element_text(size = 18),
+                    axis.text = element_text(size = 16),
+                    legend.title = element_text(size = 18),
+                    legend.text = element_text(size = 16)))
+```
+
+
+## WAIC
+
+
+WAIC (introduced by Watanabe, 2010, who calls it the widely applicable 
+information criterion) is a more fully Bayesian approach for estimating the 
+out-of-sample expectation, starting with the computed log pointwise
+posterior predictive density and then adding a correction for effective number
+of parameters to adjust for overfitting.
+
+
+WAIC = -2(lppd - pWAIC) = -2lppd + 2pWAIC
+
+WAIC: The computed WAIC is on the deviance scale. Smaller values are better 
+when comparing WAIC for two models.
+
+lppd: The log predictive density component of WAIC. Bigger is better.
+
+pWAIC: The pWAIC estimate of the effective number of parameters, computed using the pWAIC2 method of Gelman et al. (2014).
+
+$pWAIC_2 = \sum_{i = 1}^n \text{Var}_{post} \log p(y_i|\theta)$
+
+we compute the posterior variance of the log predictive density for each
+data point.
+
+## Log-likelihood
+
+The log-likelihood from the chain binomial model can be written as:
+
+$$
+\begin{equation}
+\begin{split}
+\ell(\mathbf{I}^*, \mathbf{R}^* | \boldsymbol{\Theta}) &= \sum_{t = 0}^{\tau}  
+\Bigg[\log \binom{S_t}{I^*_t} + I^*_t \log \pi_t^{(SI)} + \left(S_t-I^*_t \right) \log \left(1-\pi_t^{(SI)} \right)\\
+&\hspace{9mm} + \log \binom{I_t}{R^*_t} + R^*_t \log \pi^{(IR)} + \left(I_t-R^*_t \right) \log \left(1-\pi^{(IR)} \right) \Bigg],
+\end{split}
+\end{equation}
+$$
+$$
+\begin{equation} 
+\pi_t^{(SI)} = 1 - \exp \left(-\beta \frac{I_t}{N}\right)
+\end{equation}
+$$
+
+$$
+\begin{equation} 
+\pi_t^{(SI)} = 1 - \exp \left(-\gamma\right)
+\end{equation}
+$$
+
+
+## Peak 1
+
+```{r}
+### read data
+dat <- read.csv('./Data/nycClean.csv')
+dat$date <- as.Date(dat$date)
+dat$smoothedCases <- round(movingAverage(dat$dailyCases, 7))
+dat$cumulativeCases <- cumsum(dat$smoothedCases)
+dat <- dat[which(dat$peak == 1),]
+
+ggplot(dat, aes(x = date, y = smoothedCases)) +
+    geom_line(size = 1) + 
+    labs(col = "Peak", x = "Date", y = "Incidence") 
+```
+
+
+### Model code
+
+```{r}
+SIR_basic_exp
+```
+
+### Plot log-likelihood
+
+```{r}
+N <- dat$Population[1]
+
+incData <- dat$smoothedCases
+idxStart <- 5
+incData <- incData[-c(1:idxStart)]
+lengthI <- 5
+
+# currently infectious/removed
+I0 <- sum(dat$smoothedCases[max(1, (idxStart - lengthI + 1)):(idxStart)])
+R0 <- dat$cumulativeCases[idxStart] - I0 
+
+# constants that are the same for all models
+S0 <- N - I0 - R0
+tau <- length(incData)
+
+# strong centered on truth
+bb <- 1350
+aa <- 1/2*bb
+
+### constants
+constantsList <- list(tau = tau,
+                      N = N,
+                      S0 = S0,
+                      I0 = I0)
+
+### data
+dataList <- list(Istar = incData)
+
+# initial values
+initsList <- list(Rstar = c(rep(0, 4),
+                            constantsList$I0, 
+                            head(dataList$Istar, -5)),
+                  beta = 1,
+                  rateI = 1,
+                  aa = aa,
+                  bb = bb)
+
+
+### create nimble model
+myModel <- nimbleModel(SIR_basic_exp, 
+                       data = dataList, 
+                       constants = constantsList,
+                       inits = initsList)
+compiledPred  <- compileNimble(myModel) 
+
+myModel$calculate()
+
+sum(dbinom(myModel$Istar[1:tau], size = myModel$S[1:tau], myModel$probSI[1:tau], log = T)) + 
+    sum(dbinom(myModel$Rstar[1:tau], size = myModel$I[1:tau], myModel$probIR, log = T)) +
+    dgamma(myModel$beta, 0.1, 0.1, log = T) +
+    dgamma(myModel$rateI, aa, bb, log = T)
+
+# function to get log-likelihood across a range of values for a single parameter
+getLL <- nimbleFunction(
+    setup = function(model, paramName) {
+        allNodes <- model$getNodeNames()
+        myNodes <- allNodes[allNodes %in% paramName]
+    },
+    run = function(paramVals = double(1)) {
+        returnType(double(1))
+        
+        nVals <- length(paramVals)
+        
+        ll <- rep(NA, nVals)
+        for(i in 1:nVals) {
+            values(model, myNodes) <<- paramVals[i]
+            ll[i] <- model$calculate()
+        }
+        return(ll)
+    })
+
+
+```
+
+Log-likelihood as a function of gamma for various beta values
+
+```{r}
+getLL_rateI <- getLL(myModel, 'rateI')
+
+par(mfrow = c(2,2))
+
+myModel$beta <- 0.1
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('beta = ', myModel$beta))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+myModel$beta <- 0.5
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('beta = ', myModel$beta))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+myModel$beta <- 1
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('beta = ', myModel$beta))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+myModel$beta <- 2
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('beta = ', myModel$beta))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+
+```
+
+
+
+Log-likelihood as a function of beta for various gamma values
+
+```{r}
+getLL_beta <- getLL(myModel, 'beta')
+
+par(mfrow = c(2,2))
+
+myModel$rateI <- 0.1
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_beta$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'beta',
+     ylab = 'log-likelihood',
+     main = paste0('gamma = ', myModel$rateI))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+myModel$rateI <- 0.3
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_beta$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'beta',
+     ylab = 'log-likelihood',
+     main = paste0('gamma = ', myModel$rateI))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+myModel$rateI <- 0.5
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_beta$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'beta',
+     ylab = 'log-likelihood',
+     main = paste0('gamma = ', myModel$rateI))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+myModel$rateI <- 1
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_beta$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'beta',
+     ylab = 'log-likelihood',
+     main = paste0('gamma = ', myModel$rateI))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+
+```
+
+
+
+Log-likelihood as a function of gamma for various Rstar values
+
+```{r}
+myModel$beta <- 0.5
+
+getLL_rateI <- getLL(myModel, 'rateI')
+
+par(mfrow = c(2,2))
+
+myModel$Rstar <- c(constantsList$I0, 
+                   head(dataList$Istar, -1))
+paramVec <- seq(0.01, 10, 0.1)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('infectious for 1 day'))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+myModel$Rstar <- c(rep(0, 2),
+                   constantsList$I0, 
+                   head(dataList$Istar, -3))
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('infectious for 3 days'))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+myModel$Rstar <- c(rep(0, 4),
+                   constantsList$I0, 
+                   head(dataList$Istar, -5))
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('infectious for 5 days'))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+myModel$Rstar <- c(rep(0, 9),
+                   constantsList$I0, 
+                   head(dataList$Istar, -10))
+paramVec <- seq(0.01, 1, 0.01)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('infectious for 10 days'))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+
+```
+
+
+Log-likelihood as a function of gamma for various beta values with infectious period at 1 day
+
+```{r}
+myModel$Rstar <- c(constantsList$I0, 
+                   head(dataList$Istar, -1))
+
+getLL_rateI <- getLL(myModel, 'rateI')
+
+par(mfrow = c(2,2))
+
+myModel$beta <- 0.1
+paramVec <- seq(0.01, 10, 0.1)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('beta = ', myModel$beta))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+myModel$beta <- 0.5
+paramVec <- seq(0.01, 10, 0.1)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('beta = ', myModel$beta))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+myModel$beta <- 1
+paramVec <- seq(0.01, 10, 0.1)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('beta = ', myModel$beta))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+myModel$beta <- 2
+paramVec <- seq(0.01, 10, 0.1)
+llVec <- getLL_rateI$run(paramVals = paramVec)
+
+plot(paramVec, llVec,
+     xlab = 'gamma',
+     ylab = 'log-likelihood',
+     main = paste0('beta = ', myModel$beta))
+abline(v = paramVec[which.max(llVec)], col = 'red')
+
+
+
+```
+
+## Bivariate plots of Log-likelihood
+
+
+```{r}
+# function to get log-likelihood across a range of values for a single parameter
+getLLBi <- nimbleFunction(
+    setup = function(model, paramNames) {
+        allNodes <- model$getNodeNames()
+        myNodes <- allNodes[allNodes %in% paramNames]
+        print(myNodes)
+    },
+    run = function(paramVals = double(2)) {
+        returnType(double(1))
+        
+        nVals <- dim(paramVals)[1]
+        
+        ll <- rep(NA, nVals)
+        for(i in 1:nVals) {
+            values(model, myNodes) <<- paramVals[i, 1:2]
+            ll[i] <- model$calculate()
+        }
+        return(ll)
+    })
+
+
+```
+
+
+Log-likelihood as a function of gamma for various Rstar values
+
+
+```{r}
+
+betaVec <- seq(0.01, 2, 0.01)
+gammaVec <- seq(0.01, 20, 0.01 )
+
+paramMat <- as.matrix(expand.grid(beta = betaVec, 
+                                  rateI = gammaVec))
+
+par(mfrow = c(2, 2))
+
+# 1 day
+myModel$Rstar <- c(constantsList$I0, 
+                   head(dataList$Istar, -1))
+compiledPred  <- compileNimble(myModel) 
+getLL_both <- getLLBi(model = myModel, 
+                      paramNames = c('beta', 'rateI'))
+getLL_both_C <- compileNimble(getLL_both)
+llVec <- getLL_both_C$run(paramVals = paramMat)
+
+image.plot(x = betaVec,
+           y = gammaVec,
+           z = matrix(llVec, nrow = length(betaVec), ncol = length(gammaVec)),
+           xlab = 'beta', ylab = 'gamma',
+           main = paste0('1 day infectious period\nR0 = ', 
+                         round(paramMat[which.max(llVec),1]/paramMat[which.max(llVec),2], 3)))
+abline(v = paramMat[which.max(llVec),1], lwd = 2)
+abline(h = paramMat[which.max(llVec),2], lwd = 2)
+
+
+betaVec <- seq(0.01, 1, 0.01)
+gammaVec <- seq(0.01, 1, 0.01 )
+
+paramMat <- as.matrix(expand.grid(beta = betaVec, 
+                                  rateI = gammaVec))
+
+# 3 days
+myModel$Rstar <- c(rep(0, 2),
+                   constantsList$I0, 
+                   head(dataList$Istar, -3))
+compiledPred  <- compileNimble(myModel) 
+getLL_both <- getLLBi(model = myModel, 
+                      paramNames = c('beta', 'rateI'))
+getLL_both_C <- compileNimble(getLL_both)
+llVec <- getLL_both_C$run(paramVals = paramMat)
+
+image.plot(x = betaVec,
+           y = gammaVec,
+           z = matrix(llVec, nrow = length(betaVec), ncol = length(gammaVec)),
+           xlab = 'beta', ylab = 'gamma',
+           main = paste0('3 day infectious period\nR0 = ', 
+                         round(paramMat[which.max(llVec),1]/paramMat[which.max(llVec),2], 3)))
+abline(v = paramMat[which.max(llVec),1], lwd = 2)
+abline(h = paramMat[which.max(llVec),2], lwd = 2)
+
+# 5 days
+myModel$Rstar <- c(rep(0, 4),
+                   constantsList$I0, 
+                   head(dataList$Istar, -5))
+compiledPred  <- compileNimble(myModel) 
+getLL_both <- getLLBi(model = myModel, 
+                      paramNames = c('beta', 'rateI'))
+getLL_both_C <- compileNimble(getLL_both)
+llVec <- getLL_both_C$run(paramVals = paramMat)
+
+image.plot(x = betaVec,
+           y = gammaVec,
+           z = matrix(llVec, nrow = length(betaVec), ncol = length(gammaVec)),
+           xlab = 'beta', ylab = 'gamma',
+           main = paste0('5 day infectious period\nR0 = ', 
+                         round(paramMat[which.max(llVec),1]/paramMat[which.max(llVec),2], 3)))
+abline(v = paramMat[which.max(llVec),1], lwd = 2)
+abline(h = paramMat[which.max(llVec),2], lwd = 2)
+
+# 10 days
+myModel$Rstar <- c(rep(0, 9),
+                   constantsList$I0, 
+                   head(dataList$Istar, -10))
+compiledPred  <- compileNimble(myModel) 
+getLL_both <- getLLBi(model = myModel, 
+                      paramNames = c('beta', 'rateI'))
+getLL_both_C <- compileNimble(getLL_both)
+llVec <- getLL_both_C$run(paramVals = paramMat)
+
+image.plot(x = betaVec,
+           y = gammaVec,
+           z = matrix(llVec, nrow = length(betaVec), ncol = length(gammaVec)),
+           xlab = 'beta', ylab = 'gamma',
+           main = paste0('10 day infectious period\nR0 = ', 
+                         round(paramMat[which.max(llVec),1]/paramMat[which.max(llVec),2], 3)))
+
+abline(v = paramMat[which.max(llVec),1], lwd = 2)
+abline(h = paramMat[which.max(llVec),2], lwd = 2)
+```
+

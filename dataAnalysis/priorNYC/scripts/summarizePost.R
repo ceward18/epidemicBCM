@@ -151,7 +151,7 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
                                Rstar0 = Rstar0, lengthI = lengthI, 
                                alarmFit = alarmFit, infPeriod = infPeriod, 
                                prior = prior, smoothWindow = smoothWindow, 
-                               paramsPost = paramsPost, alarmSamples=alarmSamples)
+                               paramsPost = paramsPost, alarmSamples = alarmSamples)
     
     postMean <- rowMeans(postPredObs)
     postCI <- apply(postPredObs, 1, quantile, probs = c(0.025, 0.975))

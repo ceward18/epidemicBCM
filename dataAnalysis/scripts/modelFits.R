@@ -53,6 +53,8 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
     
     myConfig$removeSampler('rateI')
     myConfig$addSampler(target = 'rateI', type = "slice")
+    
+    myConfig$addMonitors(c('rateI'))
   }
   
   # customize samplers depending on model being fitted

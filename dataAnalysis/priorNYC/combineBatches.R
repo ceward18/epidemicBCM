@@ -5,7 +5,7 @@
 library(nimble)
 
 outputFolder <- 'Output'
-resultsFolder <- 'resultsFinal'
+resultsFolder <- 'resultsCombined'
 
 outputFiles <- list.files(paste0('./', outputFolder))
 
