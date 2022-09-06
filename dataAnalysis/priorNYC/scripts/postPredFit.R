@@ -44,8 +44,6 @@ postPredFit <- function(incData, N, I0, R0, Rstar0, lengthI,
     sim_R <- simulator(myModelPred, dataNodes)
     sim_C <- compileNimble(sim_R)
     
-    sim_R$run(trueVals, 10)
-    
     # get order of parameters
     parentNodes <- myModelPred$getParents(dataNodes, stochOnly = TRUE)
     parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
