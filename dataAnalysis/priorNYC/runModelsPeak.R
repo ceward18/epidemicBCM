@@ -44,6 +44,10 @@ allModels <- allModels[order(allModels$infPeriod, allModels$alarmFit,
                              allModels$smoothWindow, allModels$peak),]
 rownames(allModels) <- NULL
 
+# list of batches
+tmp <- allModels[seq(1, nrow(allModels), 4),]
+rownames(tmp) <- NULL
+
 # constants for all models
 N <- dat$Population[1]
 lengthI <- 5

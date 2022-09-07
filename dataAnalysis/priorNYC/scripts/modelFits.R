@@ -95,6 +95,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       myConfig$removeSampler(paramsForSlice)
       myConfig$addSampler(target = paramsForSlice[1], type = "slice")
       myConfig$addSampler(target = paramsForSlice[2], type = "slice")
+      myConfig$addSampler(target = paramsForSlice[3], type = "slice")
       
   }  else if (alarmFit == 'betatSpline') {
       
