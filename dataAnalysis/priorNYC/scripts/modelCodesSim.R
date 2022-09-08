@@ -464,6 +464,7 @@ SIR_power_exp <-  nimbleCode({
 
 ################################################################################
 ### Spline alarm models
+# estimated knots
 
 ### Fixed infectious period
 
@@ -591,6 +592,127 @@ SIR_spline_exp <-  nimbleCode({
     
     # constrain knots to be ordered
     constrain_knots ~ dconstraint(knots[1] < knots[2])
+    
+})
+
+################################################################################
+### Spline alarm models
+# fixed knots
+
+### Fixed infectious period
+
+SIR_splineFixKnot_fixed <-  nimbleCode({
+    
+    S[1] <- S0
+    I[1] <- I0
+    
+    # removal times for those initially infectious
+    Rstar[1:lengthI] <- Rstar0[1:lengthI]
+    
+    ### first time point for incidence based alarm
+    # compute alarm
+    smoothI[1] <- 0
+    alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
+    
+    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    
+    Istar[1] ~ dbin(probSI[1], S[1])
+    Rstar[1 + lengthI] <- Istar[1]
+    
+    # update S and I
+    S[2] <- S[1] - Istar[1]
+    I[2] <- I[1] + Istar[1] - Rstar[1]
+    
+    ### rest of time points
+    for(t in 2:tau) {
+        
+        # compute alarm
+        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
+        
+        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        
+        Istar[t] ~ dbin(probSI[t], S[t])
+        
+        Rstar[t + lengthI] <- Istar[t]
+        
+        # update S and I
+        S[t + 1] <- S[t] - Istar[t]
+        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+        
+    }
+    
+    yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
+    
+    # constrain yAlarm to be between 0 and 1
+    minYAlarm <- min(yAlarm[1:n])
+    maxYAlarm <- max(yAlarm[1:n])
+    constrain_min ~ dconstraint(minYAlarm >= 0)
+    constrain_max ~ dconstraint(maxYAlarm <= 1)
+    
+    # priors
+    beta ~ dgamma(0.1, 0.1)
+    for (i in 1:nb) {
+        b[i] ~ dnorm(0, sd = 100)
+    }
+    
+})
+
+### Exponential infectious period
+
+SIR_splineFixKnot_exp <-  nimbleCode({
+    
+    S[1] <- S0
+    I[1] <- I0
+    
+    probIR <- 1 - exp(-rateI)
+    
+    ### first time point for incidence based alarm
+    # compute alarm
+    smoothI[1] <- 0
+    alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
+    
+    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    
+    Istar[1] ~ dbin(probSI[1], S[1])
+    Rstar[1] ~ dbin(probIR, I[1])
+    
+    # update S and I
+    S[2] <- S[1] - Istar[1]
+    I[2] <- I[1] + Istar[1] - Rstar[1]
+    
+    ### rest of time points
+    for(t in 2:tau) {
+        
+        # compute alarm
+        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
+        
+        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        
+        Istar[t] ~ dbin(probSI[t], S[t])
+        Rstar[t] ~ dbin(probIR, I[t])
+        
+        # update S and I
+        S[t + 1] <- S[t] - Istar[t]
+        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+        
+    }
+    
+    yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
+    
+    # constrain yAlarm to be between 0 and 1
+    minYAlarm <- min(yAlarm[1:n])
+    maxYAlarm <- max(yAlarm[1:n])
+    constrain_min ~ dconstraint(minYAlarm >= 0)
+    constrain_max ~ dconstraint(maxYAlarm <= 1)
+    
+    # priors
+    beta ~ dgamma(0.1, 0.1)
+    rateI ~ dgamma(aa, bb)
+    for (i in 1:nb) {
+        b[i] ~ dnorm(0, sd = 100)
+    }
     
 })
 

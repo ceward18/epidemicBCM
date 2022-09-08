@@ -18,7 +18,7 @@ source('./scripts/getWAIC.R')
 
 summarizePost <- function(resThree, incData, smoothI, smoothWindow,
                           N, I0, R0, Rstar0, lengthI, 
-                          alarmBase, alarmFit, infPeriod, prior) {
+                          alarmBase, alarmFit, infPeriod, prior, peak) {
     
     if (!alarmFit %in% c('betatSpline', 'basic')) {
         paramSamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[1]]))]
@@ -150,7 +150,7 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
     postPredObs <- postPredFit(incData = incData, N = N, I0 = I0, R0 = R0,
                                Rstar0 = Rstar0, lengthI = lengthI, 
                                alarmFit = alarmFit, infPeriod = infPeriod, 
-                               prior = prior, smoothWindow = smoothWindow, 
+                               prior = prior, peak = peak, smoothWindow = smoothWindow, 
                                paramsPost = paramsPost, alarmSamples = alarmSamples)
     
     postMean <- rowMeans(postPredObs)
@@ -169,7 +169,7 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
         
         samples <- rbind(resThree[[1]], resThree[[2]], resThree[[3]])
         
-    } else if (alarmFit %in% c('gp', 'spline')) {
+    } else if (alarmFit %in% c('gp', 'spline', 'splineFixKnot')) {
         
         # includes Rstar, so don't need to add later
         samps1 <- resThree[[1]][,-grep('alarm', colnames(resThree[[1]]))]
@@ -190,7 +190,7 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
     
     waic <- getWAIC(samples = samples, incData = incData, smoothI = smoothI, 
                     N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0, lengthI = lengthI,
-                    infPeriod = infPeriod, prior = prior, alarmFit = alarmFit)
+                    infPeriod = infPeriod, prior = prior, peak = peak, alarmFit = alarmFit)
     
     ### output
     list(gdiag = gdiag,

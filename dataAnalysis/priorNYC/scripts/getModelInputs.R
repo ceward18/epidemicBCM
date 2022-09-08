@@ -6,7 +6,7 @@
 ################################################################################
 
 
-getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
+getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior, peak,
                           N, I0, R0, Rstar0, lengthI) {
     
     # constants that are the same for all models
@@ -124,8 +124,8 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
                           k = runif(1, 0, 1))
         
         ### MCMC specifications
-        niter <- 700000
-        nburn <- 400000
+        niter <- 800000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'spline') {
@@ -173,6 +173,55 @@ getModelInput <- function(alarmFit, incData, smoothI, infPeriod, prior,
         ### MCMC specifications
         niter <- 800000
         nburn <- 500000
+        nthin <- 10
+        
+    }  else if (alarmFit == 'splineFixKnot') {
+        
+        ### constants
+        n <- 50
+        minI <- floor(min(smoothI))
+        maxI <- ceiling(max(smoothI))
+        xAlarm <- seq(0, maxI, length.out = n)
+        nb <- 3
+        
+        # use posterior means from full run as knots
+        paramPost <- readRDS('./resultsCombined/paramsPostAll.rds')
+        knotsPost <- paramPost[paramPost$alarmFit == 'spline' &
+                                   paramPost$param %in% c('knots[1]', 'knots[2]'), 
+                               c('param', 'mean', 'peak', 'prior')]
+        knots <- knotsPost[knotsPost$peak == peak & knotsPost$prior == prior, 'mean']
+        
+        constantsList <- list(tau = tau,
+                              N = N,
+                              S0 = S0,
+                              I0 = I0,
+                              Rstar0 = Rstar0,
+                              xAlarm = xAlarm,
+                              n = n,
+                              lengthI = lengthI,
+                              nb = nb,
+                              knots = knots)
+        
+        ### data
+        dataList <- list(Istar = incData,
+                         smoothI = smoothI,
+                         constrain_min = 1,
+                         constrain_max = 1)
+        
+        ### inits (must satisfy constraint)
+        repeat {
+            initsList <- list(beta = runif(1, 1/7, 1),
+                              b = rnorm(nb, 0, 4))
+            
+            cond <- all(splineAlarm(xAlarm, initsList$b, constantsList$knots) >= 0) & 
+                all(splineAlarm(xAlarm, initsList$b, constantsList$knots) <= 1) 
+            
+            if (cond) break
+        }
+        
+        ### MCMC specifications
+        niter <- 600000
+        nburn <- 300000
         nthin <- 10
         
     } else if (alarmFit == 'gp') {

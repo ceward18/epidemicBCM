@@ -7,7 +7,7 @@
 ################################################################################
 
 fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
-                          infPeriod, prior, alarmFit, seed) {
+                          infPeriod, prior, peak, alarmFit, seed) {
   
   source('./scripts/modelCodes.R')
   source('./scripts/getModelInputs.R')
@@ -21,7 +21,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
   # model-specific constants, data, and inits
   modelInputs <- getModelInput(alarmFit = alarmFit, 
                                incData = incData, smoothI = smoothI,
-                               infPeriod = infPeriod, prior = prior,
+                               infPeriod = infPeriod, prior = prior, peak = peak,
                                N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0, 
                                lengthI = lengthI)
   
@@ -88,6 +88,13 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       myConfig$addSampler(target = paramsForBlock[1:2], type = "AF_slice")
       myConfig$addSampler(target = paramsForBlock[3], type = "AF_slice")
      
+  } else if (alarmFit == 'splineFixKnot') {
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'b')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock[1:2], type = "AF_slice")
+      
   } else if (alarmFit == 'gp') {
       
       # if gaussian process model, use slice sampling
@@ -100,10 +107,10 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
   }  else if (alarmFit == 'betatSpline') {
       
       # block sampler for transmission parameters
-      paramsForBlock <- c('b', 'knots')
+      paramsForBlock <- c('rateI', 'b', 'knots')
       myConfig$removeSampler(paramsForBlock)
-      myConfig$addSampler(target = paramsForBlock[1], type = "AF_slice")
-      myConfig$addSampler(target = paramsForBlock[2], type = "AF_slice")
+      myConfig$addSampler(target = paramsForBlock[1:2], type = "AF_slice")
+      myConfig$addSampler(target = paramsForBlock[3], type = "AF_slice")
       
   } 
   

@@ -20,13 +20,16 @@ dat$smoothedCases <- round(movingAverage(dat$dailyCases, 7))
 dat$cumulativeCases <- cumsum(dat$smoothedCases)
 
 peak <- c('1', '2', '3', '4')
-alarmFit <- c( 'thresh', 'hill', 'power', 'gp', 'spline', 'betatSpline', 'basic')
+alarmFit <- c( 'thresh', 'hill', 'power', 
+               'gp', 'spline', 
+               'betatSpline', 'basic',
+               'splineFixKnot')
 smoothWindow <- 60
 prior <- 1:4
 
-# 80 possibilities (5 alarmFits, 4 peaks, 4 priors)
+# 96 possibilities (6 alarmFits, 4 peaks, 4 priors)
 allModelsAlarm <- expand.grid(peak = peak,
-                              alarmFit = alarmFit[1:5],
+                              alarmFit = alarmFit[c(1:5, 8)],
                               smoothWindow = smoothWindow,
                               infPeriod = 'exp',
                               prior = prior)
@@ -105,7 +108,8 @@ for (i in batchIdx) {
     
     # run three chains in parallel
     cl <- makeCluster(3)
-    clusterExport(cl, list('incData', 'smoothI', 'infPeriod_i', 'alarmFit_i', 'prior_i',
+    clusterExport(cl, list('incData', 'smoothI', 'infPeriod_i', 'alarmFit_i',
+                           'prior_i', 'peak_i',
                            'N', 'I0', 'R0', 'Rstar0', 'lengthI'))
     
     resThree <- parLapplyLB(cl, 1:3, function(x) {
@@ -118,7 +122,7 @@ for (i in batchIdx) {
         fitAlarmModel(incData = incData, smoothI = smoothI,
                       N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0,
                       lengthI = lengthI, infPeriod = infPeriod_i, 
-                      prior = prior_i, alarmFit = alarmFit_i, seed = x)
+                      prior = prior_i, peak = peak_i, alarmFit = alarmFit_i, seed = x)
         
     })
     stopCluster(cl)
@@ -130,7 +134,8 @@ for (i in batchIdx) {
                                    smoothI = smoothI, smoothWindow = smoothWindow_i,
                                    N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0,
                                    lengthI = lengthI, alarmFit = alarmFit_i, 
-                                   infPeriod = infPeriod_i, prior = prior_i)
+                                   infPeriod = infPeriod_i, prior = prior_i,
+                                   peak = peak_i)
     
     # if the model did not converge save the chains so these can be examined later
     if (!all(postSummaries$gdiag$gr < 1.1)) {

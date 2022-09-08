@@ -6,7 +6,7 @@
 ################################################################################
 
 getWAIC <- function(samples, incData, smoothI, N, I0, R0, Rstar0, lengthI,
-                    infPeriod, prior, alarmFit) {
+                    infPeriod, prior, peak, alarmFit) {
     
     source('./scripts/modelCodes.R')
 
@@ -14,9 +14,9 @@ getWAIC <- function(samples, incData, smoothI, N, I0, R0, Rstar0, lengthI,
     modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
     
     # model-specific constants, data, and inits
-    modelInputs <- getModelInput(alarmFit = alarmFit, 
-                                 incData = incData, smoothI = smoothI,
-                                 infPeriod = infPeriod, prior = prior,
+    modelInputs <- getModelInput(alarmFit = alarmFit, incData = incData, 
+                                 smoothI = smoothI,  infPeriod = infPeriod,
+                                 prior = prior, peak = peak,
                                  N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0, 
                                  lengthI = lengthI)
 

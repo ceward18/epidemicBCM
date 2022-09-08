@@ -4,7 +4,7 @@
 
 
 postPredFit <- function(incData, N, I0, R0, Rstar0, lengthI,
-                        alarmFit, infPeriod, prior, smoothWindow, 
+                        alarmFit, infPeriod, prior, peak, smoothWindow, 
                         paramsPost, alarmSamples) {
     
     source('./scripts/modelCodesSim.R')
@@ -15,14 +15,14 @@ postPredFit <- function(incData, N, I0, R0, Rstar0, lengthI,
     # smoothI doesn't matter here
     modelInputs <- getModelInput(alarmFit = alarmFit, incData = incData, 
                                  smoothI = movingAverage(incData, smoothWindow), 
-                                 infPeriod= infPeriod, 
-                                 prior = prior, N = N, I0 = I0, R0 = R0,
+                                 infPeriod= infPeriod, prior = prior, peak = peak,
+                                 N = N, I0 = I0, R0 = R0,
                                  Rstar0 = Rstar0, lengthI = lengthI)
     
     modelInputs$constantsList$bw <- smoothWindow
     
     # compile model and simulator
-    if (alarmFit == 'spline') {
+    if (alarmFit %in% c('spline', 'splineFixKnot')) {
         # spline model needs initial values to avoid warning from NA knots
         myModelPred <- nimbleModel(modelCode, 
                                    constants = modelInputs$constantsList,
@@ -84,6 +84,12 @@ postPredFit <- function(incData, N, I0, R0, Rstar0, lengthI,
             bPost <- paramsPost[postIdx, grep('b\\[', colnames(paramsPost))]
             knotsPost <- paramsPost[postIdx, grep('knots\\[', colnames(paramsPost))]
             trueVals <- c(betaPost, bPost, knotsPost)
+            
+            
+        }  else if (alarmFit == 'splineFixKnot') {
+            
+            bPost <- paramsPost[postIdx, grep('b\\[', colnames(paramsPost))]
+            trueVals <- c(betaPost, bPost)
             
             
         } else if (alarmFit == 'gp') {

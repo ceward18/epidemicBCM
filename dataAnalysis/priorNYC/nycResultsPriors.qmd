@@ -78,30 +78,30 @@ ggplot(dat, aes(x = date, y = smoothedCases, col = factor(peak))) +
 
 ## Recovery Rate Priors
 
-Don't know the true value. One set of priors centered on 1/7 and one on 1/2.
+Don't know the true value. One set of priors centered on 1/5 and one on 1/2.
 
 ```{r}
 pal <- c('black', 'orange', 'blue', 'magenta')
 
-# strong centered on truth
-bb <- 1350
-aa <- 1/7*bb
+# strong centered on 1/5
+bb <- 5633
+aa <- 1/5 * bb
 curve(dgamma(x, aa, bb), col = pal[1], lwd = 2, cex.lab = 1.4, cex.axis = 1.2,
       from = 0, to = 0.8)
 
-# strong but misspecified
-bb <- 4725
-aa <- 1/2*bb
+# strong centered on 1/2
+bb <- 419
+aa <- 1/2 * bb
 curve(dgamma(x, aa, bb), add = T, col = pal[2], lwd = 2)
 
-# vague centered on truth
-bb <- 100
-aa <- 1/7*bb
+# vague centered on 1/5
+bb <- 437
+aa <- 1/5 * bb
 curve(dgamma(x, aa, bb), add = T, col = pal[3], lwd = 2)
 
-# vague and misspecified
-bb <- 350
-aa <- 1/2*bb
+# vague centered on 1/2
+bb <- 28
+aa <- 1/2 * bb
 curve(dgamma(x, aa, bb), add = T, col = pal[4], lwd = 2)
 
 legend('topright', paste0('Prior ', 1:4),
@@ -123,7 +123,7 @@ getVals <- function(x, mean, ll, uu, prob) {
 
 # strong centered on 1/5
 round(optim(2, getVals, lower = 1, method = 'L-BFGS-B',
-      mean = 5, ll = 4.5, uu = 5.5, prob = 0.999)$par)
+            mean = 5, ll = 4.5, uu = 5.5, prob = 0.999)$par)
 
 bb <- 5633
 aa <- 1/5*bb
@@ -134,7 +134,7 @@ pgamma(1/4.5, aa, bb) - pgamma(1/5.5, aa, bb)
 
 # strong but misspecified
 round(optim(2, getVals, lower = 1, method = 'L-BFGS-B',
-      mean = 2, ll = 1.5, uu = 2.5, prob = 0.999)$par)
+            mean = 2, ll = 1.5, uu = 2.5, prob = 0.999)$par)
 
 bb <- 419
 aa <- 1/2*bb
@@ -144,7 +144,7 @@ pgamma(1/1.5, aa, bb) - pgamma(1/2.5, aa, bb)
 
 # vague centered on truth
 round(optim(100, getVals, lower = 1, method = 'L-BFGS-B',
-      mean = 5, ll = 4.5, uu = 5.5, prob = 0.65)$par)
+            mean = 5, ll = 4.5, uu = 5.5, prob = 0.65)$par)
 
 bb <- 437
 aa <- 1/5*bb

@@ -60,7 +60,7 @@ plotAlarmChains <- function(chains) {
 ## Models that didn't converge
 
 ```{r}
-grAll <- readRDS('./resultsFinal/grAll.rds')
+grAll <- readRDS('./resultsCombined/grAll.rds')
 grAll <- grAll[grAll$infPeriod == 'exp',]
 
 # which didn't converge
@@ -68,12 +68,12 @@ notConverge <- grAll[which(grAll$gr > 1.1),  ]
 notConvergeModels <-  notConverge[
     !duplicated(notConverge
                 [,-which(colnames(notConverge) %in% c('gr', 'grUpper', 'param'))]),
-    c('alarmFit', 'infPeriod', 'smoothWindow', 'peak')]
+    c('alarmFit', 'infPeriod', 'smoothWindow', 'prior', 'peak')]
 notConvergeModels$noConverge <- 1
 
 
 table(notConvergeModels$peak,
-      notConvergeModels$smoothWindow,
+      notConvergeModels$prior,
       notConvergeModels$alarmFit)
 ```
 
@@ -374,54 +374,17 @@ plotGPChains <- function(chains) {
 }
 ```
 
-### Peak 3
+### Peak 1
 
 #### 15-day smoothing
 
 ```{r}
-chains <- readRDS('Output/chains_gp_exp_peak1_60_1.rds')
-
-plotGPChains(chains)
-plotAlarmChains(chains)
+# chains <- readRDS('Output/chains_gp_exp_peak1_60_1.rds')
+# 
+# plotGPChains(chains)
+# plotAlarmChains(chains)
 ```
 
-#### 30-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_gp_exp_peak3_30.rds')
-
-plotGPChains(chains)
-plotAlarmChains(chains)
-```
-
-### Peak 4
-
-#### 15-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_gp_exp_peak4_15.rds')
-
-plotGPChains(chains)
-plotAlarmChains(chains)
-```
-
-#### 45-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_gp_exp_peak4_45.rds')
-
-plotGPChains(chains)
-plotAlarmChains(chains)
-```
-
-#### 60-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_gp_exp_peak4_60.rds')
-
-plotGPChains(chains)
-plotAlarmChains(chains)
-```
 
 ## Spline
 
@@ -447,7 +410,8 @@ Samplers:
 
 -   AF Slice: b's
 -   AF Slice: knots'
--   AF slice: beta, rateI
+-   Alice: beta
+-   Alice: rateI
 
 ```{r}
 plotSplineChains <- function(chains) {
@@ -478,50 +442,13 @@ plotSplineChains <- function(chains) {
 }
 ```
 
-### Peak 2
-
-#### 15-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_spline_exp_peak2_15.rds')
-
-plotSplineChains(chains)
-```
-
-```{r}
-plotAlarmChains(chains)
-```
-
-#### 30-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_spline_exp_peak2_30.rds')
-
-plotSplineChains(chains)
-```
-
-```{r}
-plotAlarmChains(chains)
-```
-
-#### 45-day smoothing
-
-```{r}
-chains <- readRDS('Output/chains_spline_exp_peak2_45.rds')
-
-plotSplineChains(chains)
-```
-
-```{r}
-plotAlarmChains(chains)
-```
 
 ### Peak 4
 
-#### 30-day smoothing
+#### Prior 1
 
 ```{r}
-chains <- readRDS('Output/chains_spline_exp_peak4_30.rds')
+chains <- readRDS('Output/chains_spline_exp_peak4_60_1.rds')
 
 plotSplineChains(chains)
 ```
@@ -530,10 +457,10 @@ plotSplineChains(chains)
 plotAlarmChains(chains)
 ```
 
-#### 45-day smoothing
+#### Prior 2
 
 ```{r}
-chains <- readRDS('Output/chains_spline_exp_peak4_45.rds')
+chains <- readRDS('Output/chains_spline_exp_peak4_60_2.rds')
 
 plotSplineChains(chains)
 ```
@@ -542,10 +469,23 @@ plotSplineChains(chains)
 plotAlarmChains(chains)
 ```
 
-#### 60-day smoothing
+#### Prior 3
 
 ```{r}
-chains <- readRDS('Output/chains_spline_exp_peak4_60.rds')
+chains <- readRDS('Output/chains_spline_exp_peak4_60_3.rds')
+
+plotSplineChains(chains)
+```
+
+```{r}
+plotAlarmChains(chains)
+```
+
+
+#### Prior 4
+
+```{r}
+chains <- readRDS('Output/chains_spline_exp_peak4_60_4.rds')
 
 plotSplineChains(chains)
 ```
@@ -576,8 +516,8 @@ code <- nimbleCode({
 
 Samplers:
 
--   RW sampler: b's
--   RW sampler: knots'
+-   AF Slice: b's
+-   AF Slice: knots'
 -   Slice: rateI
 
 ```{r}
@@ -646,8 +586,19 @@ plotBetaChains <- function(chains) {
 
 ### Peak 1
 
+#### Prior 1
+
 ```{r}
-chains <- readRDS('Output/chains_betatSpline_exp_peak1_1.rds')
+chains <- readRDS('Output/chains_betatSpline_exp_peak1_1_1.rds')
+
+plotBetatChains(chains)
+plotBetaChains(chains)
+```
+
+#### Prior 4
+
+```{r}
+chains <- readRDS('Output/chains_betatSpline_exp_peak1_1_4.rds')
 
 plotBetatChains(chains)
 plotBetaChains(chains)
@@ -655,8 +606,37 @@ plotBetaChains(chains)
 
 ### Peak 4
 
+#### Prior 1
+
 ```{r}
-chains <- readRDS('Output/chains_betatSpline_exp_peak4_1.rds')
+chains <- readRDS('Output/chains_betatSpline_exp_peak4_1_1.rds')
+
+plotBetatChains(chains)
+plotBetaChains(chains)
+```
+
+#### Prior 2
+
+```{r}
+chains <- readRDS('Output/chains_betatSpline_exp_peak4_1_2.rds')
+
+plotBetatChains(chains)
+plotBetaChains(chains)
+```
+
+#### Prior 3
+
+```{r}
+chains <- readRDS('Output/chains_betatSpline_exp_peak4_1_3.rds')
+
+plotBetatChains(chains)
+plotBetaChains(chains)
+```
+
+#### Prior 4
+
+```{r}
+chains <- readRDS('Output/chains_betatSpline_exp_peak4_1_4.rds')
 
 plotBetatChains(chains)
 plotBetaChains(chains)
