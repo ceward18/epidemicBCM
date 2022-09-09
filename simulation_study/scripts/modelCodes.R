@@ -101,6 +101,7 @@ splineAlarm <- nimbleRcall(function(x = double(1), b = double(1), knots= double(
 )
 assign('splineAlarm', splineAlarm, envir = .GlobalEnv)
 
+
 # spline for beta[t] define first as an R function
 splineBetaR <- function(x, b, knots) {
     xBasis <- splines::ns(x, knots = knots, Boundary.knots = c(min(x) - 50, max(x)))
@@ -175,7 +176,7 @@ getl <- function(maxDist) {
 }
 
 # determine shape and scale for prior on rho
-myF <- function(x, min, mid,  max) {
+myF <- function(x, mid) {
     a <- x[1]; b <- x[2]
     
     # mean is b/(a - 1)
@@ -183,7 +184,7 @@ myF <- function(x, min, mid,  max) {
     
     # variance is b^2 / ((a-1)^2 * (a-2))
     distSD <- sqrt(b^2 / ((a-1)^2 * (a-2)))
-    sdEst <- 4
+    sdEst <- 2
     
     summat <- c(distMean - mid,
                 distSD - sdEst)
@@ -198,33 +199,24 @@ RstarUpdate <- nimbleFunction(
     contains = sampler_BASE,                     
     setup = function(model, mvSaved, target, control) {                 # REQUIRED setup arguments
         calcNodes <- model$getDependencies(target) 
+        # percent <- if(!is.null(control$percent)) control$percent else 0.05   
         
-        ignoreIdx <- if(!is.null(control$ignoreIdx)) control$ignoreIdx else 0
-        
-        # number of update attempts at each iteration
-        nUpdates <- 500
+        # number of update attempts is some % of the final epidemic size (total # of removals)
+        nUpdates <- 200
     },                                                                  # setup can't return anything
     run = function() {
-        currentValue0 <- model[[target]] 
-        currentLogProb <- model$getLogProb(calcNodes)    
+        currentValue <- model[[target]]                                   
+        currentLogProb <- model$getLogProb(calcNodes)                    
         
-        nTimePoints0 <- length(currentValue0)
-        allIdx <- 1:nTimePoints0
-        validIdx <- allIdx[(length(ignoreIdx) + 1):nTimePoints0]
-        
-        fixedValues <- currentValue0[ignoreIdx]
-        currentValue <- currentValue0[validIdx]
-        
-        nTimePoints <- length(currentValue)
-        
-        
-        # repeat proposal many times
+        # repeat proposal many times 
         for (it in 1:nUpdates) {
             
             # three possible moves:
             moveType <- ceiling(runif(1, 0, 3))
             
             proposalValue <- currentValue
+            
+            nTimePoints <- length(currentValue)
             
             if (moveType == 1) {
                 # add a removal time
@@ -264,7 +256,7 @@ RstarUpdate <- nimbleFunction(
             }
             
             # put proposal value in model
-            model[[target]] <<- c(fixedValues, proposalValue)                                
+            model[[target]] <<- proposalValue                                
             proposalLogProb <- model$calculate(calcNodes)                     
             logAcceptanceRatio <- proposalLogProb - currentLogProb + g            
             
@@ -277,7 +269,7 @@ RstarUpdate <- nimbleFunction(
                 
             } else {
                 # reject proposal and revert model to current state
-                model[[target]] <<- c(fixedValues, currentValue)
+                model[[target]] <<- currentValue
                 
                 # current full conditional (calculate overwrites the stored value)
                 currentLogProb <- model$calculate(calcNodes) 
@@ -293,228 +285,18 @@ RstarUpdate <- nimbleFunction(
         reset = function() {}
     )
 )
+
 assign('RstarUpdate', RstarUpdate, envir = .GlobalEnv)
 
-################################################################################
-### Threshold alarm models
-
-### Fixed infectious period
-
-SIR_thresh_fixed <-  nimbleCode({
-    
-    S[1] <- S0
-    I[1] <- I0
-    
-    # removal times for those initially infectious
-    Rstar[1:lengthI] <- Rstar0[1:lengthI]
-    
-    ### rest of time points
-    for(t in 1:tau) {
-        
-        # compute alarm
-        alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
-        
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-        
-        Istar[t] ~ dbin(probSI[t], S[t])
-        
-        Rstar[t + lengthI] <- Istar[t]
-        
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) * lengthI
-    }
-    
-    for (i in 1:n) {
-        yAlarm[i] <- thresholdAlarm(xAlarm[i],  N, delta, H)
-    }
-    
-    # priors
-    beta ~ dgamma(0.1, 0.1)
-    delta ~ dbeta(1, 1)
-    H ~ dunif(minI/N, maxI/N)
-    
-})
-
-### Exponential infectious period
-
-SIR_thresh_exp <-  nimbleCode({
-    
-    S[1] <- S0
-    I[1] <- I0
-    
-    probIR <- 1 - exp(-rateI)
-    
-    ### rest of time points
-    for(t in 1:tau) {
-        
-        # compute alarm
-        alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
-        
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-        
-        Istar[t] ~ dbin(probSI[t], S[t])
-        Rstar[t] ~ dbin(probIR, I[t])
-        
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
-        
-    }
-    
-    for (i in 1:n) {
-        yAlarm[i] <- thresholdAlarm(xAlarm[i],  N, delta, H)
-    }
-    
-    # priors
-    beta ~ dgamma(0.1, 0.1)
-    delta ~ dbeta(1, 1)
-    H ~ dunif(minI/N, maxI/N)
-    rateI ~ dgamma(aa, bb)
-    
-})
 
 ################################################################################
-### Hill alarm models
+### Power alarm
 
-### Fixed infectious period
+# for model fitting (smoothI known)
 
-SIR_hill_fixed <-  nimbleCode({
+SIR_power <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
-    
-    # removal times for those initially infectious
-    Rstar[1:lengthI] <- Rstar0[1:lengthI]
-    
-    ### rest of time points
-    for(t in 1:tau) {
-        
-        # compute alarm
-        alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
-        
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-        
-        Istar[t] ~ dbin(probSI[t], S[t])
-        
-        Rstar[t + lengthI] <- Istar[t]
-        
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) * lengthI
-    }
-    
-    for (i in 1:n) {
-        yAlarm[i] <- hillAlarm(xAlarm[i],  nu, x0, delta)
-    }
-    
-    # priors
-    beta ~ dgamma(0.1, 0.1)
-    delta ~ dbeta(1, 1)
-    nu ~ dunif(0, 50)
-    x0 ~ dunif(minI, maxI)
-    
-})
-
-### Exponential infectious period
-
-SIR_hill_exp <-  nimbleCode({
-    
-    S[1] <- S0
-    I[1] <- I0
-    
-    probIR <- 1 - exp(-rateI)
-    
-    ### rest of time points
-    for(t in 1:tau) {
-        
-        # compute alarm
-        alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
-        
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-        
-        Istar[t] ~ dbin(probSI[t], S[t])
-        Rstar[t] ~ dbin(probIR, I[t])
-        
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
-    }
-    
-    for (i in 1:n) {
-        yAlarm[i] <- hillAlarm(xAlarm[i],  nu, x0, delta)
-    }
-    
-    # priors
-    beta ~ dgamma(0.1, 0.1)
-    delta ~ dbeta(1, 1)
-    nu ~ dunif(0, 50)
-    x0 ~ dunif(minI, maxI)
-    rateI ~ dgamma(aa, bb)
-    
-})
-
-################################################################################
-### Power alarm models
-
-### Fixed infectious period
-
-SIR_power_fixed <-  nimbleCode({
-    
-    S[1] <- S0
-    I[1] <- I0
-    
-    # removal times for those initially infectious
-    Rstar[1:lengthI] <- Rstar0[1:lengthI]
-    
-    ### rest of time points
-    for(t in 1:tau) {
-        
-        # compute alarm
-        alarm[t] <- powerAlarm(smoothI[t], N, k)
-        
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-        
-        Istar[t] ~ dbin(probSI[t], S[t])
-        
-        Rstar[t + lengthI] <- Istar[t]
-        
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) * lengthI
-        
-    }
-    
-    for (i in 1:n) {
-        yAlarm[i] <- powerAlarm(xAlarm[i], N, k)
-    }
-    
-    # priors
-    beta ~ dgamma(0.1, 0.1)
-    k ~ dgamma(0.1, 0.1)
-    
-})
-
-### Exponential infectious period
-
-SIR_power_exp <-  nimbleCode({
-    
-    S[1] <- S0
+    S[1] <- N - I0 
     I[1] <- I0
     
     probIR <- 1 - exp(-rateI)
@@ -534,9 +316,6 @@ SIR_power_exp <-  nimbleCode({
         S[t + 1] <- S[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
-        
     }
     
     for (i in 1:n) {
@@ -550,68 +329,245 @@ SIR_power_exp <-  nimbleCode({
     
 })
 
+# for forward simulation (smoothI unknown)
 
-################################################################################
-### Spline alarm models (knots estimated)
-
-### Fixed infectious period
-
-SIR_spline_fixed <-  nimbleCode({
+SIR_power_sim <-  nimbleCode({
     
-    S[1] <- S0
+    S[1] <- N - I0 
     I[1] <- I0
     
-    # removal times for those initially infectious
-    Rstar[1:lengthI] <- Rstar0[1:lengthI]
+    probIR <- 1 - exp(-rateI)
+    
+    ### first time point for incidence based alarm
+    # compute alarm
+    smoothI[1] <- 0
+    alarm[1] <- powerAlarm(smoothI[1], N, k)
+    
+    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    
+    Istar[1] ~ dbin(probSI[1], S[1])
+    Rstar[1] ~ dbin(probIR, I[1])
+    
+    # update S and I
+    S[2] <- S[1] - Istar[1]
+    I[2] <- I[1] + Istar[1] - Rstar[1]
     
     ### rest of time points
-    for(t in 1:tau) {
+    for(t in 2:tau) {
         
         # compute alarm
-        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
+        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        alarm[t] <- powerAlarm(smoothI[t], N, k)
         
         probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
         Istar[t] ~ dbin(probSI[t], S[t])
-        
-        Rstar[t + lengthI] <- Istar[t]
+        Rstar[t] ~ dbin(probIR, I[t])
         
         # update S and I
         S[t + 1] <- S[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) * lengthI
-        
     }
-    
-    yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
-    
-    # constrain yAlarm to be between 0 and 1
-    minYAlarm <- min(yAlarm[1:n])
-    maxYAlarm <- max(yAlarm[1:n])
-    constrain_min ~ dconstraint(minYAlarm >= 0)
-    constrain_max ~ dconstraint(maxYAlarm <= 1)
     
     # priors
     beta ~ dgamma(0.1, 0.1)
-    for (i in 1:nb) {
-        b[i] ~ dnorm(0, sd = 100)
-    }
-    for (i in 1:(nb - 1)) {
-        knots[i] ~ dunif(min = minI, max = maxI)
-    }
-    
-    # constrain knots to be ordered
-    constrain_knots ~ dconstraint(knots[1] < knots[2])
+    k ~ dgamma(0.1, 0.1)
+    rateI ~ dgamma(aa, bb)
     
 })
 
-### Exponential infectious period
+################################################################################
+### Threshold alarm model
 
-SIR_spline_exp <-  nimbleCode({
+# for model fitting (smoothI known)
+
+SIR_thresh <-  nimbleCode({
     
-    S[1] <- S0
+    S[1] <- N - I0 
+    I[1] <- I0
+    
+    probIR <- 1 - exp(-rateI)
+    
+    ### rest of time points
+    for(t in 1:tau) {
+        
+        # compute alarm
+        alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
+        
+        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        
+        Istar[t] ~ dbin(probSI[t], S[t])
+        Rstar[t] ~ dbin(probIR, I[t])
+        
+        # update S and I
+        S[t + 1] <- S[t] - Istar[t]
+        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+        
+    }
+    
+    for (i in 1:n) {
+        yAlarm[i] <- thresholdAlarm(xAlarm[i],  N, delta, H)
+    }
+    
+    # priors
+    beta ~ dgamma(0.1, 0.1)
+    delta ~ dbeta(1, 1)
+    H ~ dunif(minI/N, maxI/N)
+    rateI ~ dgamma(aa, bb)
+    
+})
+
+# for forward simulation (smoothI unknown)
+
+SIR_thresh_sim <-  nimbleCode({
+    
+    S[1] <- N - I0 
+    I[1] <- I0
+    
+    probIR <- 1 - exp(-rateI)
+    
+    ### first time point for incidence based alarm
+    # compute alarm
+    smoothI[1] <- 0
+    alarm[1] <- thresholdAlarm(smoothI[1],  N, delta, H)
+    
+    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    
+    Istar[1] ~ dbin(probSI[1], S[1])
+    Rstar[1] ~ dbin(probIR, I[1])
+    
+    # update S and I
+    S[2] <- S[1] - Istar[1]
+    I[2] <- I[1] + Istar[1] - Rstar[1]
+    
+    ### rest of time points
+    for(t in 2:tau) {
+        
+        # compute alarm
+        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
+        
+        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        
+        Istar[t] ~ dbin(probSI[t], S[t])
+        Rstar[t] ~ dbin(probIR, I[t])
+        
+        # update S and I
+        S[t + 1] <- S[t] - Istar[t]
+        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+        
+    }
+    
+    # priors
+    beta ~ dgamma(0.1, 0.1)
+    delta ~ dbeta(1, 1)
+    H ~ dunif(minI/N, maxI/N)
+    rateI ~ dgamma(aa, bb)
+    
+})
+
+################################################################################
+### Hill alarm model
+
+# for model fitting (smoothI known)
+
+SIR_hill <-  nimbleCode({
+    
+    S[1] <- N - I0 
+    I[1] <- I0
+    
+    probIR <- 1 - exp(-rateI)
+    
+    ### rest of time points
+    for(t in 1:tau) {
+        
+        # compute alarm
+        alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
+        
+        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        
+        Istar[t] ~ dbin(probSI[t], S[t])
+        Rstar[t] ~ dbin(probIR, I[t])
+        
+        # update S and I
+        S[t + 1] <- S[t] - Istar[t]
+        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+        
+    }
+    
+    for (i in 1:n) {
+        yAlarm[i] <- hillAlarm(xAlarm[i],  nu, x0, delta)
+    }
+    
+    # priors
+    beta ~ dgamma(0.1, 0.1)
+    delta ~ dbeta(1, 1)
+    nu ~ dunif(0, 50)
+    x0 ~ dunif(minI, maxI)
+    rateI ~ dgamma(aa, bb)
+    
+})
+
+# for forward simulation (smoothI unknown)
+
+SIR_hill_sim <-  nimbleCode({
+    
+    S[1] <- N - I0 
+    I[1] <- I0
+    
+    probIR <- 1 - exp(-rateI)
+    
+    ### first time point for incidence based alarm
+    # compute alarm
+    smoothI[1] <- 0
+    alarm[1] <- hillAlarm(smoothI[1], nu, x0, delta)
+    
+    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    
+    Istar[1] ~ dbin(probSI[1], S[1])
+    Rstar[1] ~ dbin(probIR, I[1])
+    
+    # update S and I
+    S[2] <- S[1] - Istar[1]
+    I[2] <- I[1] + Istar[1] - Rstar[1]
+    
+    ### rest of time points
+    for(t in 2:tau) {
+        
+        # compute alarm
+        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
+        
+        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        
+        Istar[t] ~ dbin(probSI[t], S[t])
+        Rstar[t] ~ dbin(probIR, I[t])
+        
+        # update S and I
+        S[t + 1] <- S[t] - Istar[t]
+        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+        
+    }
+    
+    # priors
+    beta ~ dgamma(0.1, 0.1)
+    delta ~ dbeta(1, 1)
+    nu ~ dunif(0, 50)
+    x0 ~ dunif(minI, maxI)
+    rateI ~ dgamma(aa, bb)
+    
+})
+
+
+################################################################################
+### Spline alarm model
+
+# for model fitting (smoothI known)
+
+SIR_spline <-  nimbleCode({
+    
+    S[1] <- N - I0 
     I[1] <- I0
     
     probIR <- 1 - exp(-rateI)
@@ -630,9 +586,6 @@ SIR_spline_exp <-  nimbleCode({
         # update S and I
         S[t + 1] <- S[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
         
     }
     
@@ -659,69 +612,34 @@ SIR_spline_exp <-  nimbleCode({
     
 })
 
+# for forward simulation (smoothI unknown)
 
-################################################################################
-### Spline alarm models (knots fixed)
-
-### Fixed infectious period
-
-SIR_splineFixKnot_fixed <-  nimbleCode({
+SIR_spline_sim <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
-    
-    # removal times for those initially infectious
-    Rstar[1:lengthI] <- Rstar0[1:lengthI]
-    
-    ### rest of time points
-    for(t in 1:tau) {
-        
-        # compute alarm
-        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
-        
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-        
-        Istar[t] ~ dbin(probSI[t], S[t])
-        
-        Rstar[t + lengthI] <- Istar[t]
-        
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) * lengthI
-        
-    }
-    
-    yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
-    
-    # constrain yAlarm to be between 0 and 1
-    minYAlarm <- min(yAlarm[1:n])
-    maxYAlarm <- max(yAlarm[1:n])
-    constrain_min ~ dconstraint(minYAlarm >= 0)
-    constrain_max ~ dconstraint(maxYAlarm <= 1)
-    
-    # priors
-    beta ~ dgamma(0.1, 0.1)
-    for (i in 1:nb) {
-        b[i] ~ dnorm(0, sd = 100)
-    }
-})
-
-### Exponential infectious period
-
-SIR_splineFixKnot_exp <-  nimbleCode({
-    
-    S[1] <- S0
+    S[1] <- N - I0 
     I[1] <- I0
     
     probIR <- 1 - exp(-rateI)
     
+    ### first time point 
+    # compute alarm
+    smoothI[1] <- 0
+    alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
+    
+    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    
+    Istar[1] ~ dbin(probSI[1], S[1])
+    Rstar[1] ~ dbin(probIR, I[1])
+    
+    # update S and I
+    S[2] <- S[1] - Istar[1]
+    I[2] <- I[1] + Istar[1] - Rstar[1]
+    
     ### rest of time points
-    for(t in 1:tau) {
+    for(t in 2:tau) {
         
         # compute alarm
+        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
         probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -733,9 +651,6 @@ SIR_splineFixKnot_exp <-  nimbleCode({
         S[t + 1] <- S[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
-        
     }
     
     yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
@@ -751,8 +666,13 @@ SIR_splineFixKnot_exp <-  nimbleCode({
     for (i in 1:nb) {
         b[i] ~ dnorm(0, sd = 100)
     }
+    for (i in 1:(nb - 1)) {
+        knots[i] ~ dunif(min = minI, max = maxI)
+    }
     rateI ~ dgamma(aa, bb)
     
+    # constrain knots to be ordered
+    constrain_knots ~ dconstraint(knots[1] < knots[2])
     
 })
 
@@ -760,53 +680,11 @@ SIR_splineFixKnot_exp <-  nimbleCode({
 ################################################################################
 ### Gaussian process alarm models
 
-### Fixed infectious period
+# for model fitting (smoothI known)
 
-SIR_gp_fixed <-  nimbleCode({
+SIR_gp <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
-    
-    # removal times for those initially infectious
-    Rstar[1:lengthI] <- Rstar0[1:lengthI]
-    
-    ### rest of time points
-    for(t in 1:tau) {
-        
-        # compute alarm
-        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
-        
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-        
-        Istar[t] ~ dbin(probSI[t], S[t])
-        
-        Rstar[t + lengthI] <- Istar[t]
-        
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) * lengthI
-    }
-    
-    yAlarm[1] <- 0
-    mu[2:n] <- mu0 * ones[2:n]
-    cov[2:n, 2:n] <- sqExpCov(dists[2:n, 2:n], sigma, l)
-    logit(yAlarm[2:n]) ~ dmnorm(mu[2:n], cov = cov[2:n, 2:n])
-    
-    # priors
-    beta ~ dgamma(0.1, 0.1)
-    sigma ~ dgamma(100, 50)
-    l ~ dinvgamma(c, d)
-    
-})
-
-### Exponential infectious period
-
-SIR_gp_exp <-  nimbleCode({
-    
-    S[1] <- S0
+    S[1] <- N - I0 
     I[1] <- I0
     
     probIR <- 1 - exp(-rateI)
@@ -826,8 +704,6 @@ SIR_gp_exp <-  nimbleCode({
         S[t + 1] <- S[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
     }
     
     yAlarm[1] <- 0
@@ -843,46 +719,67 @@ SIR_gp_exp <-  nimbleCode({
     
 })
 
-################################################################################
-### Standard SIR model with no alarm
+# for forward simulation (smoothI unknown)
 
-### Fixed infectious period
-
-SIR_basic_fixed <-  nimbleCode({
+SIR_gp_sim <-  nimbleCode({
     
-    S[1] <- S0
+    S[1] <- N - I0 
     I[1] <- I0
     
-    # removal times for those initially infectious
-    Rstar[1:lengthI] <- Rstar0[1:lengthI]
+    probIR <- 1 - exp(-rateI)
+    
+    ### first time point 
+    # compute alarm
+    smoothI[1] <- 0
+    alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
+    
+    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    
+    Istar[1] ~ dbin(probSI[1], S[1])
+    Rstar[1] ~ dbin(probIR, I[1])
+    
+    # update S and I
+    S[2] <- S[1] - Istar[1]
+    I[2] <- I[1] + Istar[1] - Rstar[1]
     
     ### rest of time points
-    for(t in 1:tau) {
+    for(t in 2:tau) {
         
-        probSI[t] <- 1 - exp(- beta * I[t] / N)
+        # compute alarm
+        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
+        
+        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
         Istar[t] ~ dbin(probSI[t], S[t])
-        
-        Rstar[t + lengthI] <- Istar[t]
+        Rstar[t] ~ dbin(probIR, I[t])
         
         # update S and I
         S[t + 1] <- S[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-        # estimate reproductive number
-        R0[t] <- beta * lengthI
     }
+    
+    yAlarm[1] <- 0
+    mu[2:n] <- mu0 * ones[2:n]
+    cov[2:n, 2:n] <- sqExpCov(dists[2:n, 2:n], sigma, l)
+    logit(yAlarm[2:n]) ~ dmnorm(mu[2:n], cov = cov[2:n, 2:n])
     
     # priors
     beta ~ dgamma(0.1, 0.1)
+    sigma ~ dgamma(100, 50)
+    l ~ dinvgamma(c, d)
+    rateI ~ dgamma(aa, bb)
     
 })
 
-### Exponential infectious period
 
-SIR_basic_exp <-  nimbleCode({
+################################################################################
+### Standard SIR model with no alarm
+
+SIR_basic <-  nimbleCode({
     
-    S[1] <- S0
+    S[1] <- N - I0 
     I[1] <- I0
     
     probIR <- 1 - exp(-rateI)
@@ -900,8 +797,6 @@ SIR_basic_exp <-  nimbleCode({
         S[t + 1] <- S[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-        # estimate reproductive number
-        R0[t] <- beta / rateI
     }
     
     # priors
@@ -915,52 +810,7 @@ SIR_basic_exp <-  nimbleCode({
 ### SIR model with time-varying beta (no alarm)
 # Spline
 
-### Fixed infectious period
-
-SIR_betatSpline_fixed <-  nimbleCode({
-    
-    S[1] <- N - I0 
-    I[1] <- I0
-    
-    # removal times for those initially infectious
-    Rstar[1:lengthI] <- Rstar0[1:lengthI]
-    
-    ### rest of time points
-    for(t in 1:tau) {
-        
-        probSI[t] <- 1 - exp(- beta[t] * I[t] / N)
-        
-        Istar[t] ~ dbin(probSI[t], S[t])
-        
-        Rstar[t + lengthI] <- Istar[t]
-        
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- beta[t] * lengthI
-    }
-    
-    log(beta[1:tau]) <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])
-    
-    # priors
-    for (i in 1:nb) {
-        b[i] ~ dnorm(0, sd = 100)
-    }
-    for (i in 1:(nb - 1)) {
-        knots[i] ~ dunif(min = 1, max = tau)
-    }
-    
-    # constrain knots to be ordered
-    constrain_knots ~ dconstraint(knots[1] < knots[2] & knots[2] < knots[3] )
-    
-    
-})
-
-### Exponential infectious period
-
-SIR_betatSpline_exp <-  nimbleCode({
+SIR_betatSpline <-  nimbleCode({
     
     S[1] <- N - I0 
     I[1] <- I0
@@ -980,8 +830,6 @@ SIR_betatSpline_exp <-  nimbleCode({
         S[t + 1] <- S[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-        # estimate reproductive number
-        R0[t] <- beta[t] / rateI
     }
     
     log(beta[1:tau]) <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])

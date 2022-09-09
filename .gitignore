@@ -3,3 +3,4 @@
 *.pdf
 dataAnalysis/NYC/Output/chains*
 dataAnalysis/priorNYC/Output/chains*
+simulation_study/figures/*

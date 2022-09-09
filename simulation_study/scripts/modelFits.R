@@ -2,29 +2,25 @@
 # function to fit models 
 # inputs: 
 #   incData - observed incidence data
-#   infPeriod - type of infectious period (fixed or exponential)
 #   alarmFit - type of function to use to describe the alarm
+#   smoothWindow - width of smoothing window 
 ################################################################################
 
-fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
-                          infPeriod, prior, peak, alarmFit, seed) {
+
+fitAlarmModel <- function(incData, alarmFit, smoothWindow, simNumber, seed) {
   
   source('./scripts/modelCodes.R')
   source('./scripts/getModelInputs.R')
   
   # get appropriate model code
-  modelCode <- get(paste0('SIR_', alarmFit, '_', infPeriod))
+  modelCode <- get(paste0('SIR_', alarmFit))
   
   # for reproducibility so inits are always the same
-  set.seed(seed + 3)
+  set.seed(seed + simNumber)
 
-  # model-specific constants, data, and inits
-  modelInputs <- getModelInput(alarmFit = alarmFit, 
-                               incData = incData, smoothI = smoothI,
-                               infPeriod = infPeriod, prior = prior, peak = peak,
-                               N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0, 
-                               lengthI = lengthI)
-  
+  # model-specific constants, data, inits, and MCMC specs
+  modelInputs <- getModelInput(alarmFit, incData, smoothWindow)
+
   ### MCMC specifications
   niter <- modelInputs$niter
   nburn <- modelInputs$nburn
@@ -46,37 +42,34 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
     myConfig$addMonitors(c('beta'))
   }
   
-  # if exponential infectious period, need to use special proposal
-  if (infPeriod == 'exp') {
-    
-    myConfig$removeSamplers('Rstar') # Nodes will be expanded
-    myConfig$addSampler(target = 'Rstar',
-                        type = "RstarUpdate",
-                        control = list(ignoreIdx = 1:length(Rstar0)))
-    
-    myConfig$removeSampler('rateI')
-    myConfig$addSampler(target = 'rateI', type = "slice")
-  }
+  # for exponential infectious period, need to use special proposal
+  myConfig$removeSamplers('Rstar') # Nodes will be expanded
+  myConfig$addSampler(target = c('Rstar'),
+                      type = "RstarUpdate")
+  myConfig$addMonitors(c('Rstar'))
   
-  # customize samplers depending on model being fitted
-  if (alarmFit == 'thresh') {
-    
-    # block sampler for transmission parameters
-    paramsForBlock <- c('beta', 'delta')
-    myConfig$removeSampler(paramsForBlock)
-    myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
-    
-  } else if (alarmFit == 'hill') {
-    
-    # block sampler for transmission parameters
-    paramsForBlock <- c('beta', 'delta', 'nu', 'x0')
-    myConfig$removeSampler(paramsForBlock)
-    myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
-    
-  } else if (alarmFit == 'power') {
+  # use slice sampling for infectious period rate parameter
+  myConfig$removeSampler('rateI')
+  myConfig$addSampler(target = 'rateI', type = "slice")
+  
+  if (alarmFit == 'power') {
       
       # block sampler for transmission parameters
       paramsForBlock <- c('beta', 'k')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      
+  } else if (alarmFit == 'thresh') {
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'delta')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      
+  } else if (alarmFit == 'hill') {
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'delta', 'nu', 'x0')
       myConfig$removeSampler(paramsForBlock)
       myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
       
@@ -87,23 +80,15 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       myConfig$removeSampler(paramsForBlock)
       myConfig$addSampler(target = paramsForBlock[1:2], type = "AF_slice")
       myConfig$addSampler(target = paramsForBlock[3], type = "AF_slice")
-     
-  } else if (alarmFit == 'splineFixKnot') {
       
-      # block sampler for transmission parameters
-      paramsForBlock <- c('beta', 'b')
-      myConfig$removeSampler(paramsForBlock)
-      myConfig$addSampler(target = paramsForBlock[1:2], type = "AF_slice")
-      
-  } else if (alarmFit == 'gp') {
-      
-      # if gaussian process model, use slice sampling
+  }  else if (alarmFit == 'gp') {
+    
       paramsForSlice <- c('beta', 'l', 'sigma')
       myConfig$removeSampler(paramsForSlice)
       myConfig$addSampler(target = paramsForSlice[1], type = "slice")
       myConfig$addSampler(target = paramsForSlice[2], type = "slice")
       myConfig$addSampler(target = paramsForSlice[3], type = "slice")
-      
+    
   } else if (alarmFit == 'betatSpline') {
       
       # block sampler for transmission parameters
@@ -114,14 +99,13 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       
   } 
   
-  myConfig$addMonitors(c('Rstar', 'R0'))
   myMCMC <- buildMCMC(myConfig)
   compiled <- compileNimble(myModel, myMCMC) 
-  
+
   runMCMC(compiled$myMCMC, 
           niter = niter, 
           nburnin = nburn,
           thin = nthin,
           setSeed  = seed)
-  
+
 }
