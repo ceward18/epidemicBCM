@@ -1,0 +1,7 @@
+[1] "Running alarm: betatSpline , peak: 1 , smoothing: 1 , prior: 1"
+Stochastic parents of data are:  b[1] b[2] b[3] b[4] knots[1] knots[2] knots[3] rateI .
+[1] "Running alarm: betatSpline , peak: 1 , smoothing: 1 , prior: 2"
+Stochastic parents of data are:  b[1] b[2] b[3] b[4] knots[1] knots[2] knots[3] rateI .
+[1] "Running alarm: betatSpline , peak: 1 , smoothing: 1 , prior: 3"
+Stochastic parents of data are:  b[1] b[2] b[3] b[4] knots[1] knots[2] knots[3] rateI .
+[1] "Running alarm: betatSpline , peak: 1 , smoothing: 1 , prior: 4"
