@@ -178,13 +178,15 @@ for (i in batchIdx) {
     
 } # end loop
 
+idxPrint <- sprintf("%02d",idx)
+
 # save output in RDS form
-saveRDS(gr, paste0('./output/grBatch', idx, '.rds'))
-saveRDS(paramsPost, paste0('./output/paramsPostBatch', idx, '.rds'))
-saveRDS(alarmPost, paste0('./output/alarmPostBatch', idx, '.rds'))
-saveRDS(postPredFits, paste0('./output/postPredFitBatch', idx, '.rds'))
-saveRDS(betaPost, paste0('./output/betaPostBatch', idx, '.rds'))
-saveRDS(R0Post, paste0('./output/R0PostBatch', idx, '.rds'))
-saveRDS(waicPost, paste0('./output/waicPostBatch', idx, '.rds'))
+saveRDS(gr, paste0('./output/grBatch', idxPrint, '.rds'))
+saveRDS(paramsPost, paste0('./output/paramsPostBatch', idxPrint, '.rds'))
+saveRDS(alarmPost, paste0('./output/alarmPostBatch', idxPrint, '.rds'))
+saveRDS(postPredFits, paste0('./output/postPredFitBatch', idxPrint, '.rds'))
+saveRDS(betaPost, paste0('./output/betaPostBatch', idxPrint, '.rds'))
+saveRDS(R0Post, paste0('./output/R0PostBatch', idxPrint, '.rds'))
+saveRDS(waicPost, paste0('./output/waicPostBatch', idxPrint, '.rds'))
 
 
