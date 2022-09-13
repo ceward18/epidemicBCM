@@ -690,3 +690,4 @@ Compiling
   [Note] This may take a minute.
   [Note] Use 'showCompilerOutput = TRUE' to see C++ compilation details.
 Calculating WAIC.
+slurmstepd: error: *** JOB 15927770 ON fc39 CANCELLED AT 2022-09-12T09:16:30 ***
