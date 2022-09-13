@@ -139,7 +139,7 @@ for (i in batchIdx) {
         resThree[[3]] <- resThree[[3]][seq(1,nrow(resThree[[3]]), 10),]
         
         saveRDS(resThree, 
-                paste0('./Output/chains_', alarmFit_i, '_peak', 
+                paste0('./output/chains_', alarmFit_i, '_peak', 
                        peak_i, '_', smoothWindow_i, '_', prior_i, '.rds'))
     }
     

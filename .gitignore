@@ -1,6 +1,7 @@
 *.html
 *.Rhistory
 *.pdf
-dataAnalysis/NYC/Output/chains*
-dataAnalysis/priorNYC/Output/chains*
+*.qmd
+data_analysis/output/chains*
+data_analysis/figures/*
 simulation_study/figures/*
