@@ -8,3 +8,4 @@ The following object is masked from ‘package:stats’:
 
     simulate
 
+slurmstepd: error: *** JOB 16009607 ON mc16 CANCELLED AT 2022-09-13T15:07:46 ***
