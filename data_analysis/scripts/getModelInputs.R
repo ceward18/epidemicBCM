@@ -317,8 +317,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         
         
         ### MCMC specifications
-        niter <- 800000
-        nburn <- 400000
+        niter <- 1000000
+        nburn <- 500000
         nthin <- 20
         
         xAlarm <- NULL

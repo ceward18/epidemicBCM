@@ -5,6 +5,11 @@
 # load libraries
 library(nimble)
 library(ggplot2)
+library(grid)
+library(gridExtra)
+library(scales)
+library(RColorBrewer)
+library(ggpubr)
 
 source('./scripts/modelCodes.R')
 
@@ -149,6 +154,8 @@ tau <- 150
 rateI <- 1/5
 beta <- 3/5   #R0 = 3
 
+incRange <- 1:300
+
 dataNodes <- c(paste0('Istar[', 1:tau, ']'),
                paste0('Rstar[', 1:tau, ']'))
 
@@ -162,63 +169,62 @@ constants30 <- list(N = N, tau = tau, I0 = I0, bw = 30, aa = 1, bb = 1)
 ## Power alarm
 
 # 1 day average
-powerModel <- nimbleModel(code = SIR_power_sim,
+powerModel1 <- nimbleModel(code = SIR_power_sim,
                            constants = constants1)
-simPower1 <- simulator(powerModel, dataNodes)
+simPower1 <- simulator(powerModel1, dataNodes)
 
 # 14 day average
-powerModel <- nimbleModel(code = SIR_power_sim,
-                           constants = constants14)
-simPower14 <- simulator(powerModel, dataNodes)
+powerModel14 <- nimbleModel(code = SIR_power_sim,
+                            constants = constants14)
+simPower14 <- simulator(powerModel14, dataNodes)
 
 # 30 day average
-powerModel <- nimbleModel(code = SIR_power_sim,
-                           constants = constants30)
-simPower30 <- simulator(powerModel, dataNodes)
+powerModel30 <- nimbleModel(code = SIR_power_sim,
+                            constants = constants30)
+simPower30 <- simulator(powerModel30, dataNodes)
 
 
 ## Threshold alarm
 
 # 1 day average
-threshModel <- nimbleModel(code = SIR_thresh_sim,
-                           constants = constants1)
-simThresh1 <- simulator(threshModel, dataNodes)
+threshModel1 <- nimbleModel(code = SIR_thresh_sim,
+                            constants = constants1)
+simThresh1 <- simulator(threshModel1, dataNodes)
 
 # 14 day average
-threshModel <- nimbleModel(code = SIR_thresh_sim,
-                           constants = constants14)
-simThresh14 <- simulator(threshModel, dataNodes)
+threshModel14 <- nimbleModel(code = SIR_thresh_sim,
+                             constants = constants14)
+simThresh14 <- simulator(threshModel14, dataNodes)
 
 # 30 day average
-threshModel <- nimbleModel(code = SIR_thresh_sim,
-                           constants = constants30)
-simThresh30 <- simulator(threshModel, dataNodes)
+threshModel30 <- nimbleModel(code = SIR_thresh_sim,
+                             constants = constants30)
+simThresh30 <- simulator(threshModel30, dataNodes)
 
 ## Hill alarm
 
 # 1 day average
-hillModel <- nimbleModel(code = SIR_hill_sim,
-                           constants = constants1)
-simHill1 <- simulator(threshModel, dataNodes)
+hillModel1 <- nimbleModel(code = SIR_hill_sim,
+                          constants = constants1)
+simHill1 <- simulator(hillModel1, dataNodes)
 
 # 14 day average
-hillModel <- nimbleModel(code = SIR_hill_sim,
+hillModel14 <- nimbleModel(code = SIR_hill_sim,
                            constants = constants14)
-simHill14 <- simulator(hillModel, dataNodes)
+simHill14 <- simulator(hillModel14, dataNodes)
 
 # 30 day average
-hillModel <- nimbleModel(code = SIR_hill_sim,
+hillModel30 <- nimbleModel(code = SIR_hill_sim,
                            constants = constants30)
-simHill30 <- simulator(hillModel, dataNodes)
+simHill30 <- simulator(hillModel30, dataNodes)
 
 
-### Threshold flattening curve
+### Threshold/hill flattening curve, power not
 
-# using smoothing of 1 day
+# using smoothing of 30 days
 # compared to no BC model
 
-
-# no BC Model
+### no BC Model
 trueVals <- c(beta = beta, 
               delta = 0,
               rateI = rateI,
@@ -227,6 +233,29 @@ trueVals <- c(beta = beta,
 set.seed(123)
 noBC <- simThresh1$run(trueVals, 1)[1:tau]
 
+### power
+trueVals <- c(beta = beta, 
+              k = 0.05,
+              rateI = rateI)
+
+set.seed(123)
+power1 <- simPower30$run(trueVals, 1)[1:tau]
+powerAlarm1 <- powerAlarm(incRange, N = N, k = trueVals['k'])
+
+trueVals['k'] <- 0.01
+
+set.seed(123)
+power2 <- simPower30$run(trueVals, 1)[1:tau]
+powerAlarm2 <- powerAlarm(incRange, N = N, k = trueVals['k'])
+
+trueVals['k'] <- 0.003
+
+set.seed(123)
+power3 <- simPower30$run(trueVals, 1)[1:tau]
+powerAlarm3 <- powerAlarm(incRange, N = N, k = trueVals['k'])
+
+
+### threshold
 # delta = 0.2
 trueVals <- c(beta = beta, 
               delta = 0.2,
@@ -234,48 +263,206 @@ trueVals <- c(beta = beta,
               H = 100/N)
 
 set.seed(123)
-thresh1 <- simThresh1$run(trueVals, 1)[1:tau]
+thresh1 <- simThresh30$run(trueVals, 1)[1:tau]
+threshAlarm1 <- thresholdAlarm(incRange, N = N, 
+                               delta = trueVals['delta'], H = trueVals['H'])
 
 # delta = 0.4
-trueVals <- c(beta = beta, 
-              delta = 0.4,
-              rateI = rateI,
-              H = 100/N)
+trueVals['delta'] <- 0.4
 
 set.seed(123)
-thresh2 <- simThresh1$run(trueVals, 1)[1:tau]
+thresh2 <- simThresh30$run(trueVals, 1)[1:tau]
+threshAlarm2 <- thresholdAlarm(incRange, N = N, 
+                               delta = trueVals['delta'], H = trueVals['H'])
 
 # delta = 0.6
-trueVals <- c(beta = beta, 
-              delta = 0.6,
-              rateI = rateI,
-              H = 100/N)
+trueVals['delta'] <- 0.6
 
 set.seed(123)
-thresh3 <- simThresh1$run(trueVals, 1)[1:tau]
+thresh3 <- simThresh30$run(trueVals, 1)[1:tau]
+threshAlarm3 <- thresholdAlarm(incRange, N = N, 
+                               delta = trueVals['delta'], H = trueVals['H'])
 
-toPlot <- data.frame(alarm = c(rep('No behavior change', tau * 3),
-                               rep('Threshold', tau * 3)),
-                     time = rep(1:tau, 6),
-                     delta = c(rep(rep(c(0.2, 0.4, 0.6), each = tau), 1)),
-                     Istar = c(noBC, noBC, noBC,
-                               thresh1, thresh2, thresh3))
+### Hill
+# delta = 0.2
+trueVals <- c(beta = beta, 
+              delta = 0.2,
+              nu = 5,
+              rateI = rateI,
+              x0 = 100)
 
 
-ggplot(toPlot, aes(x = time, y = Istar, group = alarm, color = alarm)) + 
-    geom_line(size = 1) +
-    facet_wrap(~delta) + 
-    theme_bw()
+set.seed(123)
+hill1 <- simHill30$run(trueVals, 1)[1:tau]
+hillAlarm1 <- hillAlarm(incRange, 
+                        nu = trueVals['nu'], x0 = trueVals['x0'],
+                        delta = trueVals['delta'])
+
+# delta = 0.4
+trueVals['delta'] <- 0.4
+
+set.seed(123)
+hill2 <- simHill30$run(trueVals, 1)[1:tau]
+hillAlarm2 <- hillAlarm(incRange, 
+                        nu = trueVals['nu'], x0 = trueVals['x0'],
+                        delta = trueVals['delta'])
+
+# delta = 0.6
+trueVals['delta'] <- 0.6
+
+set.seed(123)
+hill3 <- simHill30$run(trueVals, 1)[1:tau]
+hillAlarm3 <- hillAlarm(incRange, 
+                        nu = trueVals['nu'], x0 = trueVals['x0'],
+                        delta = trueVals['delta'])
+
+toPlot_epi_A <- data.frame(alarm = c(rep('Power', tau * 4),
+                                     rep('Threshold', tau * 4),
+                                     rep('Hill', tau * 4)),
+                           time = rep(1:tau, 12),
+                           param = c(rep(c(0, 0.2, 0.4, 0.6), each = tau),
+                                     rep(c(0, 0.05, 0.01, 0.003), each = tau),
+                                     rep(c(0, 0.2, 0.4, 0.6), each = tau)),
+                           Istar = c(noBC, power1, power2, power3,
+                                     noBC, thresh1, thresh2, thresh3,
+                                     noBC, hill1, hill2, hill3))
+
+toPlot_alarm_A <- data.frame(alarm = c(rep('Power', length(incRange) * 3),
+                                       rep('Threshold', length(incRange) * 3),
+                                       rep('Hill', length(incRange) * 3)),
+                             incRange = rep(incRange, 9),
+                             param = c(rep(c(0.2, 0.4, 0.6), each = length(incRange)),
+                                       rep(c(0.05, 0.01, 0.003), each = length(incRange)),
+                                       rep(c(0.2, 0.4, 0.6), each = length(incRange))),
+                             alarmVal = c(powerAlarm1, powerAlarm2, powerAlarm3,
+                                       threshAlarm1, threshAlarm2, threshAlarm3,
+                                       hillAlarm1, hillAlarm2, hillAlarm3))
+
+toPlot_epi_A$paramLab <- factor(toPlot_epi_A$param, 
+                            levels = c(0, 0.2, 0.4, 0.6, 0.05, 0.01, 0.003))
+toPlot_alarm_A$paramLab <- factor(toPlot_alarm_A$param, 
+                            levels = c(0.2, 0.4, 0.6, 0.05, 0.01, 0.003))
+
+plotLabsDelta <- c('No behavioral change',
+                   ~delta~'= 0.2',
+                   ~delta~'= 0.4',
+                   ~delta~'= 0.6')
+
+plotLabsK <- c('No behavioral change',
+               'k = 0.05', 'k = 0.01', 'k = 0.003')
+
+pal <- c('black', 'royalblue3', 'cyan3', 'darkgoldenrod2')
+
+legendLocation1 <- c(0.2, 0.80)
+legendLocation2 <- c(0.65, 0.77)
+
+myTheme1 <- theme(legend.position = legendLocation1,
+                 legend.title= element_blank(),
+                 plot.title = element_text(h = 0.5, size = 15),
+                 axis.title = element_text(size = 13),
+                 axis.text = element_text(size = 11),
+                 legend.text = element_text(size = 12))
+
+
+myTheme2 <- theme(legend.position = legendLocation2,
+                 legend.title= element_blank(),
+                 plot.title = element_text(h = 0.5, size = 14),
+                 axis.title = element_text(size = 12),
+                 axis.text = element_text(size = 10),
+                 legend.text = element_text(size = 12))
+
+# alarms
+p1 <- ggplot(subset(toPlot_alarm_A, alarm == 'Power'), 
+             aes(x = incRange, y = alarmVal, color = paramLab)) + 
+    geom_line(size = 1, alpha = 0.8) +
+    theme_bw() + 
+    labs(x = '30-day Incidence', y = 'Alarm',
+         title = 'Power Alarm') + 
+    myTheme1 +
+    scale_color_manual(values = pal[-1],
+                       labels = plotLabsK[-1]) +
+    ylim(0, 1)
+
+p2 <- ggplot(subset(toPlot_alarm_A, alarm == 'Threshold'), 
+             aes(x = incRange, y = alarmVal, color = paramLab)) + 
+    geom_line(size = 1, alpha = 0.8) +
+    theme_bw() + 
+    labs(x = '30-day Incidence', y = 'Alarm',
+         title = 'Threshold Alarm') + 
+    myTheme1 + 
+    scale_color_manual(values = pal[-1],
+                       labels = plotLabsDelta[-1]) +
+    ylim(0, 1)
+
+p3 <- ggplot(subset(toPlot_alarm_A, alarm == 'Hill'), 
+             aes(x = incRange, y = alarmVal, color = paramLab)) + 
+    geom_line(size = 1, alpha = 0.8) +
+    theme_bw() + 
+    labs(x = '30-day Incidence', y = 'Alarm',
+         title = 'Hill Alarm') + 
+    myTheme1 + 
+    scale_color_manual(values = pal[-1],
+                       labels = plotLabsDelta[-1]) +
+    ylim(0, 1)
+
+# epidemics
+p4 <- ggplot(subset(toPlot_epi_A, alarm == 'Power'), 
+             aes(x = time, y = Istar, color = paramLab)) + 
+    geom_line(size = 1, alpha = 0.8) +
+    theme_bw() + 
+    labs(x = 'Epidemic Time', y = 'Incidence',
+         title = 'Power Alarm') + 
+    myTheme2 +
+    scale_color_manual(values = pal,
+                       labels = plotLabsK)
+
+p5 <- ggplot(subset(toPlot_epi_A, alarm == 'Threshold'), 
+             aes(x = time, y = Istar, color = paramLab)) + 
+    geom_line(size = 1, alpha = 0.8) +
+    theme_bw() + 
+    labs(x = 'Epidemic Time', y = 'Incidence',
+         title = 'Threshold Alarm') + 
+    myTheme2 + 
+    scale_color_manual(values = pal,
+                       labels = plotLabsDelta)
+
+p6 <- ggplot(subset(toPlot_epi_A, alarm == 'Hill'), 
+             aes(x = time, y = Istar, color = paramLab)) + 
+    geom_line(size = 1, alpha = 0.8) +
+    theme_bw() + 
+    labs(x = 'Epidemic Time', y = 'Incidence',
+         title = 'Hill Alarm') + 
+    myTheme2 + 
+    scale_color_manual(values = pal,
+                       labels = plotLabsDelta)
+
+# pdf('./figures/fig2_ex_epidemics.pdf', height = 8, width = 13)
+# grid.arrange(p1, p2, p3,
+#              p4, p5, p6, nrow = 2)
+# dev.off()
+
+
 
 
 # threshold vs hill smoothness
 
+# power 1, 14, 30
+trueVals <- c(beta = beta, 
+              k = 0.0005,
+              rateI = rateI)
+
+set.seed(123)
+power1 <- simPower1$run(trueVals, 1)[1:tau]
+set.seed(123)
+power2 <- simPower14$run(trueVals, 1)[1:tau]
+set.seed(123)
+power3 <- simPower30$run(trueVals, 1)[1:tau]
 
 # threshold 1, 14, 30
 trueVals <- c(beta = beta, 
-              delta = 0.9,
+              delta = 0.8,
               rateI = rateI,
-              H = 100/N)
+              H = 350/N)
 
 set.seed(123)
 thresh1 <- simThresh1$run(trueVals, 1)[1:tau]
@@ -286,10 +473,10 @@ thresh3 <- simThresh30$run(trueVals, 1)[1:tau]
 
 # hill 1, 14, 30
 trueVals <- c(beta = beta, 
-              delta = 0.9,
-              nu = 3,
+              delta = 0.85,
+              nu = 2,
               rateI = rateI,
-              x0 = 250)
+              x0 = 450)
 
 set.seed(123)
 hill1 <- simHill1$run(trueVals, 1)[1:tau]
@@ -299,161 +486,42 @@ set.seed(123)
 hill3 <- simHill30$run(trueVals, 1)[1:tau]
 
 
-toPlot <- data.frame(alarm = c(rep('Threshold', tau * 3),
-                               rep('Hill', tau * 3)),
-                     time = rep(1:tau, 6),
-                     smoothWindow = rep(rep(c(1, 14, 30), each = tau), 2),
-                     Istar = c(thresh1, thresh2, thresh3,
-                               hill1, hill2, hill3))
+toPlot_B <- data.frame(alarm = c(rep('Power', tau * 3),
+                                 rep('Threshold', tau * 3),
+                                 rep('Hill', tau * 3)),
+                       time = rep(1:tau, 9),
+                       smoothWindow = rep(rep(c(1, 14, 30), each = tau), 3),
+                       Istar = c(power1, power2, power3,
+                                 thresh1, thresh2, thresh3,
+                                 hill1, hill2, hill3))
 
-ggplot(subset(toPlot, time <=100), 
-       aes(x = time, y = Istar, group = alarm, color = alarm)) + 
-    geom_line(size = 1) +
+toPlot_B$alarm <- factor(toPlot_B$alarm,
+                         levels = c('Power', 'Threshold', 'Hill'))
+toPlot_B$smoothWindow <- paste0(toPlot_B$smoothWindow,
+                                '-day average')
+
+### create plots
+
+p7 <- ggplot(subset(toPlot_B, time <=80), 
+       aes(x = time, y = Istar, color = alarm)) + 
+    geom_line(size = 1, alpha = 0.8) +
     facet_wrap(~smoothWindow) + 
-    theme_bw()
+    theme_bw() +
+    scale_color_manual(values = brewer.pal(3, 'Dark2')) +
+    theme(strip.background = element_rect(fill = 'white'),
+          strip.text = element_text(size = 14),
+          axis.title = element_text(size = 12),
+          axis.text = element_text(size = 11),
+          legend.text = element_text(size = 12),
+          legend.title = element_text(size = 14)) +
+    labs(color = 'Alarm',
+         x = 'Epidemic Time', y = 'Incidence') 
 
-
-
-### Power
-# generate power alarms for 1 day, 14 days, 30 days
-
-powerModel1 <- nimbleModel(code = SIR_power_sim,
-                           constants = list(N = N, 
-                                            tau = tau,
-                                            I0 = I0,
-                                            bw = 1,
-                                            aa = 1,
-                                            bb = 1))
-powerModel14 <- nimbleModel(code = SIR_power_sim,
-                            constants = list(N = N, 
-                                             tau = tau,
-                                             I0 = I0,
-                                             bw = 14,
-                                             aa = 1,
-                                             bb = 1))
-powerModel30 <- nimbleModel(code = SIR_power_sim,
-                            constants = list(N = N, 
-                                             tau = tau,
-                                             I0 = I0,
-                                             bw = 30,
-                                             aa = 1,
-                                             bb = 1))
-
-simPower1 <- simulator(powerModel1, dataNodes)
-simPower14 <- simulator(powerModel14, dataNodes)
-simPower30 <- simulator(powerModel30, dataNodes)
-
-kVals <- c(0.001, 0.01, 0.1)
-
-powerSims <- data.frame(alarm = 'power',
-                        time = rep(1:tau, 3 * length(kVals)),
-                        smoothWindow = rep(rep(c(1, 14, 30), each = tau), length(kVals)),
-                        k = rep(kVals, each = tau * 3),
-                        Istar = NA)
-
-for (i in 1:length(kVals)) {
-    trueVals <- c(beta = beta, 
-                  k = kVals[i],
-                  rateI = rateI)
-    
-    set.seed(123)
-    powerSims$Istar[which(powerSims$k == kVals[i] & 
-                              powerSims$smoothWindow == 1)] <- simPower1$run(trueVals, 1)[1:tau]
-    set.seed(123)
-    powerSims$Istar[which(powerSims$k == kVals[i] & 
-                              powerSims$smoothWindow == 14)] <- simPower14$run(trueVals, 1)[1:tau]
-    set.seed(123)
-    powerSims$Istar[which(powerSims$k == kVals[i] & 
-                              powerSims$smoothWindow == 30)] <- simPower30$run(trueVals, 1)[1:tau]
-    
-    
-}
-
-
-ggplot(powerSims, aes(x = time,  y = Istar, 
-                      group = factor(smoothWindow), col = factor(smoothWindow))) + 
-    geom_line() + 
-    facet_wrap(~k, scales = 'free')
-
-ggplot(powerSims, aes(x = time,  y = Istar, 
-                      group = factor(k), col = factor(k))) + 
-    geom_line() + 
-    facet_grid(k~smoothWindow, scales = 'free')
-
-
-### Threshold
-# generate threshold alarms for 1 day, 14 days, 30 days
-
-threshModel1 <- nimbleModel(code = SIR_thresh_sim,
-                            constants = list(N = N, 
-                                             tau = tau,
-                                             I0 = I0,
-                                             bw = 1,
-                                             aa = 1,
-                                             bb = 1))
-threshModel14 <- nimbleModel(code = SIR_thresh_sim,
-                             constants = list(N = N, 
-                                              tau = tau,
-                                              I0 = I0,
-                                              bw = 14,
-                                              aa = 1,
-                                              bb = 1))
-threshModel30 <- nimbleModel(code = SIR_thresh_sim,
-                             constants = list(N = N, 
-                                              tau = tau,
-                                              I0 = I0,
-                                              bw = 30,
-                                              aa = 1,
-                                              bb = 1))
-
-simThresh1 <- simulator(threshModel1, dataNodes)
-simThresh14 <- simulator(threshModel14, dataNodes)
-simThresh30 <- simulator(threshModel30, dataNodes)
-
-deltaVals <- c(0.9, 0.6, 0.4)
-hVals <- c(100, 600, 250)/N
-
-threshSims <- data.frame(alarm = 'thresh',
-                         time = rep(1:tau, 3 * length(deltaVals)),
-                         smoothWindow = rep(rep(c(1, 14, 30), each = tau), length(deltaVals)),
-                         delta = rep(deltaVals, each = tau * 3),
-                         H = rep(hVals, each = tau * 3),
-                         Istar = NA)
-
-for (i in 1:length(deltaVals)) {
-    trueVals <- c(beta = beta, 
-                  delta = deltaVals[i],
-                  rateI = rateI,
-                  H = 100/N)
-    
-    
-    set.seed(123)
-    threshSims$Istar[which(threshSims$delta == deltaVals[i] & 
-                               threshSims$smoothWindow == 1)] <- simThresh1$run(trueVals, 1)[1:tau]
-    set.seed(123)
-    threshSims$Istar[which(threshSims$delta == deltaVals[i] & 
-                               threshSims$smoothWindow == 14)] <- simThresh14$run(trueVals, 1)[1:tau]
-    set.seed(123)
-    threshSims$Istar[which(threshSims$delta == deltaVals[i] & 
-                               threshSims$smoothWindow == 30)] <- simThresh30$run(trueVals, 1)[1:tau]
-    
-    
-}
-
-
-ggplot(threshSims, aes(x = time,  y = Istar, 
-                       group = factor(smoothWindow), col = factor(smoothWindow))) + 
-    geom_line() + 
-    facet_wrap(~delta, scales = 'free')
-
-ggplot(threshSims, aes(x = time,  y = Istar, 
-                       group = factor(delta), col = factor(delta))) + 
-    geom_line() + 
-    facet_grid(delta~smoothWindow, scales = 'free')
-
-
-
-
-
+pdf('./figures/fig2_ex_epidemics.pdf', height = 7, width = 12)
+ggarrange(ggarrange(p4, p5, p6, NULL, nrow = 1,
+                    widths = c(1, 1, 1, 0.1)), 
+          p7, nrow = 2,
+          labels = c('(A)', '(B)'))
+dev.off()
 
 
