@@ -3,7 +3,7 @@
 ################################################################################
 
 
-postPredFit <- function(incData, N, I0, R0, Rstar0, lengthI,
+postPredFit <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
                         alarmFit, prior, peak, smoothWindow, 
                         paramsPost, alarmSamples) {
     
@@ -16,8 +16,7 @@ postPredFit <- function(incData, N, I0, R0, Rstar0, lengthI,
     
     # model-specific constants, data, and inits
     modelInputs <- getModelInput(alarmFit = alarmFit, 
-                                 incData = incData, 
-                                 smoothI = movingAverage(incData, smoothWindow), 
+                                 incData = incData, smoothI = smoothI, 
                                  prior = prior, peak = peak,
                                  N = N, I0 = I0, R0 = R0,
                                  Rstar0 = Rstar0, lengthI = lengthI)
@@ -115,7 +114,7 @@ postPredFit <- function(incData, N, I0, R0, Rstar0, lengthI,
         trueVals <- c(trueVals, rateIPost)
         
         trueVals <- trueVals[parentNodes]
-        
+       
         postPredInc[,j] <- apply(sim_C$run(trueVals, 10), 2, median)[grep('Istar', dataNodes)]
     }
     

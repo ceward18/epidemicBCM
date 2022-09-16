@@ -61,8 +61,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         
         ### MCMC specifications
         niter <- 800000
-        nburn <- 400000
-        nthin <- 20
+        nburn <- 300000
+        nthin <- 10
         
     } else if (alarmFit == 'thresh') {
         
@@ -97,8 +97,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         
         ### MCMC specifications
         niter <- 800000
-        nburn <- 400000
-        nthin <- 20
+        nburn <- 300000
+        nthin <- 10
         
     } else if (alarmFit == 'hill') {
         
@@ -134,8 +134,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         
         ### MCMC specifications
         niter <- 800000
-        nburn <- 400000
-        nthin <- 20
+        nburn <- 300000
+        nthin <- 10
         
     } else if (alarmFit == 'spline') {
         
@@ -184,8 +184,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         
         ### MCMC specifications
         niter <- 800000
-        nburn <- 400000
-        nthin <- 20
+        nburn <- 300000
+        nthin <- 10
         
     }  else if (alarmFit == 'splineFixKnot') {
         
@@ -237,7 +237,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         ### MCMC specifications
         niter <- 800000
         nburn <- 400000
-        nthin <- 20
+        nthin <- 10
         
     } else if (alarmFit == 'gp') {
         
@@ -285,8 +285,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         
         ### MCMC specifications
         niter <- 800000
-        nburn <- 400000
-        nthin <- 20
+        nburn <- 300000
+        nthin <- 10
         
     } else if (alarmFit == 'betatSpline') {
         
@@ -319,7 +319,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         ### MCMC specifications
         niter <- 1000000
         nburn <- 500000
-        nthin <- 20
+        nthin <- 10
         
         xAlarm <- NULL
         
@@ -344,9 +344,9 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         
         
         ### MCMC specifications
-        niter <- 500000
+        niter <- 400000
         nburn <- 100000
-        nthin <- 20
+        nthin <- 10
         
         xAlarm <- NULL
         

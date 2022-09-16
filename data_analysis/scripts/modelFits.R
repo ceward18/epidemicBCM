@@ -129,8 +129,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       paramsForBlock <- c('beta', 'rateI')
       myConfig$removeSampler(paramsForBlock)
       myConfig$addSampler(target = paramsForBlock, 
-                          type = "RW_block",
-                          propCov = diag(0.4, length(paramsForBlock)))
+                          type = "AF_slice")
       
       
   } else if (alarmFit == 'betatSpline') {

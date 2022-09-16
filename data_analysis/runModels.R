@@ -119,17 +119,9 @@ for (i in batchIdx) {
         
     })
     stopCluster(cl)
+   
     
     source('./scripts/summarizePost.R')
-    
-    # spline models with issues - save chains
-    if (idx %in% c(26,27,28,31,32)) {
-        saveRDS(resThree, 
-                paste0('./output/chains_', alarmFit_i, '_peak', 
-                       peak_i, '_', smoothWindow_i, '_', prior_i, '.rds'))
-    } 
-    
-    
     # debugonce(summarizePost)
     postSummaries <- summarizePost(resThree = resThree, incData = incData,
                                    smoothI = smoothI, smoothWindow = smoothWindow_i,

@@ -138,7 +138,8 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
     ##############################################################################
     ### posterior predictive model fit
     
-    postPredObs <- postPredFit(incData = incData, N = N, I0 = I0, R0 = R0,
+    postPredObs <- postPredFit(incData = incData,smoothI = smoothI,
+                               N = N, I0 = I0, R0 = R0,
                                Rstar0 = Rstar0, lengthI = lengthI, 
                                alarmFit = alarmFit, prior = prior, peak = peak, 
                                smoothWindow = smoothWindow, 
