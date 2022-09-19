@@ -38,12 +38,9 @@ nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 3
 
 # peak 4 - Dec 1, 2021 - Mar 15, 2022
 startDate <- as.Date('2021-12-01')
-endDate <- as.Date('2022-02-10')
+endDate <- as.Date('2022-02-01')
 nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 4
 
 
 write.csv(nyc, './Data/nycClean.csv', quote = F, row.names = F)
-
-
-
 

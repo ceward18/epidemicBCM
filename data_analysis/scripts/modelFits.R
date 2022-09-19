@@ -57,8 +57,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       paramsForBlock <- c('beta', 'rateI')
       myConfig$removeSampler(paramsForBlock)
       myConfig$addSampler(target = paramsForBlock, 
-                          type = "RW_block",
-                          propCov = diag(0.4, length(paramsForBlock)))
+                          type = "AF_slice")
       
       # slice sampler for k
       paramsForSlice <- c('k')
@@ -66,29 +65,33 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       myConfig$addSampler(target = paramsForSlice[1], type = "slice")
       
   } else if (alarmFit == 'thresh') {
-    
-    # block sampler for transmission parameters
-    paramsForBlock <- c('beta', 'delta', 'rateI')
-    myConfig$removeSampler(paramsForBlock)
-    myConfig$addSampler(target = paramsForBlock, 
-                        type = "RW_block",
-                        propCov = diag(0.4, length(paramsForBlock)))
-    
+      
+      # block sampler for beta, rateI parameters
+      paramsForBlock <- c('beta', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
+      
+      # slice sampler for delta
+      paramsForSlice <- c('delta')
+      myConfig$removeSampler(paramsForSlice)
+      myConfig$addSampler(target = paramsForSlice[1], type = "slice")
+      
     
   } else if (alarmFit == 'hill') {
     
-    # block sampler for transmission parameters
-    paramsForBlock <- c('beta', 'delta', 'rateI')
-    myConfig$removeSampler(paramsForBlock)
-    myConfig$addSampler(target = paramsForBlock, 
-                        type = "RW_block",
-                        propCov = diag(0.4, length(paramsForBlock)))
+      # block sampler for beta, rateI parameters
+      paramsForBlock <- c('beta', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
     
     # slice samplers for nu and x0
-    paramsForSlice <- c('nu', 'x0')
+    paramsForSlice <- c('delta', 'nu', 'x0')
     myConfig$removeSampler(paramsForSlice)
     myConfig$addSampler(target = paramsForSlice[1], type = "slice")
     myConfig$addSampler(target = paramsForSlice[2], type = "slice")
+    myConfig$addSampler(target = paramsForSlice[3], type = "slice")
     
   } else if (alarmFit == 'spline') {
       
@@ -96,9 +99,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       paramsForBlock <- c('beta', 'b', 'rateI')
       myConfig$removeSampler(paramsForBlock)
       myConfig$addSampler(target = paramsForBlock, 
-                          type = "RW_block",
-                          propCov = diag(0.4, 
-                                         length(myModel$expandNodeNames(paramsForBlock))))
+                          type = "AF_slice")
       
       # block slice sampler for knots
       paramsForBlock <- c('knots')
@@ -138,9 +139,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       paramsForBlock <- c('b', 'rateI')
       myConfig$removeSampler(paramsForBlock)
       myConfig$addSampler(target = paramsForBlock, 
-                          type = "RW_block",
-                          propCov = diag(0.4, 
-                                         length(myModel$expandNodeNames(paramsForBlock))))
+                          type = "AF_slice")
       
       # block slice sampler for knots
       paramsForBlock <- c('knots')

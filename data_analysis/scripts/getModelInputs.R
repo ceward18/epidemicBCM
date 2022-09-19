@@ -60,8 +60,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
                                     dataList$Istar[1:(tau-lengthI)]))
         
         ### MCMC specifications
-        niter <- 800000
-        nburn <- 300000
+        niter <- 1000000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'thresh') {
@@ -90,14 +90,14 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         ### inits
         initsList <- list(beta = runif(1, 1/7, 1),
                           delta = runif(1, 0, 1),
-                          H = runif(1, 0, maxI/N/4),
+                          H = runif(1, 0, maxI/N/3),
                           rateI = rgamma(1, aa, bb),
                           Rstar = c(Rstar0, 
                                     dataList$Istar[1:(tau-lengthI)]))
         
         ### MCMC specifications
-        niter <- 800000
-        nburn <- 300000
+        niter <- 1000000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'hill') {
@@ -127,14 +127,14 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         initsList <- list(beta = runif(1, 1/7, 1),
                           delta = runif(1, 0, 1),
                           nu = runif(1, 0, 10),
-                          x0 = max(rnorm(1, maxI/4, 10), 1),
+                          x0 = max(rnorm(1, maxI/2, 10), 1),
                           rateI = rgamma(1, aa, bb),
                           Rstar = c(Rstar0, 
                                     dataList$Istar[1:(tau-lengthI)]))
         
         ### MCMC specifications
-        niter <- 800000
-        nburn <- 300000
+        niter <- 1000000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'spline') {
@@ -170,7 +170,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
             initsList <- list(beta = runif(1, 1/7, 1),
                               b = rnorm(nb, 0, 4),
                               knots = as.vector(quantile(xAlarm, 
-                                                         probs = sort(runif(nb - 1, 0.2, 0.8)))),
+                                                         probs = sort(runif(nb - 1, 0.5, 0.8)))),
                               rateI = rgamma(1, aa, bb),
                               Rstar = c(Rstar0, 
                                         dataList$Istar[1:(tau-lengthI)]))
@@ -183,8 +183,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         }
         
         ### MCMC specifications
-        niter <- 800000
-        nburn <- 300000
+        niter <- 1000000
+        nburn <- 500000
         nthin <- 10
         
     }  else if (alarmFit == 'splineFixKnot') {
@@ -235,8 +235,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         }
         
         ### MCMC specifications
-        niter <- 800000
-        nburn <- 400000
+        niter <- 1000000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'gp') {
@@ -284,8 +284,8 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         
         
         ### MCMC specifications
-        niter <- 800000
-        nburn <- 300000
+        niter <- 1000000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'betatSpline') {
@@ -310,7 +310,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         ### inits
         initsList <- list(b = rnorm(nb, 0, 4),
                           knots = as.vector(quantile(timeVec, 
-                                                     probs = sort(runif(nb - 1, 0.2, 0.5)))),
+                                                     probs = sort(runif(nb - 1, 0.2, 0.8)))),
                           rateI = rgamma(1, aa, bb),
                           Rstar = c(Rstar0, 
                                     dataList$Istar[1:(tau-lengthI)]))
