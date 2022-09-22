@@ -182,7 +182,8 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
     
     waic <- getWAIC(samples = samples, incData = incData, smoothI = smoothI, 
                     N = N, I0 = I0, R0 = R0, Rstar0 = Rstar0, lengthI = lengthI,
-                    prior = prior, peak = peak, alarmFit = alarmFit)
+                    prior = prior, peak = peak, smoothWindow = smoothWindow,
+                    alarmFit = alarmFit)
     
     ### output
     list(gdiag = gdiag,

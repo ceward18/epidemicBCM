@@ -6,7 +6,7 @@
 ################################################################################
 
 
-getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
+getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
                           N, I0, R0, Rstar0, lengthI) {
     
     # constants that are the same for all models
@@ -200,8 +200,10 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         paramPost <- readRDS('./results/paramsPostAll.rds')
         knotsPost <- paramPost[paramPost$alarmFit == 'spline' &
                                    paramPost$param %in% c('knots[1]', 'knots[2]'), 
-                               c('param', 'mean', 'peak', 'prior')]
-        knots <- knotsPost[knotsPost$peak == peak & knotsPost$prior == prior, 'mean']
+                               c('param', 'mean', 'peak', 'prior', 'smoothWindow')]
+        knots <- knotsPost[knotsPost$peak == peak & 
+                               knotsPost$prior == prior & 
+                               knotsPost$smoothWindow == smoothWindow, 'mean']
         
         constantsList <- list(tau = tau,
                               N = N,

@@ -18,6 +18,7 @@ postPredFit <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
     modelInputs <- getModelInput(alarmFit = alarmFit, 
                                  incData = incData, smoothI = smoothI, 
                                  prior = prior, peak = peak,
+                                 smoothWindow = smoothWindow,
                                  N = N, I0 = I0, R0 = R0,
                                  Rstar0 = Rstar0, lengthI = lengthI)
     

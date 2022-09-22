@@ -6,7 +6,7 @@
 ################################################################################
 
 fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
-                          prior, peak, alarmFit, seed) {
+                          prior, peak, smoothWindow, alarmFit, seed) {
   
   source('./scripts/modelCodes.R')
   source('./scripts/getModelInputs.R')
@@ -21,6 +21,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
   modelInputs <- getModelInput(alarmFit = alarmFit, 
                                incData = incData, smoothI = smoothI,
                                prior = prior, peak = peak,
+                               smoothWindow = smoothWindow,
                                N = N, I0 = I0, R0 = R0,
                                Rstar0 = Rstar0, lengthI = lengthI)
   
@@ -113,9 +114,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
       paramsForBlock <- c('beta', 'b', 'rateI')
       myConfig$removeSampler(paramsForBlock)
       myConfig$addSampler(target = paramsForBlock, 
-                          type = "RW_block",
-                          propCov = diag(0.4, 
-                                         length(myModel$expandNodeNames(paramsForBlock))))
+                          type = "AF_slice")
       
       
   } else if (alarmFit == 'gp') {

@@ -101,7 +101,8 @@ for (i in batchIdx) {
     
     # run three chains in parallel
     cl <- makeCluster(3)
-    clusterExport(cl, list('incData', 'smoothI', 'alarmFit_i', 'prior_i', 'peak_i',
+    clusterExport(cl, list('incData', 'smoothI', 'alarmFit_i', 'prior_i', 
+                           'peak_i', 'smoothWindow_i',
                            'N', 'I0', 'R0', 'Rstar0', 'lengthI'))
     
     resThree <- parLapplyLB(cl, 1:3, function(x) {
@@ -115,6 +116,7 @@ for (i in batchIdx) {
                       N = N, I0 = I0, R0 = R0, 
                       Rstar0 = Rstar0, lengthI = lengthI, 
                       prior = prior_i, peak = peak_i, 
+                      smoothWindow = smoothWindow_i,
                       alarmFit = alarmFit_i, seed = x)
         
     })
