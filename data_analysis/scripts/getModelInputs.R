@@ -197,7 +197,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak,
         nb <- 3
         
         # use posterior means from full run as knots
-        paramPost <- readRDS('./resultsCombined/paramsPostAll.rds')
+        paramPost <- readRDS('./results/paramsPostAll.rds')
         knotsPost <- paramPost[paramPost$alarmFit == 'spline' &
                                    paramPost$param %in% c('knots[1]', 'knots[2]'), 
                                c('param', 'mean', 'peak', 'prior')]
