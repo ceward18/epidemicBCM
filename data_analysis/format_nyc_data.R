@@ -27,8 +27,8 @@ endDate <- as.Date('2020-06-15')
 nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 1
 
 # peak 2 - Oct 15, 2020 - Jun 1, 2021
-startDate <- as.Date('2020-10-11')
-endDate <- as.Date('2021-06-01')
+startDate <- as.Date('2020-10-01')
+endDate <- as.Date('2021-05-16')
 nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 2
 
 # peak 3 - Jul 1 - Nov 1, 2021
@@ -37,10 +37,10 @@ endDate <- as.Date('2021-11-01')
 nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 3
 
 # peak 4 - Dec 1, 2021 - Mar 15, 2022
-startDate <- as.Date('2021-12-01')
-endDate <- as.Date('2022-02-01')
+startDate <- as.Date('2021-11-15')
+endDate <- as.Date('2022-03-01')
 nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 4
 
 
-write.csv(nyc, './Data/nycClean.csv', quote = F, row.names = F)
+write.csv(nyc, './data/nycClean.csv', quote = F, row.names = F)
 

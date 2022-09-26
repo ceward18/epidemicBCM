@@ -112,6 +112,7 @@ for (i in batchIdx) {
         # source relevant scripts
         source('./scripts/modelFits.R')
         
+        # debugonce(fitAlarmModel)
         fitAlarmModel(incData = incData, smoothI = smoothI,
                       N = N, I0 = I0, R0 = R0, 
                       Rstar0 = Rstar0, lengthI = lengthI, 
