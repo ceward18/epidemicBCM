@@ -386,11 +386,6 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
     }
     
-    ### MCMC specifications
-    niter <- 100
-    nburn <- 5
-    nthin <- 1
-    
     list(constantsList = constantsList,
          dataList = dataList,
          initsList = initsList,
