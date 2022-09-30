@@ -15,17 +15,17 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
 
     # parameters for prior on infectious period rate
     if (prior == 1) {
-        # strong centered on 1/5
-        bb <- 5633
-        aa <- 1/5 * bb
+        # strong centered on 1/4
+        bb <- 2944
+        aa <- 1/4 * bb
     } else if (prior == 2) {
         # strong centered on 1/2
         bb <- 419
         aa <- 1/2 * bb
     } else if (prior == 3) {
-        # vague centered on 1/5
-        bb <- 437
-        aa <- 1/5 * bb
+        # vague centered on 1/4
+        bb <- 224
+        aa <- 1/4 * bb
     } else if (prior == 4) {
         # vague centered on 1/2
         bb <- 28
@@ -39,10 +39,13 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         n <- 50
         xAlarm <- seq(0, maxI, length.out = n)
         
+        ### initial conditions probability
+        initProb <- c(S0, I0, N - S0 - I0)/N
+        SIR_init <- rmulti(1, N, initProb)
+        
         constantsList <- list(tau = tau,
                               N = N,
-                              S0 = S0,
-                              I0 = I0,
+                              initProb = initProb,
                               n = n,
                               xAlarm = xAlarm,
                               aa = aa,
@@ -56,12 +59,13 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         initsList <- list(beta = runif(1, 1/7, 1),
                           k = runif(1, 0, 1),
                           rateI = rgamma(1, aa, bb),
+                          SIR_init = SIR_init,
                           Rstar = c(Rstar0, 
                                     dataList$Istar[1:(tau-lengthI)]))
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 500000
+        nburn <- 600000
         nthin <- 10
         
     } else if (alarmFit == 'thresh') {
@@ -72,10 +76,13 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         n <- 50
         xAlarm <- seq(0, maxI, length.out = n)
         
+        ### initial conditions probability
+        initProb <- c(S0, I0, N - S0 - I0)/N
+        SIR_init <- rmulti(1, N, initProb)
+        
         constantsList <- list(tau = tau,
                               N = N,
-                              S0 = S0,
-                              I0 = I0,
+                              initProb = initProb,
                               n = n,
                               xAlarm = xAlarm,
                               maxI = maxI,
@@ -92,12 +99,13 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
                           delta = runif(1, 0, 1),
                           H = runif(1, 0, maxI/N/3),
                           rateI = rgamma(1, aa, bb),
+                          SIR_init = SIR_init,
                           Rstar = c(Rstar0, 
                                     dataList$Istar[1:(tau-lengthI)]))
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 500000
+        nburn <- 600000
         nthin <- 10
         
     } else if (alarmFit == 'hill') {
@@ -108,10 +116,13 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         n <- 50
         xAlarm <- seq(0, maxI, length.out = n)
         
+        ### initial conditions probability
+        initProb <- c(S0, I0, N - S0 - I0)/N
+        SIR_init <- rmulti(1, N, initProb)
+        
         constantsList <- list(tau = tau,
                               N = N,
-                              S0 = S0,
-                              I0 = I0,
+                              initProb = initProb,
                               n = n,
                               xAlarm = xAlarm,
                               minI = minI,
@@ -129,12 +140,13 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
                           nu = runif(1, 0, 10),
                           x0 = max(rnorm(1, maxI/2, 10), 1),
                           rateI = rgamma(1, aa, bb),
+                          SIR_init = SIR_init,
                           Rstar = c(Rstar0, 
                                     dataList$Istar[1:(tau-lengthI)]))
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 500000
+        nburn <- 600000
         nthin <- 10
         
     } else if (alarmFit == 'spline') {
@@ -146,10 +158,13 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         xAlarm <- seq(0, maxI, length.out = n)
         nb <- 3
         
+        ### initial conditions probability
+        initProb <- c(S0, I0, N - S0 - I0)/N
+        SIR_init <- rmulti(1, N, initProb)
+        
         constantsList <- list(tau = tau,
                               N = N,
-                              S0 = S0,
-                              I0 = I0,
+                              initProb = initProb,
                               xAlarm = xAlarm,
                               n = n,
                               minI = minI,
@@ -172,6 +187,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
                               knots = as.vector(quantile(xAlarm, 
                                                          probs = sort(runif(nb - 1, 0.5, 0.8)))),
                               rateI = rgamma(1, aa, bb),
+                              SIR_init = SIR_init,
                               Rstar = c(Rstar0, 
                                         dataList$Istar[1:(tau-lengthI)]))
             
@@ -184,7 +200,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 500000
+        nburn <- 600000
         nthin <- 10
         
     }  else if (alarmFit == 'splineFixKnot') {
@@ -195,6 +211,10 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         maxI <- ceiling(max(smoothI))
         xAlarm <- seq(0, maxI, length.out = n)
         nb <- 3
+        
+        ### initial conditions probability
+        initProb <- c(S0, I0, N - S0 - I0)/N
+        SIR_init <- rmulti(1, N, initProb)
         
         # use posterior means from full run as knots
         paramPost <- readRDS('./results/paramsPostAll.rds')
@@ -207,8 +227,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
         constantsList <- list(tau = tau,
                               N = N,
-                              S0 = S0,
-                              I0 = I0,
+                              initProb = initProb,
                               xAlarm = xAlarm,
                               n = n,
                               nb = nb,
@@ -227,6 +246,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
             initsList <- list(beta = runif(1, 1/7, 1),
                               b = rnorm(nb, 0, 4),
                               rateI = rgamma(1, aa, bb),
+                              SIR_init = SIR_init,
                               Rstar = c(Rstar0, 
                                         dataList$Istar[1:(tau-lengthI)]))
             
@@ -238,7 +258,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 500000
+        nburn <- 600000
         nthin <- 10
         
     } else if (alarmFit == 'gp') {
@@ -257,11 +277,14 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         # parameters of inverse gamma distribution for prior on lengthscale
         vals <- round(optim(c(3, 2), myF, lower = c(2.001, 1.001), method = 'L-BFGS-B',
                             min = minDist, mid = midDist, max = maxDist)$par, 2)
+
+        ### initial conditions probability
+        initProb <- c(S0, I0, N - S0 - I0)/N
+        SIR_init <- rmulti(1, N, initProb)
         
         constantsList <- list(tau = tau,
                               N = N,
-                              S0 = S0,
-                              I0 = I0,
+                              initProb = initProb,
                               dists = distMat,
                               mu0 = 1,
                               ones = logit(seq(0.0001, 0.9999, length.out= n)),
@@ -281,13 +304,14 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
                           l = rinvgamma(1, vals[1], vals[2]),
                           sigma = rgamma(1, 100, 50),
                           rateI = rgamma(1, aa, bb),
+                          SIR_init = SIR_init,
                           Rstar = c(Rstar0, 
                                     dataList$Istar[1:(tau-lengthI)]))
         
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 500000
+        nburn <- 600000
         nthin <- 10
         
     } else if (alarmFit == 'betatSpline') {
@@ -296,10 +320,13 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         timeVec <- 1:tau
         nb <- 4
         
+        ### initial conditions probability
+        initProb <- c(S0, I0, N - S0 - I0)/N
+        SIR_init <- rmulti(1, N, initProb)
+        
         constantsList <- list(tau = tau,
                               N = N,
-                              S0 = S0,
-                              I0 = I0,
+                              initProb = initProb,
                               timeVec = timeVec,
                               nb = nb,
                               aa = aa,
@@ -314,24 +341,28 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
                           knots = as.vector(quantile(timeVec, 
                                                      probs = sort(runif(nb - 1, 0.2, 0.8)))),
                           rateI = rgamma(1, aa, bb),
+                          SIR_init = SIR_init,
                           Rstar = c(Rstar0, 
                                     dataList$Istar[1:(tau-lengthI)]))
         
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 500000
+        nburn <- 600000
         nthin <- 10
         
         xAlarm <- NULL
         
     } else if (alarmFit == 'basic') {
         
+        ### initial conditions probability
+        initProb <- c(S0, I0, N - S0 - I0)/N
+        SIR_init <- rmulti(1, N, initProb)
+        
         ### constants
         constantsList <- list(tau = tau,
                               N = N,
-                              S0 = S0,
-                              I0 = I0,
+                              initProb = initProb,
                               aa = aa,
                               bb = bb)
         
@@ -341,6 +372,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         ### inits 
         initsList <- list(beta = runif(1, 1/7, 1),
                           rateI = rgamma(1, aa, bb),
+                          SIR_init = SIR_init,
                           Rstar = c(Rstar0, 
                                     dataList$Istar[1:(tau-lengthI)]))
         
@@ -353,6 +385,11 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         xAlarm <- NULL
         
     }
+    
+    ### MCMC specifications
+    niter <- 100
+    nburn <- 5
+    nthin <- 1
     
     list(constantsList = constantsList,
          dataList = dataList,

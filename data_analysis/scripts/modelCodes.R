@@ -292,8 +292,9 @@ assign('RstarUpdate', RstarUpdate, envir = .GlobalEnv)
 
 SIR_power <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -332,8 +333,9 @@ SIR_power <-  nimbleCode({
 
 SIR_power_sim <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -389,8 +391,9 @@ SIR_power_sim <-  nimbleCode({
 
 SIR_thresh <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -428,8 +431,9 @@ SIR_thresh <-  nimbleCode({
 
 SIR_thresh_sim <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -484,8 +488,9 @@ SIR_thresh_sim <-  nimbleCode({
 
 SIR_hill <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -523,8 +528,9 @@ SIR_hill <-  nimbleCode({
 
 SIR_hill_sim <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -580,8 +586,9 @@ SIR_hill_sim <-  nimbleCode({
 
 SIR_spline <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -631,8 +638,9 @@ SIR_spline <-  nimbleCode({
 
 SIR_spline_sim <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -699,8 +707,9 @@ SIR_spline_sim <-  nimbleCode({
 
 SIR_splineFixKnot <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -744,8 +753,9 @@ SIR_splineFixKnot <-  nimbleCode({
 
 SIR_splineFixKnot_sim <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -805,8 +815,9 @@ SIR_splineFixKnot_sim <-  nimbleCode({
 
 SIR_gp <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -836,7 +847,7 @@ SIR_gp <-  nimbleCode({
     
     # priors
     beta ~ dgamma(0.1, 0.1)
-    sigma ~ dgamma(100, 50)
+    sigma ~ dgamma(150, 50)
     l ~ dinvgamma(c, d)
     rateI ~ dgamma(aa, bb)
     
@@ -844,8 +855,9 @@ SIR_gp <-  nimbleCode({
 
 SIR_gp_sim <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -888,7 +900,7 @@ SIR_gp_sim <-  nimbleCode({
     
     # priors
     beta ~ dgamma(0.1, 0.1)
-    sigma ~ dgamma(100, 50)
+    sigma ~ dgamma(150, 50)
     l ~ dinvgamma(c, d)
     rateI ~ dgamma(aa, bb)
     
@@ -899,8 +911,9 @@ SIR_gp_sim <-  nimbleCode({
 
 SIR_basic <-  nimbleCode({
     
-    S[1] <- S0
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     
@@ -934,8 +947,9 @@ SIR_basic <-  nimbleCode({
 
 SIR_betatSpline <-  nimbleCode({
     
-    S[1] <- N - I0 
-    I[1] <- I0
+    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
+    S[1] <- SIR_init[1] - 1
+    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
     
     probIR <- 1 - exp(-rateI)
     

@@ -52,7 +52,7 @@ rownames(tmp) <- NULL
 N <- dat$Population[1]
 
 # used to initialize I0 and R0
-lengthI <- 5
+lengthI <- 3
 
 # batches by alarmFit (56 batches total)
 batchSize <- 4
@@ -80,8 +80,8 @@ for (i in batchIdx) {
     smoothI <- dat$smoothI[which(dat$peak == peak_i)]
     
     # initialize current number of infectious and removed individuals
-    
     if (peak_i == 1) {
+        # peak 1 shift 5 days for start
         idxStart <- 5
         incData <- incData[-c(1:idxStart)]
         smoothI <- smoothI[-c(1:idxStart)]
@@ -97,7 +97,6 @@ for (i in batchIdx) {
     
     # used to initialize removal vector
     Rstar0 <- dat$smoothedCases[max(1, idxStart - lengthI + 1):(idxStart)]
-    
     
     # run three chains in parallel
     cl <- makeCluster(3)
@@ -126,6 +125,7 @@ for (i in batchIdx) {
     
     source('./scripts/summarizePost.R')
     # debugonce(summarizePost)
+    # debugonce(postPredFit)
     postSummaries <- summarizePost(resThree = resThree, incData = incData,
                                    smoothI = smoothI, smoothWindow = smoothWindow_i,
                                    N = N, I0 = I0, R0 = R0, 

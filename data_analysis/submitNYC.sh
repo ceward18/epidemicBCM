@@ -7,7 +7,7 @@
 #SBATCH --time=120:00:00
 #SBATCH --mem 64000M
 #SBATCH --partition=cpu2019,cpu2021
-#SBATCH --array=2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,42,44,46,48,50,52,54,56
+#SBATCH --array=1-56
 #SBATCH --output=./out/Array.%A_%a.out
 #SBATCH --error=./err/Array.%A_%a.error
 

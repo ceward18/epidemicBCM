@@ -114,6 +114,12 @@ postPredFit <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
         rateIPost <- paramsPost[postIdx, 'rateI']
         trueVals <- c(trueVals, rateIPost)
         
+        # initial conditions 
+        SIR_initPost <- paramsPost[postIdx, grep('SIR_init', colnames(paramsPost))]
+        SIR_initPost[3] <- N - sum(SIR_initPost)
+        names(SIR_initPost)[3] <- "SIR_init[3]"
+        trueVals <- c(trueVals, SIR_initPost)
+        
         trueVals <- trueVals[parentNodes]
        
         postPredInc[,j] <- apply(sim_C$run(trueVals, 10), 2, median)[grep('Istar', dataNodes)]

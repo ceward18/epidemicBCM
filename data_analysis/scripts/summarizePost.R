@@ -21,17 +21,26 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
                           alarmFit, prior, peak) {
     
     if (!alarmFit %in% c('betatSpline', 'basic')) {
-        paramSamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[1]]))]
-        paramSamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[2]]))]
-        paramSamples3 <- resThree[[3]][,-grep('alarm|yAlarm|Rstar|R0', colnames(resThree[[3]]))]
+        paramSamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Rstar|R0|SIR_init\\[3\\]',
+                                              colnames(resThree[[1]]))]
+        paramSamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Rstar|R0|SIR_init\\[3\\]', 
+                                              colnames(resThree[[2]]))]
+        paramSamples3 <- resThree[[3]][,-grep('alarm|yAlarm|Rstar|R0|SIR_init\\[3\\]', 
+                                              colnames(resThree[[3]]))]
     } else if (alarmFit == 'betatSpline') {
-        paramSamples1 <- resThree[[1]][,-grep('beta|Rstar|R0', colnames(resThree[[1]]))]
-        paramSamples2 <- resThree[[2]][,-grep('beta|Rstar|R0', colnames(resThree[[2]]))]
-        paramSamples3 <- resThree[[3]][,-grep('beta|Rstar|R0', colnames(resThree[[3]]))]
+        paramSamples1 <- resThree[[1]][,-grep('beta|Rstar|R0|SIR_init\\[3\\]', 
+                                              colnames(resThree[[1]]))]
+        paramSamples2 <- resThree[[2]][,-grep('beta|Rstar|R0|SIR_init\\[3\\]', 
+                                              colnames(resThree[[2]]))]
+        paramSamples3 <- resThree[[3]][,-grep('beta|Rstar|R0|SIR_init\\[3\\]', 
+                                              colnames(resThree[[3]]))]
     } else if (alarmFit == 'basic') {
-        paramSamples1 <- resThree[[1]][,-grep('Rstar|R0', colnames(resThree[[1]])), drop = F]
-        paramSamples2 <- resThree[[2]][,-grep('Rstar|R0', colnames(resThree[[2]])), drop = F]
-        paramSamples3 <- resThree[[3]][,-grep('Rstar|R0', colnames(resThree[[3]])), drop = F]
+        paramSamples1 <- resThree[[1]][,-grep('Rstar|R0|SIR_init\\[3\\]', 
+                                              colnames(resThree[[1]])), drop = F]
+        paramSamples2 <- resThree[[2]][,-grep('Rstar|R0|SIR_init\\[3\\]', 
+                                              colnames(resThree[[2]])), drop = F]
+        paramSamples3 <- resThree[[3]][,-grep('Rstar|R0|SIR_init\\[3\\]', 
+                                              colnames(resThree[[3]])), drop = F]
     }
     
     RstarSamples1 <-  resThree[[1]][,grep('Rstar', colnames(resThree[[1]]))]
