@@ -1,0 +1,8 @@
+[1] "Running alarm: splineFixKnot , peak: 4 , smoothing: 60 , prior: 1"
+Stochastic parents of data are:  beta b[1] b[2] b[3] rateI SIR_init[1] SIR_init[2] SIR_init[3] .
+[1] "Running alarm: splineFixKnot , peak: 4 , smoothing: 60 , prior: 2"
+Stochastic parents of data are:  beta b[1] b[2] b[3] rateI SIR_init[1] SIR_init[2] SIR_init[3] .
+[1] "Running alarm: splineFixKnot , peak: 4 , smoothing: 60 , prior: 3"
+Stochastic parents of data are:  beta b[1] b[2] b[3] rateI SIR_init[1] SIR_init[2] SIR_init[3] .
+[1] "Running alarm: splineFixKnot , peak: 4 , smoothing: 60 , prior: 4"
+Stochastic parents of data are:  beta b[1] b[2] b[3] rateI SIR_init[1] SIR_init[2] SIR_init[3] .
