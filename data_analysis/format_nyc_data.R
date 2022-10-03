@@ -36,7 +36,7 @@ startDate <- as.Date('2021-07-01')
 endDate <- as.Date('2021-11-01')
 nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 3
 
-# peak 4 - Dec 1, 2021 - Jan 31, 2022
+# peak 4 - Dec 1, 2021 - Feb 15, 2022
 startDate <- as.Date('2021-12-01')
 endDate <- as.Date('2022-02-16')
 nyc$peak[nyc$date >= startDate & nyc$date < endDate]<- 4
