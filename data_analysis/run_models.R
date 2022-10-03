@@ -24,7 +24,7 @@ alarmFit <- c('power', 'thresh', 'hill',
               'spline', 'splineFixKnot', 'gp', 
               'basic', 'betatSpline')
 smoothWindow <- c(30, 60)
-prior <- 1:4
+prior <- 1:5
 
 # 96 possibilities (6 alarmFits, 4 peaks, 4 priors, 2 smoothWindows)
 allModelsAlarm <- expand.grid(peak = peak,
@@ -41,7 +41,9 @@ allModelsNoAlarm <- expand.grid(peak = peak,
 # 112
 allModels <- rbind.data.frame(allModelsAlarm, allModelsNoAlarm)
 allModels <- allModels[order(allModels$alarmFit,
-                             allModels$smoothWindow, allModels$peak),]
+                             allModels$smoothWindow, 
+                             allModels$prior, 
+                             allModels$peak),]
 rownames(allModels) <- NULL
 
 # list of batches

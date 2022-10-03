@@ -323,13 +323,6 @@ alarmAll$upper[alarmAll$noConverge == 1] <- NA
 # remove spline without fixed knots
 alarmAll <- alarmAll[alarmAll$alarmFit != 'spline',]
 
-# format for better plotting
-# alarmAll$alarmFit <- factor(alarmAll$alarmFit,
-#                             levels = c( 'splineFixKnot', 'gp',
-#                                         'thresh', 'hill', 'power'),
-#                             labels = c('Spline', 'Gaussian Process', 
-#                                        'Threshold', 'Hill', 'Power'))
-
 alarmAll$prior <- factor(alarmAll$prior, 
                          levels = c(1,3,2,4),
                          labels=c('Mean 5, strong', 'Mean 5, weaker', 
@@ -420,3 +413,102 @@ dev.off()
 # Supplemental Figures 8-12: R0(t) by model
 ################################################################################
 
+################################################################################
+### load posterior estimates of R0 over epidemic time
+r0All <- readRDS('./results/r0PostAll.rds')
+
+### remove those that did not converge (TEMPORARY)
+r0All <- merge(r0All, notConvergeModels,
+               by = c('alarmFit', 'smoothWindow', 'prior', 'peak'),
+               all.x = T)
+r0All$noConverge[is.na(r0All$noConverge)] <- 0
+
+
+# NA for those that did not converge
+r0All$mean[r0All$noConverge == 1] <- NA
+r0All$lower[r0All$noConverge == 1] <- NA
+r0All$upper[r0All$noConverge == 1] <- NA
+
+# remove spline without fixed knots
+r0All <- r0All[r0All$alarmFit != 'spline',]
+
+
+r0All <- r0All[order(r0All$alarmFit, 
+                     r0All$smoothWindow,
+                     r0All$peak, 
+                     r0All$time),]
+
+r0All$prior <- factor(r0All$prior, 
+                         levels = c(1,3,2,4),
+                         labels=c('Mean 5, strong', 'Mean 5, weaker', 
+                                  'Mean 2, strong', 'Mean 2, weaker'))
+
+r0All$Smoothing <- factor(r0All$smoothWindow,
+                             labels = c('None', '30-day', '60-day'))
+
+r0All$Peak <- paste0('Wave ', r0All$peak)
+
+pdf('./figures/supp_figX_nyc_r0_power.pdf', width = 8, height = 7)
+ggplot(subset(r0All, alarmFit == 'power'),
+       aes(x = time, y = mean, col = Smoothing, fill = Smoothing)) +  
+    geom_line(size = 0.5) +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
+    facet_grid(prior~Peak, scales = 'free_x') +
+    labs(x = 'Epidemic Time', y = expression(R[0](t))) +
+    geom_hline(yintercept = 1, linetype = 2) + 
+    scale_color_manual(values = pal) +
+    scale_fill_manual(values = pal) +
+    myTheme
+dev.off()
+
+pdf('./figures/supp_figX_nyc_r0_thresh.pdf', width = 8, height = 7)
+ggplot(subset(r0All, alarmFit == 'thresh'),
+       aes(x = time, y = mean, col = Smoothing, fill = Smoothing)) +  
+    geom_line(size = 0.5) +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
+    facet_grid(prior~Peak, scales = 'free_x') +
+    labs(x = 'Epidemic Time', y = expression(R[0](t))) +
+    geom_hline(yintercept = 1, linetype = 2) + 
+    scale_color_manual(values = pal) +
+    scale_fill_manual(values = pal) +
+    myTheme
+dev.off()
+
+pdf('./figures/supp_figX_nyc_r0_hill.pdf', width = 8, height = 7)
+ggplot(subset(r0All, alarmFit == 'hill'),
+       aes(x = time, y = mean, col = Smoothing, fill = Smoothing)) +  
+    geom_line(size = 0.5) +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
+    facet_grid(prior~Peak, scales = 'free_x') +
+    labs(x = 'Epidemic Time', y = expression(R[0](t))) +
+    geom_hline(yintercept = 1, linetype = 2) + 
+    scale_color_manual(values = pal) +
+    scale_fill_manual(values = pal) +
+    myTheme
+dev.off()
+
+pdf('./figures/supp_figX_nyc_r0_spline.pdf', width = 8, height = 7)
+ggplot(subset(r0All, alarmFit == 'splineFixKnot'),
+       aes(x = time, y = mean, col = Smoothing, fill = Smoothing)) +  
+    geom_line(size = 0.5) +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
+    facet_grid(prior~Peak, scales = 'free_x') +
+    labs(x = 'Epidemic Time', y = expression(R[0](t))) +
+    geom_hline(yintercept = 1, linetype = 2) + 
+    scale_color_manual(values = pal) +
+    scale_fill_manual(values = pal) +
+    myTheme
+dev.off()
+
+pdf('./figures/supp_figX_nyc_r0_gp.pdf', width = 8, height = 7)
+ggplot(subset(r0All, alarmFit == 'gp'),
+       aes(x = time, y = mean, col = Smoothing, fill = Smoothing)) +  
+    geom_line(size = 0.5) +
+    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
+    facet_grid(prior~Peak, scales = 'free_x') +
+    labs(x = 'Epidemic Time', y = expression(R[0](t))) +
+    geom_hline(yintercept = 1, linetype = 2) + 
+    scale_color_manual(values = pal) +
+    scale_fill_manual(values = pal) +
+    myTheme
+dev.off()

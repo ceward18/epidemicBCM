@@ -7,13 +7,6 @@ postPredFit <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
                         alarmFit, prior, peak, smoothWindow, 
                         paramsPost, alarmSamples) {
     
-    # model code
-    if (!alarmFit %in% c('basic', 'betatSpline')) {
-        modelCode <- get(paste0('SIR_', alarmFit, '_sim'))
-    } else {
-        modelCode <- get(paste0('SIR_', alarmFit))
-    }
-    
     # model-specific constants, data, and inits
     modelInputs <- getModelInput(alarmFit = alarmFit, 
                                  incData = incData, smoothI = smoothI, 
@@ -22,7 +15,13 @@ postPredFit <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
                                  N = N, I0 = I0, R0 = R0,
                                  Rstar0 = Rstar0, lengthI = lengthI)
     
-    modelInputs$constantsList$bw <- smoothWindow
+    # model code
+    if (!alarmFit %in% c('basic', 'betatSpline')) {
+        modelCode <- get(paste0('SIR_', alarmFit, '_sim'))
+        modelInputs$constantsList$bw <- smoothWindow
+    } else {
+        modelCode <- get(paste0('SIR_', alarmFit))
+    }
     
     # compile model and simulator
     if (alarmFit %in% c('spline', 'splineFixKnot', 'betatSpline')) {

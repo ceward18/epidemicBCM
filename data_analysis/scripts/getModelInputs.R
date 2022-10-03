@@ -30,6 +30,10 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         # vague centered on 1/2
         bb <- 28
         aa <- 1/2 * bb
+    } else if (prior == 5) {
+        # vague centered on 1/3
+        bb <- 45
+        aa <- 1/3 * bb
     }
     
     if (alarmFit == 'power') {
@@ -302,7 +306,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         ### inits 
         initsList <- list(beta = runif(1, 1/7, 1),
                           l = rinvgamma(1, vals[1], vals[2]),
-                          sigma = rgamma(1, 100, 50),
+                          sigma = rgamma(1, 150, 50),
                           rateI = rgamma(1, aa, bb),
                           SIR_init = SIR_init,
                           Rstar = c(Rstar0, 
