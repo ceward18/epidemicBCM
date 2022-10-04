@@ -87,7 +87,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
         myConfig$addSampler(target = paramsForBlock, 
                             type = "AF_slice")
         
-        # slice samplers for nu and x0
+        # slice samplers for delta, nu and x0
         paramsForSlice <- c('delta', 'nu', 'x0')
         myConfig$removeSampler(paramsForSlice)
         myConfig$addSampler(target = paramsForSlice[1], type = "slice")

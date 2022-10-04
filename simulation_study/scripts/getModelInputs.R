@@ -150,8 +150,8 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
                               b = rnorm(nb, 0, 4),
                               knots = as.vector(quantile(xAlarm, 
                                                          probs = sort(runif(nb - 1, 
-                                                                            0.2, 
-                                                                            0.6)))),
+                                                                            0.4, 
+                                                                            0.7)))),
                               rateI = rgamma(1, aa, bb))
             
             cond <- all(splineAlarm(xAlarm, initsList$b, initsList$knots) >= 0) & 
@@ -202,7 +202,8 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         ### inits 
         initsList <- list(beta = runif(1, 1/7, 5/7),
                           l = rinvgamma(1, vals[1], vals[2]),
-                          sigma = rgamma(1, 100, 50))
+                          sigma = rgamma(1, 150, 50),
+                          rateI = rgamma(1, aa, bb))
         
         
         ### MCMC specifications
@@ -254,8 +255,8 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         initsList <- list(b = rnorm(nb, 0, 4),
                           knots = as.vector(quantile(timeVec, 
                                                      probs = sort(runif(nb - 1, 
-                                                                        0, 
-                                                                        0.4)))),
+                                                                        0.2, 
+                                                                        0.8)))),
                           rateI = rgamma(1, aa, bb))
         
         
@@ -267,6 +268,10 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         xAlarm <- NULL
         
     }
+    
+    # initialize removals 1 day after infections
+    initsList$Rstar <- c(I0, dataList$Istar[1:(tau-1)]) 
+    names(initsList$Rstar) <- paste0('Rstar[', 1:tau, ']')
     
     list(constantsList = constantsList,
          dataList = dataList,

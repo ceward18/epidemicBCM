@@ -34,7 +34,6 @@ fitAlarmModel <- function(incData, alarmFit, smoothWindow, simNumber, seed) {
   myConfig <- configureMCMC(myModel)
   
   # need to ensure all stochastic nodes are monitored for WAIC calculation
-  
   if (!alarmFit %in% c('betatSpline', 'basic')) {
     myConfig$addMonitors(c('yAlarm', 'alarm'))
   }
@@ -48,54 +47,89 @@ fitAlarmModel <- function(incData, alarmFit, smoothWindow, simNumber, seed) {
                       type = "RstarUpdate")
   myConfig$addMonitors(c('Rstar'))
   
-  # use slice sampling for infectious period rate parameter
-  myConfig$removeSampler('rateI')
-  myConfig$addSampler(target = 'rateI', type = "slice")
-  
   if (alarmFit == 'power') {
       
-      # block sampler for transmission parameters
-      paramsForBlock <- c('beta', 'k')
+      # block sampler for beta, rateI parameters
+      paramsForBlock <- c('beta', 'rateI')
       myConfig$removeSampler(paramsForBlock)
-      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
+      
+      # slice sampler for k
+      paramsForSlice <- c('k')
+      myConfig$removeSampler(paramsForSlice)
+      myConfig$addSampler(target = paramsForSlice[1], type = "slice")
       
   } else if (alarmFit == 'thresh') {
       
-      # block sampler for transmission parameters
-      paramsForBlock <- c('beta', 'delta')
+      # block sampler for beta, rateI parameters
+      paramsForBlock <- c('beta', 'rateI')
       myConfig$removeSampler(paramsForBlock)
-      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
+      
+      # slice sampler for delta
+      paramsForSlice <- c('delta')
+      myConfig$removeSampler(paramsForSlice)
+      myConfig$addSampler(target = paramsForSlice[1], type = "slice")
+      
       
   } else if (alarmFit == 'hill') {
       
-      # block sampler for transmission parameters
-      paramsForBlock <- c('beta', 'delta', 'nu', 'x0')
+      # block sampler for beta, rateI parameters
+      paramsForBlock <- c('beta', 'rateI')
       myConfig$removeSampler(paramsForBlock)
-      myConfig$addSampler(target = paramsForBlock, type = "AF_slice")
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
       
-  } else if (alarmFit == 'spline') {
-      
-      # block sampler for transmission parameters
-      paramsForBlock <- c('beta', 'b', 'knots')
-      myConfig$removeSampler(paramsForBlock)
-      myConfig$addSampler(target = paramsForBlock[1:2], type = "AF_slice")
-      myConfig$addSampler(target = paramsForBlock[3], type = "AF_slice")
-      
-  }  else if (alarmFit == 'gp') {
-    
-      paramsForSlice <- c('beta', 'l', 'sigma')
+      # slice samplers for delta, nu and x0
+      paramsForSlice <- c('delta', 'nu', 'x0')
       myConfig$removeSampler(paramsForSlice)
       myConfig$addSampler(target = paramsForSlice[1], type = "slice")
       myConfig$addSampler(target = paramsForSlice[2], type = "slice")
       myConfig$addSampler(target = paramsForSlice[3], type = "slice")
+      
+  } else if (alarmFit == 'spline') {
+      
+      # block sampler for transmission parameters
+      paramsForBlock <- c('beta', 'b', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
+      
+      # block slice sampler for knots
+      paramsForBlock <- c('knots')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
+      
+  }  else if (alarmFit == 'gp') {
+    
+      # if gaussian process model, use slice sampling for GP parameters
+      paramsForSlice <- c('l', 'sigma')
+      myConfig$removeSampler(paramsForSlice)
+      myConfig$addSampler(target = paramsForSlice[1], type = "slice")
+      myConfig$addSampler(target = paramsForSlice[2], type = "slice")
+      
+      # sample beta and rateI jointly
+      paramsForBlock <- c('beta', 'rateI')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
     
   } else if (alarmFit == 'betatSpline') {
       
       # block sampler for transmission parameters
-      paramsForBlock <- c('rateI', 'b', 'knots')
+      paramsForBlock <- c('b', 'rateI')
       myConfig$removeSampler(paramsForBlock)
-      myConfig$addSampler(target = paramsForBlock[1:2], type = "AF_slice")
-      myConfig$addSampler(target = paramsForBlock[3], type = "AF_slice")
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
+      
+      # block slice sampler for knots
+      paramsForBlock <- c('knots')
+      myConfig$removeSampler(paramsForBlock)
+      myConfig$addSampler(target = paramsForBlock, 
+                          type = "AF_slice")
       
   } 
   

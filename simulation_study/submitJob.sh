@@ -20,4 +20,4 @@ export PATH=/home/caitlin.ward/R/bin:$PATH
 export R_LIBS=/home/caitlin.ward/R/lib64:$R_LIBS
 
 ####### Run your script #########################
-Rscript runModels.R $SLURM_ARRAY_TASK_ID
+Rscript run_models.R $SLURM_ARRAY_TASK_ID

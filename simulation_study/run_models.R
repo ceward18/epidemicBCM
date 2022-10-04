@@ -79,8 +79,25 @@ for (i in batchIdx) {
     source('./scripts/summarizePost.R')
     
     # debugonce(summarizePost)
+    # debugonce(postPredFit)
     postSummaries <- summarizePost(resThree = resThree, incData = incData,
-                                   alarmFit = alarmFit_i, smoothWindow = smoothWindow_i)
+                                   incDataFit = incDataFit, 
+                                   alarmFit = alarmFit_i, 
+                                   smoothWindow = smoothWindow_i)
+    
+    # if the model did not converge save the chains so these can be examined later
+    if (!all(postSummaries$gdiag$gr < 1.1)) {
+        
+        # create thinned version
+        resThree[[1]] <- resThree[[1]][seq(1,nrow(resThree[[1]]), 10),]
+        resThree[[2]] <- resThree[[2]][seq(1,nrow(resThree[[2]]), 10),]
+        resThree[[3]] <- resThree[[3]][seq(1,nrow(resThree[[3]]), 10),]
+        
+        saveRDS(resThree, 
+                paste0('./output/chains_', alarmGen, '_', alarmFit_i,
+                       '_', smoothWindow_i, '_', simNumber_i, '.rds'))
+    }
+    
     
     # save results in separate files
     modelInfo <- data.frame(alarmGen = alarmGen_i,
@@ -88,15 +105,13 @@ for (i in batchIdx) {
                             smoothWindow = smoothWindow_i,
                             simNumber = simNumber_i)
     
-    # gelman-rubin
-    # posterior parameters
-    # posterior alarm
-    # posterior predictions
+    # posterior summaries
     if (i == batchIdx[1]) {
         gr <- cbind.data.frame(postSummaries$gdiag, modelInfo)
         paramsPost <- cbind.data.frame(postSummaries$postParams, modelInfo)
         alarmPost <- cbind.data.frame(postSummaries$postAlarm, modelInfo)
         epiPredPost <- cbind.data.frame(postSummaries$postEpiPred, modelInfo)
+        predFitPost <- cbind.data.frame(postSummaries$postPredFit, modelInfo)
         betaPost <- cbind.data.frame(postSummaries$postBeta, modelInfo)
         waicPost <- cbind.data.frame(postSummaries$waic, modelInfo)
         
@@ -109,6 +124,8 @@ for (i in batchIdx) {
                                       cbind.data.frame(postSummaries$postAlarm, modelInfo))
         epiPredPost <- rbind.data.frame(epiPredPost, 
                                         cbind.data.frame(postSummaries$postEpiPred, modelInfo))
+        predFitPost <- rbind.data.frame(predFitPost, 
+                                        cbind.data.frame(postSummaries$postPredFit, modelInfo))
         betaPost <- rbind.data.frame(betaPost, 
                                      cbind.data.frame(postSummaries$postBeta, modelInfo))
         waicPost <- rbind.data.frame(waicPost, 
@@ -125,6 +142,7 @@ saveRDS(gr, paste0('./output/grBatch', idxPrint, '.rds'))
 saveRDS(paramsPost, paste0('./output/paramsPostBatch', idxPrint, '.rds'))
 saveRDS(alarmPost, paste0('./output/alarmPostBatch', idxPrint, '.rds'))
 saveRDS(epiPredPost, paste0('./output/epiPredPostBatch', idxPrint, '.rds'))
+saveRDS(predFitPost, paste0('./output/predFitPostBatch', idxPrint, '.rds'))
 saveRDS(betaPost, paste0('./output/betaPostBatch', idxPrint, '.rds'))
 saveRDS(waicPost, paste0('./output/waicPostBatch', idxPrint, '.rds'))
 

@@ -65,7 +65,7 @@ movingAverage <- nimbleFunction(
     })
 assign('movingAverage', movingAverage, envir = .GlobalEnv)
 
-# squared exponential covariance for gaussian process
+# squared exponential covariance for Gaussian process
 sqExpCov <- nimbleFunction(     
     run = function(dists = double(2), sigma = double(0), l = double(0)) {
         returnType(double(2))
@@ -175,7 +175,7 @@ getl <- function(maxDist) {
     sqrt(- (maxDist/2) ^2 / (2 * log(0.025)))
 }
 
-# determine shape and scale for prior on rho
+# determine shape and scale for prior on lengthscale
 myF <- function(x, mid) {
     a <- x[1]; b <- x[2]
     
@@ -713,7 +713,7 @@ SIR_gp <-  nimbleCode({
     
     # priors
     beta ~ dgamma(0.1, 0.1)
-    sigma ~ dgamma(100, 50)
+    sigma ~ dgamma(150, 50)
     l ~ dinvgamma(c, d)
     rateI ~ dgamma(aa, bb)
     
@@ -767,7 +767,7 @@ SIR_gp_sim <-  nimbleCode({
     
     # priors
     beta ~ dgamma(0.1, 0.1)
-    sigma ~ dgamma(100, 50)
+    sigma ~ dgamma(150, 50)
     l ~ dinvgamma(c, d)
     rateI ~ dgamma(aa, bb)
     

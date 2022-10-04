@@ -14,9 +14,10 @@ library(nimble)
 source('./scripts/modelCodes.R')
 source('./scripts/getModelInputs.R')
 source('./scripts/postPred.R')
+source('./scripts/postPredFit.R')
 source('./scripts/getWAIC.R')
 
-summarizePost <- function(resThree, incData, alarmFit, smoothWindow) {
+summarizePost <- function(resThree, incData, incDataFit, alarmFit, smoothWindow) {
     
     
     if (!alarmFit %in% c('basic', 'betatSpline')) {
@@ -133,6 +134,20 @@ summarizePost <- function(resThree, incData, alarmFit, smoothWindow) {
     }
     
     ##############################################################################
+    ### posterior predictive model fit
+    
+    postPredObs <- postPredFit(alarmFit = alarmFit, incData = incDataFit, 
+                               smoothWindow = smoothWindow, 
+                               paramsPost = paramsPost, alarmSamples = alarmSamples)
+    
+    postMean <- rowMeans(postPredObs)
+    postCI <- apply(postPredObs, 1, quantile, probs = c(0.025, 0.975))
+    postPredFit <- data.frame(time = 1:length(incDataFit),
+                              mean = postMean,
+                              lower = postCI[1,],
+                              upper = postCI[2,])
+    
+    ##############################################################################
     ### WAIC values
     
     # samples to use for WAIC calculation differ by model
@@ -182,6 +197,7 @@ summarizePost <- function(resThree, incData, alarmFit, smoothWindow) {
          postParams = postParams,
          postAlarm = postAlarm,
          postEpiPred = postEpiPred,
+         postPredFit = postPredFit,
          postBeta = postBeta,
          waic= waic)
     

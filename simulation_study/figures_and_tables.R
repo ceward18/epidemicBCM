@@ -87,11 +87,11 @@ yHill3 <- hillAlarm(x, nu = nuVals[3], x0 = x0Vals[3], delta = deltaVals[3])
 
 pal <- c('#1E88E5', '#FFC107', '#D81B60' )
 lineTypes <- c(1,2,4)
-cexMain <- 2.4
-cexAxis <- 1.8
-cexLab <- 2
-cexLeg <- 1.8
-lineWidths <- 4
+cexMain <- 2.2
+cexAxis <- 1.6
+cexLab <- 1.8
+cexLeg <- 1.6
+lineWidths <- 3.5
 lineLength <- 4
 
 layoutMat <- matrix(1:6, nrow = 2, ncol = 3)
@@ -386,9 +386,9 @@ myTheme1 <- theme(legend.position = legendLocation1,
 
 myTheme2 <- theme(legend.position = legendLocation2,
                  legend.title= element_blank(),
-                 plot.title = element_text(h = 0.5, size = 14),
-                 axis.title = element_text(size = 12),
-                 axis.text = element_text(size = 10),
+                 plot.title = element_text(h = 0.5, size = 16),
+                 axis.title = element_text(size = 14),
+                 axis.text = element_text(size = 12),
                  legend.text = element_text(size = 12))
 
 # alarms
@@ -456,15 +456,8 @@ p6 <- ggplot(subset(toPlot_epi_A, alarm == 'Hill'),
     scale_color_manual(values = pal,
                        labels = plotLabsDelta)
 
-# pdf('./figures/fig2_ex_epidemics.pdf', height = 8, width = 13)
-# grid.arrange(p1, p2, p3,
-#              p4, p5, p6, nrow = 2)
-# dev.off()
 
-
-
-
-# threshold vs hill smoothness
+#### changes to smoothing parameter
 
 # power 1, 14, 30
 trueVals <- c(beta = beta, 
@@ -529,19 +522,19 @@ p7 <- ggplot(subset(toPlot_B, time <=80),
     theme_bw() +
     scale_color_manual(values = brewer.pal(3, 'Dark2')) +
     theme(strip.background = element_rect(fill = 'white'),
-          strip.text = element_text(size = 14),
-          axis.title = element_text(size = 12),
-          axis.text = element_text(size = 11),
-          legend.text = element_text(size = 12),
-          legend.title = element_text(size = 14)) +
+          strip.text = element_text(size = 16),
+          axis.title = element_text(size = 15),
+          axis.text = element_text(size = 12),
+          legend.text = element_text(size = 14),
+          legend.title = element_text(size = 16)) +
     labs(color = 'Alarm',
          x = 'Epidemic Time', y = 'Incidence') 
 
-pdf('./figures/fig2_ex_epidemics.pdf', height = 7, width = 12)
+pdf('./figures/fig2_ex_epidemics.pdf', height = 7, width = 12.5)
 ggarrange(ggarrange(p4, p5, p6, NULL, nrow = 1,
                     widths = c(1, 1, 1, 0.1)), 
           p7, nrow = 2,
-          labels = c('(A)', '(B)'))
+          labels = c('(a)', '(b)'))
 dev.off()
 
 
@@ -659,13 +652,6 @@ dev.off()
 # Supplemental Figure 5 - for 14-day smoothing
 ################################################################################
 
-theme_set(theme_bw() + 
-              theme(strip.background = element_rect(fill = 'white'),
-                    strip.text = element_text(size = 14),
-                    axis.title = element_text(size = 14),
-                    axis.text = element_text(size = 12),
-                    plot.title = element_text(size = 14, h = 0.5)))
-
 ### get parameters for true alarms
 paramsTruth <- read.xlsx('simParamsSummary.xlsx')
 paramsTruth <- paramsTruth[paramsTruth$infPeriod == infPeriodSpec,]
@@ -731,11 +717,25 @@ trueAlarms <- data.frame(xAlarm = rep(xAlarm, 6),
 ### load posterior estimates
 alarmAll <- readRDS('./results/alarmPostAll.rds')
 
+### remove those that did not converge
+alarmAll <- merge(alarmAll, notConvergeModels,
+                 by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
+                 all.x = T)
+alarmAll$noConverge[is.na(alarmAll$noConverge)] <- 0
+alarmAll <- alarmAll[alarmAll$noConverge == 0,]
+
 # format for better plotting
 alarmAll$alarmFit <- factor(alarmAll$alarmFit,
                             levels = c('thresh', 'hill', 'power', 'spline', 'gp'),
                             labels = c('Threshold', 'Hill', 'Power',
                                        'Spline', 'Gaussian Process'))
+
+theme_set(theme_bw() + 
+              theme(strip.background = element_rect(fill = 'white'),
+                    strip.text = element_text(size = 9),
+                    axis.title = element_text(size = 8),
+                    axis.text = element_text(size = 6),
+                    plot.title = element_text(size = 9, h = 0.5)))
 
 
 ### smoothing window 14 days
@@ -748,7 +748,7 @@ p1 <- ggplot() +
     facet_wrap(~alarmFit) + 
     labs(x = '14-day average incidence', y = 'Alarm')+
     ylim(0, 1) + 
-    ggtitle('Data generation: power alarm')+
+    ggtitle('Data generation: Power alarm')+
     xlim(0, 370)
 
 p2 <- ggplot() +  
@@ -761,7 +761,7 @@ p2 <- ggplot() +
     labs(x = '
          14-day average incidence', y = 'Alarm') +
     ylim(0, 1)  + 
-    ggtitle('Data generation: threshold alarm')+
+    ggtitle('Data generation: Threshold alarm')+
     xlim(0, 250)
 
 p3 <- ggplot() +  
@@ -778,9 +778,10 @@ p3 <- ggplot() +
 
 
 
-pdf('./figures/supp_fig5_sim_alarms14.pdf', height = 8, width = 7)
+pdf('./figures/supp_fig5_sim_alarms14.pdf', height = 6, width = 6)
 grid.arrange(p1, p2, p3, nrow = 3,
-             top=textGrob("         Posterior mean of alarm functions", gp = gpar(fontsize = 16, font = 1)))
+             top=textGrob("         Posterior mean of alarm functions", 
+                          gp = gpar(fontsize = 10, font = 1)))
 
 dev.off()
 
@@ -795,7 +796,7 @@ p1 <- ggplot() +
     facet_wrap(~alarmFit) + 
     labs(x = '30-day average incidence', y = 'Alarm')+
     ylim(0, 1) + 
-    ggtitle('Data generation: power alarm')+
+    ggtitle('Data generation: Power alarm')+
     xlim(0, 300)
 
 p2 <- ggplot() +  
@@ -808,7 +809,7 @@ p2 <- ggplot() +
     labs(x = '
          30-day average incidence', y = 'Alarm') +
     ylim(0, 1)  + 
-    ggtitle('Data generation: threshold alarm')+
+    ggtitle('Data generation: Threshold alarm')+
     xlim(0, 170)
 
 p3 <- ggplot() +  
@@ -825,9 +826,10 @@ p3 <- ggplot() +
 
 
 
-pdf('./figures/fig4_sim_alarms30.pdf', height = 8, width = 7)
+pdf('./figures/fig4_sim_alarms30.pdf', height = 6, width = 6)
 grid.arrange(p1, p2, p3, nrow = 3,
-             top=textGrob("         Posterior mean of alarm functions", gp = gpar(fontsize = 16, font = 1)))
+             top=textGrob("         Posterior mean of alarm functions",
+                          gp = gpar(fontsize = 10, font = 1)))
 
 dev.off()
 
@@ -837,13 +839,6 @@ dev.off()
 # Supplemental Figure 6 - for 14-day smoothing
 ################################################################################
 
-
-theme_set(theme_bw() + 
-              theme(strip.background = element_rect(fill = 'white'),
-                    strip.text = element_text(size = 14),
-                    axis.title = element_text(size = 14),
-                    axis.text = element_text(size = 12),
-                    plot.title = element_text(size = 14, h = 0.5)))
 
 # for a randomly selected simulation
 set.seed(1)
@@ -870,6 +865,15 @@ trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 6),
 
 # merge with posterior predictions
 postPredAll <- readRDS('./results/postPredAll.rds')
+
+### remove those that did not converge
+postPredAll <- merge(postPredAll, notConvergeModels,
+                  by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
+                  all.x = T)
+postPredAll$noConverge[is.na(postPredAll$noConverge)] <- 0
+postPredAll <- postPredAll[postPredAll$noConverge == 0,]
+
+
 postPredAll <- postPredAll[postPredAll$simNumber == simNumber,]
 
 # format for better plotting
@@ -879,6 +883,14 @@ postPredAll$alarmFit <- factor(postPredAll$alarmFit,
                                           'Spline', 'Gaussian Process'))
 
 myCol <- 'blue'
+
+
+theme_set(theme_bw() + 
+              theme(strip.background = element_rect(fill = 'white'),
+                    strip.text = element_text(size = 11),
+                    axis.title = element_text(size = 10),
+                    axis.text = element_text(size = 10),
+                    plot.title = element_text(size = 11, h = 0.5)))
 
 ### 14-day Smoothing Window
 p1 <- ggplot() +
@@ -890,7 +902,7 @@ p1 <- ggplot() +
                 aes(x = time, ymin = lower, ymax = upper), alpha = 0.3, fill = myCol) +
     facet_wrap(~alarmFit, nrow = 1) +
     labs(x = 'Epidemic time', y = 'Incidence') + 
-    ggtitle('Data generation: power alarm')
+    ggtitle('Data generation: Power alarm')
 
 p2 <- ggplot() +
     geom_line(data = subset(trueCurves, alarmGen == 'thresh' & smoothWindow == 14),
@@ -901,7 +913,7 @@ p2 <- ggplot() +
                 aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = myCol) +
     facet_wrap(~alarmFit, nrow = 1) +
     labs(x = 'Epidemic time', y = 'Incidence') + 
-    ggtitle('Data generation: threshold alarm')
+    ggtitle('Data generation: Threshold alarm')
 
 p3 <- ggplot() +
     geom_line(data = subset(trueCurves, alarmGen == 'hill' & smoothWindow == 14),
@@ -915,9 +927,10 @@ p3 <- ggplot() +
     ggtitle('Data generation: Hill alarm')
 
 
-pdf('./figures/supp_fig6_sim_postPred14.pdf', height = 8, width = 9)
+pdf('./figures/supp_fig6_sim_postPred14.pdf', height = 7, width = 8)
 grid.arrange(p1, p2, p3, nrow = 3,
-             top=textGrob("        Posterior predictive forecasting", gp = gpar(fontsize = 18, font = 1)))
+             top=textGrob("        Posterior predictive forecasting",
+                          gp = gpar(fontsize = 13, font = 1)))
 
 dev.off()
 
@@ -933,7 +946,7 @@ p1 <- ggplot() +
                 aes(x = time, ymin = lower, ymax = upper), alpha = 0.3, fill = myCol) +
     facet_wrap(~alarmFit, nrow = 1) +
     labs(x = 'Epidemic time', y = 'Incidence') + 
-    ggtitle('Data generation: power alarm')
+    ggtitle('Data generation: Power alarm')
 
 p2 <- ggplot() +
     geom_line(data = subset(trueCurves, alarmGen == 'thresh' & smoothWindow == 30),
@@ -944,7 +957,7 @@ p2 <- ggplot() +
                 aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = myCol) +
     facet_wrap(~alarmFit, nrow = 1) +
     labs(x = 'Epidemic time', y = 'Incidence') + 
-    ggtitle('Data generation: threshold alarm') +
+    ggtitle('Data generation: Threshold alarm') +
     ylim(0, 600)
 
 p3 <- ggplot() +
@@ -959,15 +972,12 @@ p3 <- ggplot() +
     ggtitle('Data generation: Hill alarm')
 
 
-pdf('./figures/fig5_sim_postPred30.pdf', height = 8, width = 9)
+pdf('./figures/fig5_sim_postPred30.pdf', height = 7, width = 8)
 grid.arrange(p1, p2, p3, nrow = 3,
-             top=textGrob("        Posterior predictive forecasting", gp = gpar(fontsize = 18, font = 1)))
+             top=textGrob("        Posterior predictive forecasting", 
+                          gp = gpar(fontsize = 13, font = 1)))
 
 dev.off()
-
-
-
-
 
 
 
@@ -979,6 +989,14 @@ dev.off()
 ### Summary table with mean (SD) and % selected WAIC
 
 waicAll <- readRDS('./results/waicAll.rds')
+
+### remove those that did not converge
+waicAll <- merge(waicAll, notConvergeModels,
+                     by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
+                     all.x = T)
+waicAll$noConverge[is.na(waicAll$noConverge)] <- 0
+waicAll <- waicAll[waicAll$noConverge == 0,]
+
 
 waicMin <- ddply(waicAll, .(alarmGen, smoothWindow, simNumber), summarize,
                  minWAIC = min(waic))
@@ -1098,13 +1116,6 @@ kable(waicFinal30, row.names = F, format = 'latex', align = 'llcc',
 # Supplemental Figures 1-3 - Posterior dists for parameters in true models
 ################################################################################
 
-theme_set(theme_bw() + 
-              theme(strip.background = element_rect(fill = 'white'),
-                    strip.text = element_text(size = 16),
-                    axis.title = element_text(size = 16),
-                    axis.text = element_text(size = 14),
-                    plot.title = element_text(size = 17, h = 0.5)))
-
 
 ### load truth
 paramsTruth <- read.xlsx('simParamsSummary.xlsx')
@@ -1124,11 +1135,12 @@ paramsTruth <- paramsTruth[-which(colnames(paramsTruth) %in% c('infPeriod', 'id'
 
 paramsPostAll <- readRDS('./results/paramsPostAll.rds')
 
-# only keep rows where alarmGen == alarmFit
+# only keep rows where alarmGen == alarmFit (all of these converged)
 paramsPostAll <- paramsPostAll[paramsPostAll$alarmGen == paramsPostAll$alarmFit,]
 
 # merge with truth
-paramsPostAll <- merge(paramsPostAll, paramsTruth, by = c('param', 'alarmGen', 'smoothWindow'),
+paramsPostAll <- merge(paramsPostAll, paramsTruth, 
+                       by = c('param', 'alarmGen', 'smoothWindow'),
                        all.x = T)
 
 paramsPostAll <- paramsPostAll[order(paramsPostAll$alarmGen, 
@@ -1141,11 +1153,11 @@ paramsPostAll$param <- factor(paramsPostAll$param,
                               labels=c('beta', 'delta', 'H', 'k', 'nu', 'x[0]', 'gamma'))
 
 paramsPostAll$smoothWindow <- factor(paramsPostAll$smoothWindow , 
-                                     labels=c('14-day smoothing', '30-day smoothing'))
+                                     labels=c('14-day average', '30-day average'))
 
 
 ### power alarm
-pdf('./figures/supp_fig1_sim_powerParams.pdf', height = 6, width = 9)
+pdf('./figures/supp_fig1_sim_powerParams.pdf', height = 5, width = 10)
 ggplot(data = subset(paramsPostAll, alarmFit == 'power'), 
        aes(x = simNumber, y = mean)) +
     geom_point(size = 1) + 
@@ -1154,11 +1166,18 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'power'),
     geom_hline(aes(yintercept = truth), col = 'red', linetype = 2, size = 1) +
     facet_wrap(smoothWindow ~ param, nrow = 2, scales = 'free_y',
                labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
-    labs(x = 'Simulation Number', y = '')
+    labs(x = 'Simulation Number', y = '') +
+    theme_bw() + 
+    theme(strip.background = element_rect(fill = 'white'),
+          strip.text = element_text(size = 12),
+          axis.title = element_text(size = 12),
+          axis.text = element_text(size = 10),
+          plot.title = element_text(size = 13, h = 0.5))
 dev.off()
 
+
 ### threshold alarm
-pdf('./figures/supp_fig2_sim_threshParams.pdf', height = 6, width = 11)
+pdf('./figures/supp_fig2_sim_threshParams.pdf', height = 5.5, width = 12)
 ggplot(data = subset(paramsPostAll, alarmFit == 'thresh'), 
        aes(x = simNumber, y = mean)) +
     geom_point(size = 1) + 
@@ -1167,11 +1186,17 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'thresh'),
     geom_hline(aes(yintercept = truth), col = 'red', linetype = 2, size = 1) +
     facet_wrap(smoothWindow ~ param, nrow = 2, scales = 'free_y',
                labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
-    labs(x = 'Simulation Number', y = '') 
+    labs(x = 'Simulation Number', y = '') +
+    theme_bw() + 
+    theme(strip.background = element_rect(fill = 'white'),
+          strip.text = element_text(size = 14),
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12),
+          plot.title = element_text(size = 15, h = 0.5))
 dev.off()
 
 ### hill alarm
-pdf('./figures/supp_fig3_sim_hillParams.pdf', height = 6, width = 13)
+pdf('./figures/supp_fig3_sim_hillParams.pdf', height = 5.5, width = 13)
 ggplot(data = subset(paramsPostAll, alarmFit == 'hill'), 
        aes(x = simNumber, y = mean)) +
     geom_point(size = 1) + 
@@ -1180,20 +1205,19 @@ ggplot(data = subset(paramsPostAll, alarmFit == 'hill'),
     geom_hline(aes(yintercept = truth), col = 'red', linetype = 2, size = 1) +
     facet_wrap(smoothWindow ~ param, nrow = 2, scales = 'free_y',
                labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
-    labs(x = 'Simulation Number', y = '')
+    labs(x = 'Simulation Number', y = '') +
+    theme_bw() + 
+    theme(strip.background = element_rect(fill = 'white'),
+          strip.text = element_text(size = 16),
+          axis.title = element_text(size = 16),
+          axis.text = element_text(size = 14),
+          plot.title = element_text(size = 17, h = 0.5))
 dev.off()
 
 
 ################################################################################
 # Supplemental Figure 4 - Posterior for beta_t model
 ################################################################################
-
-theme_set(theme_bw() + 
-              theme(strip.background = element_rect(fill = 'white'),
-                    strip.text = element_text(size = 14),
-                    axis.title = element_text(size = 14),
-                    axis.text = element_text(size = 12),
-                    plot.title = element_text(size = 14, h = 0.5)))
 
 set.seed(1)
 simNumber <- round(runif(1, 0.5, 50.5))
@@ -1278,25 +1302,44 @@ trueBeta$trueBeta <- paramsTruth$beta[1] * (1 - trueBeta$trueAlarm)
 
 ### load posterior estimates
 betaPostAll <- readRDS('./results/betaPostAll.rds')
+
+### remove those that did not converge
+betaPostAll <- merge(betaPostAll, notConvergeModels,
+                       by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
+                       all.x = T)
+betaPostAll$noConverge[is.na(betaPostAll$noConverge)] <- 0
+betaPostAll <- betaPostAll[betaPostAll$noConverge == 0,]
+
+
+
 betaPostAll <- betaPostAll[betaPostAll$simNumber == simNumber,]
 
 
 betaPostAll$smoothWindow <- factor(betaPostAll$smoothWindow , 
-                                   labels=c('14-day smoothing', '30-day smoothing'))
+                                   labels=c('14-day average', '30-day average'))
 betaPostAll$alarmGen <- factor(betaPostAll$alarmGen, 
                                levels = c('power', 'thresh', 'hill'),
                                labels=c('Power', 'Threshold', 'Hill'))
 trueBeta$smoothWindow <- factor(trueBeta$smoothWindow , 
-                                labels=c('14-day smoothing', '30-day smoothing'))
+                                labels=c('14-day average', '30-day average'))
 trueBeta$alarmGen <- factor(trueBeta$alarmGen, 
                             levels = c('power', 'thresh', 'hill'),
                             labels=c('Power', 'Threshold', 'Hill'))
 
-pdf('./figures/supp_fig4_sim_betatCurves.pdf', height = 5, width = 7)
+
+theme_set(theme_bw() + 
+              theme(strip.background = element_rect(fill = 'white'),
+                    strip.text = element_text(size = 10),
+                    axis.title = element_text(size = 10),
+                    axis.text = element_text(size = 8),
+                    plot.title = element_text(size = 11, h = 0.5)))
+
+
+pdf('./figures/supp_fig4_sim_betatCurves.pdf', height = 4, width = 7)
 ggplot() +  
     geom_line(data = subset(betaPostAll,), 
               aes(x = time, y = mean, group = simNumber), 
-              col = 'orangered', size = 1) +
+              col = 'orangered', size = 0.8) +
     geom_ribbon(data=subset(betaPostAll),
                 aes(x = time, ymin = lower, ymax = upper), 
                 alpha = 0.3, fill = 'orangered') +
