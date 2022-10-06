@@ -1,0 +1,14 @@
+nimble version 0.12.2 is loaded.
+For more information on NIMBLE and a User Manual,
+please visit https://R-nimble.org.
+
+Attaching package: ‘nimble’
+
+The following object is masked from ‘package:stats’:
+
+    simulate
+
+Error in checkForRemoteErrors(val) : 
+  3 nodes produced errors; first error: dimensions specified are smaller than model specification for variable 'knots'
+Calls: parLapplyLB ... clusterApplyLB -> dynamicClusterApply -> checkForRemoteErrors
+Execution halted
