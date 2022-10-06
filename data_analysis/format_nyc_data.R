@@ -15,7 +15,7 @@ colnames(nyc) <- c('date', 'dailyCases')
 nyc$date <- as.Date(nyc$date, format = '%m/%d/%Y')
 
 # population
-nyc$Population <- 8.419*1e6
+nyc$Population <- 8804190
 
 
 # peak identifier
