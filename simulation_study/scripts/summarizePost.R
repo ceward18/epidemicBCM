@@ -119,7 +119,7 @@ summarizePost <- function(resThree, incData, incDataFit, alarmFit, smoothWindow)
                                 paramsPost = paramsPost, 
                                 alarmSamples = alarmSamples, 
                                 RstarPost = RstarPost)
-        
+
         postMean <- rowMeans(postPredInc)
         postCI <- apply(postPredInc, 1, quantile, probs = c(0.025, 0.975))
         postEpiPred <- data.frame(time = 51:100,

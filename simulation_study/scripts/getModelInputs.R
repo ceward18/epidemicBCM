@@ -268,9 +268,9 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         xAlarm <- NULL
         
     }
-    
-    # initialize removals 1 day after infections
-    initsList$Rstar <- c(I0, dataList$Istar[1:(tau-1)]) 
+
+    # initialize removals 3 days after infections
+    initsList$Rstar <- c(rep(0, 3), I0, dataList$Istar[1:(tau-4)]) 
     names(initsList$Rstar) <- paste0('Rstar[', 1:tau, ']')
     
     list(constantsList = constantsList,
