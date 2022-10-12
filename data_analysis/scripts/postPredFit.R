@@ -3,7 +3,7 @@
 ################################################################################
 
 
-postPredFit <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
+postPredFit <- function(incData, smoothI, N, I0, R0, Istar0, Rstar0, lengthI,
                         alarmFit, prior, peak, smoothWindow, 
                         paramsPost, alarmSamples) {
     
@@ -19,6 +19,9 @@ postPredFit <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
     if (!alarmFit %in% c('basic', 'betatSpline')) {
         modelCode <- get(paste0('SIR_', alarmFit, '_sim'))
         modelInputs$constantsList$bw <- smoothWindow
+        modelInputs$constantsList$smoothI0 <- smoothI[1]
+        modelInputs$constantsList$Istar0 <- Istar0
+        modelInputs$constantsList$Istar0Length <- length(Istar0)
     } else {
         modelCode <- get(paste0('SIR_', alarmFit))
     }

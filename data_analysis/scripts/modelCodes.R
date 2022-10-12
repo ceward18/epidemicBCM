@@ -65,6 +65,27 @@ movingAverage <- nimbleFunction(
     })
 assign('movingAverage', movingAverage, envir = .GlobalEnv)
 
+
+# get smoothI at time t when doing posterior prediction
+get_smoothI <- nimbleFunction(     
+    run = function(Istar = double(1), t = double(0), Istar0 = double(1), 
+                   Istar0Length = double(0),  bw = double(0)) {
+        returnType(double(0))
+        
+        if (t < bw) {
+            
+            # incorporate previously observed incidence
+            result <- movingAverage(c(Istar0, Istar), bw)[Istar0Length + t - 1]
+           
+        } else {
+            result <- movingAverage(Istar, bw)[t - 1]
+        }
+        
+        return(result)
+    })
+assign('get_smoothI', get_smoothI, envir = .GlobalEnv)
+
+
 # squared exponential covariance for gaussian process
 sqExpCov <- nimbleFunction(     
     run = function(dists = double(2), sigma = double(0), l = double(0)) {
@@ -331,6 +352,7 @@ SIR_power <-  nimbleCode({
 
 # for forward simulation (smoothI unknown)
 
+
 SIR_power_sim <-  nimbleCode({
     
     SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
@@ -339,9 +361,8 @@ SIR_power_sim <-  nimbleCode({
     
     probIR <- 1 - exp(-rateI)
     
-    ### first time point for incidence based alarm
-    # compute alarm
-    smoothI[1] <- 0
+    ### first time point
+    smoothI[1] <- smoothI0
     alarm[1] <- powerAlarm(smoothI[1], N, k)
     
     probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
@@ -352,12 +373,12 @@ SIR_power_sim <-  nimbleCode({
     # update S and I
     S[2] <- S[1] - Istar[1]
     I[2] <- I[1] + Istar[1] - Rstar[1]
-    
+
     ### rest of time points
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
         alarm[t] <- powerAlarm(smoothI[t], N, k)
         
         probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -439,7 +460,7 @@ SIR_thresh_sim <-  nimbleCode({
     
     ### first time point for incidence based alarm
     # compute alarm
-    smoothI[1] <- 0
+    smoothI[1] <- smoothI0
     alarm[1] <- thresholdAlarm(smoothI[1],  N, delta, H)
     
     probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
@@ -455,7 +476,7 @@ SIR_thresh_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
         alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
         
         probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -536,7 +557,7 @@ SIR_hill_sim <-  nimbleCode({
     
     ### first time point for incidence based alarm
     # compute alarm
-    smoothI[1] <- 0
+    smoothI[1] <- smoothI0
     alarm[1] <- hillAlarm(smoothI[1], nu, x0, delta)
     
     probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
@@ -552,7 +573,7 @@ SIR_hill_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
         alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
         
         probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -646,7 +667,7 @@ SIR_spline_sim <-  nimbleCode({
     
     ### first time point for incidence based alarm
     # compute alarm
-    smoothI[1] <- 0
+    smoothI[1] <- smoothI0
     alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
     
     probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
@@ -662,7 +683,7 @@ SIR_spline_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
         probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -761,7 +782,7 @@ SIR_splineFixKnot_sim <-  nimbleCode({
     
     ### first time point for incidence based alarm
     # compute alarm
-    smoothI[1] <- 0
+    smoothI[1] <- smoothI0
     alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
     
     probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
@@ -777,7 +798,7 @@ SIR_splineFixKnot_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
         probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -863,7 +884,7 @@ SIR_gp_sim <-  nimbleCode({
     
     ### first time point for incidence based alarm
     # compute alarm
-    smoothI[1] <- 0
+    smoothI[1] <- smoothI0
     alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
     
     probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
@@ -879,7 +900,7 @@ SIR_gp_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
         probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -960,7 +981,6 @@ SIR_betatSpline <-  nimbleCode({
         
         Istar[t] ~ dbin(probSI[t], S[t])
         Rstar[t] ~ dbin(probIR, I[t])
-        
         
         # update S and I
         S[t + 1] <- S[t] - Istar[t]

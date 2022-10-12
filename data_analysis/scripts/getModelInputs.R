@@ -9,8 +9,10 @@
 getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
                           N, I0, R0, Rstar0, lengthI) {
     
-    # constants that are the same for all models
+    # Mean of prior for initial values
     S0 <- N - I0 - R0
+    
+    # constants that are the same for all models
     tau <- length(incData)
 
     # parameters for prior on infectious period rate
@@ -69,7 +71,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 600000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'thresh') {
@@ -109,7 +111,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 600000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'hill') {
@@ -150,7 +152,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 600000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'spline') {
@@ -204,7 +206,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 600000
+        nburn <- 500000
         nthin <- 10
         
     }  else if (alarmFit == 'splineFixKnot') {
@@ -262,7 +264,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 600000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'gp') {
@@ -315,7 +317,7 @@ getModelInput <- function(alarmFit, incData, smoothI, prior, peak, smoothWindow,
         
         ### MCMC specifications
         niter <- 1000000
-        nburn <- 600000
+        nburn <- 500000
         nthin <- 10
         
     } else if (alarmFit == 'betatSpline') {

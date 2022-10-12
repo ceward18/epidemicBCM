@@ -17,7 +17,7 @@ source('./scripts/postPredFit.R')
 source('./scripts/getWAIC.R')
 
 summarizePost <- function(resThree, incData, smoothI, smoothWindow,
-                          N, I0, R0, Rstar0, lengthI, 
+                          N, I0, R0, Istar0, Rstar0, lengthI, 
                           alarmFit, prior, peak) {
     
     if (!alarmFit %in% c('betatSpline', 'basic')) {
@@ -148,7 +148,7 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
     ### posterior predictive model fit
     
     postPredObs <- postPredFit(incData = incData, smoothI = smoothI,
-                               N = N, I0 = I0, R0 = R0,
+                               N = N, I0 = I0, R0 = R0, Istar0 = Istar0,
                                Rstar0 = Rstar0, lengthI = lengthI, 
                                alarmFit = alarmFit, prior = prior, peak = peak, 
                                smoothWindow = smoothWindow, 

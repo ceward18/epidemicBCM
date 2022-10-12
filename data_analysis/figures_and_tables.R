@@ -62,7 +62,7 @@ dev.off()
 grAll <- readRDS('./results/grAll.rds')
 
 # which didn't converge
-notConverge <- grAll[which(grAll$gr > 1.1),  ]
+notConverge <- grAll[which(grAll$gr > 1.2),  ]
 notConvergeModels <- notConverge[
     !duplicated(notConverge
                 [,-which(colnames(notConverge) %in% c('gr', 'grUpper', 'param'))]),
@@ -114,9 +114,10 @@ waicPlot$isMin <- factor(waicPlot$isMin,
                          labels = c('Minimum WAIC'))
 
 waicPlot$prior <- factor(waicPlot$prior, 
-                         levels = c(1,3,2,4),
+                         levels = c(1,3,2,4, 5),
                          labels=c('Mean 5, strong', 'Mean 5, weaker', 
-                                  'Mean 2, strong','Mean 2, weaker'))
+                                  'Mean 2, strong','Mean 2, weaker',
+                                  'Mean 3'))
 
 waicPlot$Peak <- factor(waicPlot$peak,
                         labels = paste0('Wave ', 1:4))
@@ -150,10 +151,10 @@ ggplot(waicPlot,
 dev.off()
 
 
-# just prior 1 for main results
+# just prior 5 for main results
 
 pdf('./figures/fig7_nyc_waic.pdf', width = 12, height = 4)
-ggplot(subset(waicPlot, prior == 'Mean 5, very informative'), 
+ggplot(subset(waicPlot, prior == 'Mean 3'), 
        aes(x = alarmFit,  y = waic, fill = smoothWindow, col = isMin)) +
     geom_bar(stat = 'identity', position=position_dodge2(padding = 0.1),
              size = 0.7) + 

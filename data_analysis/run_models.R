@@ -75,7 +75,8 @@ for (i in batchIdx) {
     
     # smoothed incidence to inform alarm function 
     # (shifted so alarm is informed only by data up to time t-1)
-    dat$smoothI <- head(movingAverage(c(0, dat$dailyCases), smoothWindow_i), -1)
+    dat$smoothI <- head(movingAverage(c(0, dat$smoothedCases), 
+                                      smoothWindow_i), -1)
     
     # get data for the specified peak
     incData <- dat$smoothedCases[which(dat$peak == peak_i)]
@@ -99,6 +100,10 @@ for (i in batchIdx) {
     
     # used to initialize removal vector
     Rstar0 <- dat$smoothedCases[max(1, idxStart - lengthI + 1):(idxStart)]
+    
+    # used for posterior predictive fit 
+    # previously observed incidence for correct smoothing at beginning of prediction
+    Istar0 <- dat$smoothedCases[max(1, (idxStart - smoothWindow_i + 1)):(idxStart)]
     
     # run three chains in parallel
     cl <- makeCluster(3)
@@ -130,7 +135,7 @@ for (i in batchIdx) {
     # debugonce(postPredFit)
     postSummaries <- summarizePost(resThree = resThree, incData = incData,
                                    smoothI = smoothI, smoothWindow = smoothWindow_i,
-                                   N = N, I0 = I0, R0 = R0, 
+                                   N = N, I0 = I0, R0 = R0, Istar0 = Istar0,
                                    Rstar0 = Rstar0, lengthI = lengthI, 
                                    alarmFit = alarmFit_i, prior = prior_i,
                                    peak = peak_i)
