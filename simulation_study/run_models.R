@@ -26,8 +26,8 @@ allFits <- allFits[-which(allFits$alarmFit %in% alarmGen &
                               allFits$alarmFit != allFits$alarmGen),]
 rownames(allFits) <- NULL
 
-# tmp <- allFits[seq(1,nrow(allFits), 25),]
-# rownames(tmp) <- NULL
+tmp <- allFits[seq(1,nrow(allFits), 25),]
+rownames(tmp) <- NULL
 
 # fit models in batches of 25 (60 batches total)
 batchSize <- 25
@@ -76,6 +76,12 @@ for (i in batchIdx) {
     })
     stopCluster(cl)
     
+    if (i == 934) {
+        saveRDS(resThree, 
+                paste0('./output/chains_', alarmGen_i, '_', alarmFit_i,
+                       '_', smoothWindow_i, '_', simNumber_i, '.rds'))
+    }
+    
     source('./scripts/summarizePost.R')
     
     # debugonce(summarizePost)
@@ -94,7 +100,7 @@ for (i in batchIdx) {
         resThree[[3]] <- resThree[[3]][seq(1,nrow(resThree[[3]]), 10),]
         
         saveRDS(resThree, 
-                paste0('./output/chains_', alarmGen, '_', alarmFit_i,
+                paste0('./output/chains_', alarmGen_i, '_', alarmFit_i,
                        '_', smoothWindow_i, '_', simNumber_i, '.rds'))
     }
     
