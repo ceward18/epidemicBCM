@@ -148,7 +148,7 @@ fitAlarmModel <- function(incData, smoothI, N, I0, R0, Rstar0, lengthI,
         
     } 
     
-    myConfig$addMonitors(c('Rstar', 'R0'))
+    myConfig$addMonitors(c('Rstar', 'R0', 'R0_update'))
     print(myConfig)
     myMCMC <- buildMCMC(myConfig)
     compiled <- compileNimble(myModel, myMCMC) 

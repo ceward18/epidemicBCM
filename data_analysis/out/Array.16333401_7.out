@@ -1,8 +1,0 @@
-[1] "Running alarm: power , peak: 3 , smoothing: 60 , prior: 1"
-Stochastic parents of data are:  beta k rateI SIR_init[1] SIR_init[2] SIR_init[3] .
-[1] "Running alarm: power , peak: 3 , smoothing: 60 , prior: 2"
-Stochastic parents of data are:  beta k rateI SIR_init[1] SIR_init[2] SIR_init[3] .
-[1] "Running alarm: power , peak: 3 , smoothing: 60 , prior: 3"
-Stochastic parents of data are:  beta k rateI SIR_init[1] SIR_init[2] SIR_init[3] .
-[1] "Running alarm: power , peak: 3 , smoothing: 60 , prior: 4"
-Stochastic parents of data are:  beta k rateI SIR_init[1] SIR_init[2] SIR_init[3] .

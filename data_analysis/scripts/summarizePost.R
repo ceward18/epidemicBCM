@@ -129,20 +129,38 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
     ##############################################################################
     ### Posterior distribution of reproductive number
     
-    R0Samples1 <-  resThree[[1]][,grep('R0', colnames(resThree[[1]]))]
-    R0Samples2 <-  resThree[[2]][,grep('R0', colnames(resThree[[2]]))]
-    R0Samples3 <-  resThree[[3]][,grep('R0', colnames(resThree[[3]]))]
+    R0Samples1 <-  resThree[[1]][,grep('R0_update', colnames(resThree[[1]]))]
+    R0Samples2 <-  resThree[[2]][,grep('R0_update', colnames(resThree[[2]]))]
+    R0Samples3 <-  resThree[[3]][,grep('R0_update', colnames(resThree[[3]]))]
     
     # combine posterior parameters with posterior R0
     R0Samples <- rbind(R0Samples1, R0Samples2, R0Samples3)
     
     postMeans <- colMeans(R0Samples)
     postCI <- apply(R0Samples, 2, quantile, probs = c(0.025, 0.975))
-    postR0 <- data.frame(time = 1:length(incData),
+    postR0 <- data.frame(time = 1:length(postMeans),
                          mean = postMeans,
                          lower = postCI[1,],
                          upper = postCI[2,])
     rownames(postR0) <- NULL
+    
+    ##############################################################################
+    ### Posterior distribution of reproductive number
+    
+    R0Samples1 <-  resThree[[1]][,grep('R0\\[', colnames(resThree[[1]]))]
+    R0Samples2 <-  resThree[[2]][,grep('R0\\[', colnames(resThree[[2]]))]
+    R0Samples3 <-  resThree[[3]][,grep('R0\\[', colnames(resThree[[3]]))]
+    
+    # combine posterior parameters with posterior R0
+    R0Samples <- rbind(R0Samples1, R0Samples2, R0Samples3)
+    
+    postMeans <- colMeans(R0Samples)
+    postCI <- apply(R0Samples, 2, quantile, probs = c(0.025, 0.975))
+    postR0_old <- data.frame(time = 1:length(postMeans),
+                         mean = postMeans,
+                         lower = postCI[1,],
+                         upper = postCI[2,])
+    rownames(postR0_old) <- NULL
 
     ##############################################################################
     ### posterior predictive model fit
@@ -201,6 +219,7 @@ summarizePost <- function(resThree, incData, smoothI, smoothWindow,
          postPredFit = postPredFit,
          postBeta = postBeta,
          postR0 = postR0,
+         postR0_old = postR0_old,
          waic = waic)
     
     

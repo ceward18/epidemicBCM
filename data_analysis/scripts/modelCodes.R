@@ -85,6 +85,69 @@ get_smoothI <- nimbleFunction(
     })
 assign('get_smoothI', get_smoothI, envir = .GlobalEnv)
 
+# get effective reproductive number at time t using a forward sum
+get_R0 <- nimbleFunction(     
+    run = function(betat = double(1), rateI = double(0), N = double(0), S = double(1)) {
+        returnType(double(1))
+        
+        maxInf <- 14
+
+        # probability of transition given 1 infectious individual (vector length t)
+        pi_SI <- 1 - exp(- betat / N )
+        
+        # infectious probability of removal
+        pi_IR <- 1 - exp(-rateI)
+        
+        # for exponential periods
+        multVec <- c(1, rep(NA, maxInf))
+        for (i in 2:length(multVec)) {
+            multVec[i] <- multVec[i-1] * (1 - pi_IR)
+        }
+        
+        nTime <- length(pi_SI)
+        bw <- length(multVec)
+        sumSmooth <- rep(NA, nTime - bw)
+        for(k in 1:(nTime - bw)){
+            t1 <- k
+            t2 <- k + bw - 1
+            sumSmooth[k] <- sum(pi_SI[t1:t2] * multVec) * S[k]
+        }
+        
+        return(sumSmooth)
+    })
+assign('get_R0', get_R0, envir = .GlobalEnv)
+
+# get effective reproductive number for no BC model using a forward sum
+get_R0_basic <- nimbleFunction(     
+    run = function(beta = double(0), rateI = double(0), N = double(0), S = double(1)) {
+        returnType(double(1))
+        
+        maxInf <- 14
+        
+        # probability of transition given 1 infectious individual (vector length t)
+        pi_SI <- rep(1 - exp(- beta / N ), length(S))
+        
+        # infectious probability of removal
+        pi_IR <- 1 - exp(-rateI)
+        
+        # for exponential periods
+        multVec <- c(1, rep(NA, maxInf))
+        for (i in 2:length(multVec)) {
+            multVec[i] <- multVec[i-1] * (1 - pi_IR)
+        }
+        
+        nTime <- length(pi_SI)
+        bw <- length(multVec)
+        sumSmooth <- rep(NA, nTime - bw)
+        for(k in 1:(nTime - bw)){
+            t1 <- k
+            t2 <- k + bw - 1
+            sumSmooth[k] <- sum(pi_SI[t1:t2] * multVec) * S[k]
+        }
+        
+        return(sumSmooth)
+    })
+assign('get_R0_basic', get_R0_basic, envir = .GlobalEnv)
 
 # squared exponential covariance for gaussian process
 sqExpCov <- nimbleFunction(     
@@ -336,8 +399,11 @@ SIR_power <-  nimbleCode({
         
         # estimate reproductive number
         R0[t] <- (beta * (1 - alarm[t])) / rateI
-        
+
     }
+    
+    # estimated effective R0
+    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
     
     for (i in 1:n) {
         yAlarm[i] <- powerAlarm(xAlarm[i], N, k)
@@ -438,6 +504,9 @@ SIR_thresh <-  nimbleCode({
         
     }
     
+    # estimated effective R0
+    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    
     for (i in 1:n) {
         yAlarm[i] <- thresholdAlarm(xAlarm[i],  N, delta, H)
     }
@@ -533,6 +602,10 @@ SIR_hill <-  nimbleCode({
         # estimate reproductive number
         R0[t] <- (beta * (1 - alarm[t])) / rateI
     }
+    
+    # estimated effective R0
+    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    
     
     for (i in 1:n) {
         yAlarm[i] <- hillAlarm(xAlarm[i],  nu, x0, delta)
@@ -632,6 +705,9 @@ SIR_spline <-  nimbleCode({
         R0[t] <- (beta * (1 - alarm[t])) / rateI
         
     }
+    
+    # estimated effective R0
+    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
     
     yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
     
@@ -754,6 +830,9 @@ SIR_splineFixKnot <-  nimbleCode({
         
     }
     
+    # estimated effective R0
+    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    
     yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
     
     # constrain yAlarm to be between 0 and 1
@@ -861,6 +940,9 @@ SIR_gp <-  nimbleCode({
         R0[t] <- (beta * (1 - alarm[t])) / rateI
     }
     
+    # estimated effective R0
+    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    
     yAlarm[1] <- 0
     mu[2:n] <- mu0 * ones[2:n]
     cov[2:n, 2:n] <- sqExpCov(dists[2:n, 2:n], sigma, l)
@@ -955,6 +1037,9 @@ SIR_basic <-  nimbleCode({
         R0[t] <- beta / rateI
     }
     
+    # estimated effective R0
+    R0_update[1:(tau-15)] <- get_R0_basic(beta, rateI, N, S[1:tau])
+    
     # priors
     beta ~ dgamma(0.1, 0.1)
     rateI ~ dgamma(aa, bb)
@@ -989,6 +1074,9 @@ SIR_betatSpline <-  nimbleCode({
         # estimate reproductive number
         R0[t] <- beta[t] / rateI
     }
+    
+    # estimated effective R0
+    R0_update[1:(tau-15)] <- get_R0(beta[1:tau], rateI, N, S[1:tau])
     
     log(beta[1:tau]) <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])
     

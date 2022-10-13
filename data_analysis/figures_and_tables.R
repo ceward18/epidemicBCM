@@ -181,6 +181,179 @@ ggplot(subset(waicPlot, prior == 'Mean 3'),
          x = '', y = 'WAIC')
 dev.off()
 
+
+################################################################################
+# Figure XX:
+# Using prior 5, main results:
+# posterior alarms,
+# R0 over time
+# posterior predictive distribution
+# WAIC
+################################################################################
+
+
+### load posterior estimates of alarm functions
+alarmAll <- readRDS('./results/alarmPostAll.rds')
+alarmSub <- subset(alarmAll, prior == 5)
+alarmSub <- subset(alarmSub, alarmFit != 'spline')
+
+### load posterior estimates of R0 over epidemic time
+r0All <- readRDS('./results/r0PostAll.rds')
+r0Sub <- subset(r0All, prior == 5)
+r0Sub <- subset(r0Sub, alarmFit != 'spline')
+
+### load posterior predictive fit
+postPredFitAll <- readRDS('./results/postPredFitAll.rds')
+postPredFitSub <- subset(postPredFitAll, prior == 5)
+postPredFitSub <- subset(postPredFitSub, alarmFit != 'spline')
+
+### create columns numbering timing of each wave from 0
+dat$timePeak4 <- dat$timePeak3 <- dat$timePeak2 <- dat$timePeak1 <- NA
+
+# peak 1 time 1 is row 6
+dat$timePeak1[6:(max(which(dat$peak == 1)))] <- 1:(max(which(dat$peak == 1)) - 5)
+
+dat$timePeak2[(min(which(dat$peak == 2)) + 1):(max(which(dat$peak == 2)))] <-
+    (min(which(dat$peak == 2)) + 1):(max(which(dat$peak == 2))) -
+    min(which(dat$peak == 2)) 
+
+dat$timePeak3[(min(which(dat$peak == 3)) + 1):(max(which(dat$peak == 3)))] <-
+    (min(which(dat$peak == 3)) + 1):(max(which(dat$peak == 3))) -
+    min(which(dat$peak == 3))
+
+dat$timePeak4[(min(which(dat$peak == 4)) + 1):(max(which(dat$peak == 4)))] <-
+    (min(which(dat$peak == 4)) + 1):(max(which(dat$peak == 4))) -
+    min(which(dat$peak == 4)) 
+
+
+################################################################################
+### Alarms for each wave
+
+# wave 1 and 3 60-day incidence
+# wave 2 30-day incidence
+alarmSub <- alarmSub[-which(alarmSub$peak == 1 & alarmSub$smoothWindow == 30),]
+alarmSub <- alarmSub[-which(alarmSub$peak == 2 & alarmSub$smoothWindow == 60),]
+alarmSub <- alarmSub[-which(alarmSub$peak == 3 & alarmSub$smoothWindow == 30),]
+
+
+# format for better plotting
+alarmSub$alarmFit <- factor(alarmSub$alarmFit,
+                            levels = c('splineFixKnot', 'gp',
+                                       'thresh', 'hill', 'power'),
+                            labels = c('Spline', 'Gaussian Process', 
+                                       'Threshold', 'Hill', 'Power'))
+
+alarmSub$Peak <- factor(alarmSub$peak, labels = paste0('Wave ', 1:4))
+
+myTheme <- theme_bw() + 
+    theme(plot.title = element_text(h = 0.5),
+          strip.background = element_rect(color = 'white',fill = 'white'),
+          strip.text = element_text(size = 12),
+          axis.text.y = element_text(size = 10),
+          axis.text.x = element_text(size = 8),
+          axis.title = element_text(size = 12),
+          legend.text = element_text(size = 10),
+          legend.title = element_text(size = 12))
+
+
+p1 <- ggplot(subset(alarmSub, peak == 1),
+             aes(x = xAlarm, y = mean, ymin=lower, ymax=upper)) +  
+    geom_line() +
+    geom_ribbon(alpha=0.3, fill = 'blue') +
+    facet_grid(~alarmFit) +
+    labs(x = '60-day incidence', y = 'Alarm') + 
+    ylim(0, 1) +
+    labs(title = 'Wave 1') +
+    myTheme 
+
+p2 <- ggplot(subset(alarmSub, peak == 2),
+             aes(x = xAlarm, y = mean, ymin=lower, ymax=upper)) +  
+    geom_line() +
+    geom_ribbon(alpha=0.3, fill = 'blue') +
+    facet_grid(~alarmFit) +
+    labs(x = '30-day incidence', y = 'Alarm') + 
+    ylim(0, 1) +
+    labs(title = 'Wave 2') +
+    myTheme 
+
+p3 <- ggplot(subset(alarmSub, peak == 3),
+             aes(x = xAlarm, y = mean, ymin=lower, ymax=upper)) +  
+    geom_line() +
+    geom_ribbon(alpha=0.3, fill = 'blue') +
+    facet_grid(~alarmFit) +
+    labs(x = '60-day incidence', y = 'Alarm') + 
+    ylim(0, 1) +
+    labs(title = 'Wave 3') +
+    myTheme 
+
+pdf('./figures/figX_nyc_alarms.pdf', width = 8, height = 7)
+grid.arrange(p1, p2, p3, nrow = 3)
+dev.off()
+
+### R0 over time - spline only
+
+r0Peak1 <- subset(r0Sub, peak == '1' & 
+                      alarmFit %in% c('splineFixKnot', 'betatSpline', 'basic') & 
+                      smoothWindow %in% c(60, 1))
+r0Peak1 <- merge(r0Peak1, dat, 
+                 by.x = 'time', by.y = 'timePeak1', 
+                 all.x = T)
+r0Peak1 <- r0Peak1[,-which(colnames(r0Peak1) %in% paste0('timePeak', 1:4))]
+
+r0Peak2 <- subset(r0Sub, peak == '2' & 
+                      alarmFit %in% c('splineFixKnot', 'betatSpline', 'basic') & 
+                      smoothWindow %in% c(30, 1))
+r0Peak2 <- merge(r0Peak2, dat, 
+                 by.x = 'time', by.y = 'timePeak2', 
+                 all.x = T)
+r0Peak2 <- r0Peak2[,-which(colnames(r0Peak2) %in% paste0('timePeak', 1:4))]
+
+r0Peak3 <- subset(r0Sub, peak == '3' & 
+                      alarmFit %in% c('splineFixKnot', 'betatSpline', 'basic') & 
+                      smoothWindow %in% c(60, 1))
+r0Peak3 <- merge(r0Peak3, dat, 
+                 by.x = 'time', by.y = 'timePeak3', 
+                 all.x = T)
+r0Peak3 <- r0Peak3[,-which(colnames(r0Peak3) %in% paste0('timePeak', 1:4))]
+
+r0PeakAll <- rbind.data.frame(r0Peak1, r0Peak2, r0Peak3)
+
+p1 <- ggplot(r0Peak1, 
+             aes(x = date, y = mean, ymin=lower, ymax=upper)) +  
+    geom_line() +
+    geom_ribbon(alpha=0.3, fill = 'blue') +
+    facet_grid(~alarmFit, scales = 'free') +
+    labs(x = 'Date', y = 'R0') + 
+    geom_hline(yintercept = 1, linetype = 2) + 
+    ggtitle('Wave 1') + 
+    ylim(0, 2.55) +
+    myTheme
+
+p2 <- ggplot(r0Peak2, 
+             aes(x = date, y = mean, ymin=lower, ymax=upper)) +  
+    geom_line() +
+    geom_ribbon(alpha=0.3, fill = 'blue') +
+    facet_grid(~alarmFit, scales = 'free') +
+    labs(x = 'Date', y = 'R0') + 
+    geom_hline(yintercept = 1, linetype = 2) + 
+    ggtitle('Wave 2') + 
+    ylim(0, 2.55) +
+    myTheme
+
+p3 <- ggplot(r0Peak3, 
+             aes(x = date, y = mean, ymin=lower, ymax=upper)) +  
+    geom_line() +
+    geom_ribbon(alpha=0.3, fill = 'blue') +
+    facet_grid(~alarmFit, scales = 'free') +
+    labs(x = 'Date', y = 'R0') + 
+    geom_hline(yintercept = 1, linetype = 2) + 
+    ggtitle('Wave 3') + 
+    ylim(0, 2.55) +
+    myTheme
+
+
+grid.arrange(p1, p2, p3, nrow = 3)
+
 ################################################################################
 # Tables XX: All posterior mean and 95% CI's
 ################################################################################

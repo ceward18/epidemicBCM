@@ -1,8 +1,0 @@
-[1] "Running alarm: hill , peak: 1 , smoothing: 30 , prior: 4"
-Stochastic parents of data are:  beta delta nu x0 rateI SIR_init[1] SIR_init[2] SIR_init[3] .
-[1] "Running alarm: hill , peak: 2 , smoothing: 30 , prior: 4"
-Stochastic parents of data are:  beta delta nu x0 rateI SIR_init[1] SIR_init[2] SIR_init[3] .
-[1] "Running alarm: hill , peak: 3 , smoothing: 30 , prior: 4"
-Stochastic parents of data are:  beta delta nu x0 rateI SIR_init[1] SIR_init[2] SIR_init[3] .
-[1] "Running alarm: hill , peak: 4 , smoothing: 30 , prior: 4"
-Stochastic parents of data are:  beta delta nu x0 rateI SIR_init[1] SIR_init[2] SIR_init[3] .

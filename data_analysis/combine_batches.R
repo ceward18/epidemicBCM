@@ -55,10 +55,6 @@ for (i in 2:length(postPredFiles)) {
     postPredAll <-rbind.data.frame(postPredAll, postPred_i)
 }
 
-# remove models that didn't estimate posterior predictions (betat)
-postPredAll <- postPredAll[!is.na(postPredAll$mean),]
-
-
 saveRDS(postPredAll,  paste0('./', resultsFolder, '/postPredFitAll.rds'))
 
 ################################################################################
