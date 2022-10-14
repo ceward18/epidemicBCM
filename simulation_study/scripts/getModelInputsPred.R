@@ -5,7 +5,7 @@
 # used for WAIC
 ################################################################################
 
-getModelInput <- function(alarmFit, incData, smoothWindow) {
+getModelInputPred <- function(alarmFit, incData, smoothWindow, obsData) {
     
     # constants that are the same for all models
     N <- 1e6
@@ -21,8 +21,9 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         
         ### constants 
         smoothI <- c(0, movingAverage(incData, smoothWindow))
+        smoothIObs <- c(0, movingAverage(obsData, smoothWindow))
         n <- 50
-        maxI <- ceiling(max(smoothI))
+        maxI <- ceiling(max(smoothIObs))
         xAlarm <- seq(0, maxI, length.out = n)
         
         constantsList <- list(tau = tau,
@@ -51,9 +52,10 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         
         ### constants
         smoothI <- c(0, movingAverage(incData, smoothWindow))
+        smoothIObs <- c(0, movingAverage(obsData, smoothWindow))
         n <- 100
-        minI <- floor(min(smoothI))
-        maxI <- ceiling(max(smoothI))
+        minI <- floor(min(smoothIObs))
+        maxI <- ceiling(max(smoothIObs))
         xAlarm <- seq(0, maxI, length.out = n)
         
         constantsList <- list(tau = tau,
@@ -85,9 +87,10 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         
         ### constants
         smoothI <- c(0, movingAverage(incData, smoothWindow))
+        smoothIObs <- c(0, movingAverage(obsData, smoothWindow))
         n <- 50
-        minI <- floor(min(smoothI))
-        maxI <- ceiling(max(smoothI))
+        minI <- floor(min(smoothIObs))
+        maxI <- ceiling(max(smoothIObs))
         xAlarm <- seq(0, maxI, length.out = n)
         
         constantsList <- list(tau = tau,
@@ -120,9 +123,10 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         
         ### constants
         smoothI <- c(0, movingAverage(incData, smoothWindow))
+        smoothIObs <- c(0, movingAverage(obsData, smoothWindow))
         n <- 50
-        minI <- floor(min(smoothI))
-        maxI <- ceiling(max(smoothI))
+        minI <- floor(min(smoothIObs))
+        maxI <- ceiling(max(smoothIObs))
         xAlarm <- seq(0, maxI, length.out = n)
         nb <- 3
         
@@ -169,8 +173,9 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         
         ### constants
         smoothI <- c(0, movingAverage(incData, smoothWindow))
+        smoothIObs <- c(0, movingAverage(obsData, smoothWindow))
         n <- 10
-        maxI <- ceiling(max(smoothI))
+        maxI <- ceiling(max(smoothIObs))
         xAlarm <- seq(0, maxI, length.out = n)
         distMat <- as.matrix(dist(matrix(xAlarm)))
         
@@ -233,42 +238,8 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         nthin <- 10
         
         xAlarm <- NULL
-    } else if (alarmFit == 'betatSpline') {
-        
-        ### constants
-        timeVec <- 1:tau
-        nb <- 3
-        
-        constantsList <- list(tau = tau,
-                              N = N,
-                              I0 = I0,
-                              timeVec = timeVec,
-                              nb = nb,
-                              aa = aa,
-                              bb = bb)
-        
-        ### data
-        dataList <- list(Istar = incData,
-                         constrain_knots = 1)
-        
-        ### inits
-        initsList <- list(b = rnorm(nb, 0, 4),
-                          knots = as.vector(quantile(timeVec, 
-                                                     probs = sort(runif(nb - 1, 
-                                                                        0.2, 
-                                                                        0.6)))),
-                          rateI = rgamma(1, aa, bb))
-        
-        
-        ### MCMC specifications
-        niter <- 800000
-        nburn <- 500000
-        nthin <- 10
-        
-        xAlarm <- NULL
-        
     }
-
+    
     # initialize removals 3 days after infections
     initsList$Rstar <- c(rep(0, 3), I0, dataList$Istar[1:(tau-4)]) 
     names(initsList$Rstar) <- paste0('Rstar[', 1:tau, ']')

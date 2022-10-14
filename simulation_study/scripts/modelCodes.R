@@ -844,7 +844,7 @@ SIR_betatSpline <-  nimbleCode({
     rateI ~ dgamma(aa, bb)
     
     # constrain knots to be ordered
-    constrain_knots ~ dconstraint(knots[1] < knots[2] & knots[2] < knots[3] )
+    constrain_knots ~ dconstraint(knots[1] < knots[2])
     
 })
 

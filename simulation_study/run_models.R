@@ -76,16 +76,11 @@ for (i in batchIdx) {
     })
     stopCluster(cl)
     
-    if (i == 934) {
-        saveRDS(resThree, 
-                paste0('./output/chains_', alarmGen_i, '_', alarmFit_i,
-                       '_', smoothWindow_i, '_', simNumber_i, '.rds'))
-    }
-    
     source('./scripts/summarizePost.R')
     
     # debugonce(summarizePost)
     # debugonce(postPredFit)
+    # debugonce(postPred)
     postSummaries <- summarizePost(resThree = resThree, incData = incData,
                                    incDataFit = incDataFit, 
                                    alarmFit = alarmFit_i, 
