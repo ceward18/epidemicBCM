@@ -121,22 +121,3 @@ for (i in 2:length(r0PostFiles)) {
 rownames(r0PostAll) <- NULL
 
 saveRDS(r0PostAll,  paste0('./', resultsFolder, '/r0PostAll.rds'))
-
-# ################################################################################
-# # R0 posterior over xAlarm (not basic or betat)
-# 
-# 
-# 
-# r0AlarmPostFiles <- outputFiles[grep('R0AlarmPost', outputFiles)]
-# 
-# r0AlarmPostAll <- readRDS(paste0('./', outputFolder, '/', r0AlarmPostFiles[1]))
-# 
-# for (i in 2:length(r0AlarmPostFiles)) {
-#     r0AlarmPost_i <- readRDS(paste0('./', outputFolder, '/', r0AlarmPostFiles[i]))
-#     r0AlarmPostAll <-rbind.data.frame(r0AlarmPostAll, r0AlarmPost_i)
-# }
-# 
-# rownames(r0AlarmPostAll) <- NULL
-# 
-# saveRDS(r0AlarmPostAll,  paste0('./', resultsFolder, '/r0AlarmPostAll.rds'))
-# 
