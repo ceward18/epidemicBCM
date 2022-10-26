@@ -1,5 +1,6 @@
 ################################################################################
 # Figures in paper
+# simulation study
 ################################################################################
 
 # load libraries
@@ -382,14 +383,18 @@ myTheme1 <- theme(legend.position = legendLocation1,
                  plot.title = element_text(h = 0.5, size = 15),
                  axis.title = element_text(size = 13),
                  axis.text = element_text(size = 11),
-                 legend.text = element_text(size = 12))
+                 legend.text = element_text(size = 12),
+                 panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank())
 
 myTheme2 <- theme(legend.position = legendLocation2,
                  legend.title= element_blank(),
                  plot.title = element_text(h = 0.5, size = 16),
                  axis.title = element_text(size = 14),
                  axis.text = element_text(size = 12),
-                 legend.text = element_text(size = 12))
+                 legend.text = element_text(size = 12),
+                 panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank())
 
 # alarms
 p1 <- ggplot(subset(toPlot_alarm_A, alarm == 'Power'), 
@@ -526,7 +531,9 @@ p7 <- ggplot(subset(toPlot_B, time <=80),
           axis.title = element_text(size = 15),
           axis.text = element_text(size = 12),
           legend.text = element_text(size = 14),
-          legend.title = element_text(size = 16)) +
+          legend.title = element_text(size = 16),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank()) +
     labs(color = 'Alarm',
          x = 'Epidemic Time', y = 'Incidence') 
 
@@ -541,131 +548,17 @@ dev.off()
 
 
 
-################################################################################
-# Figure 3 - Simulation set up 30 day smoothing alarms and example epidemics
-################################################################################
-
-
-theme_set(theme_bw() + 
-              theme(strip.background = element_rect(fill = 'white'),
-                    strip.text = element_text(size = 16),
-                    axis.title = element_text(size = 16),
-                    axis.text = element_text(size = 14),
-                    plot.title = element_text(size = 17, h = 0.5)))
-
-
-### get parameters for true alarms
-paramsTruth <- read.xlsx('simParamsSummary.xlsx')
-
-N <- 1e6
-
-xAlarm <- 0:400
-
-# True alarm functions used for data generation
-trueAlarmPower30 <- powerAlarm(xAlarm, N = N, 
-                               k = paramsTruth$k[
-                                   (paramsTruth$alarmGen == 'power' & 
-                                        paramsTruth$smoothWindow == 30)])
-
-trueAlarmThresh30 <- thresholdAlarm(xAlarm, N = N, 
-                                    delta = paramsTruth$delta[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 30)],
-                                    H = paramsTruth$H[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 30)])
-
-trueAlarmHill30 <- hillAlarm(xAlarm, 
-                             nu = paramsTruth$nu[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)],
-                             x0 = paramsTruth$x0[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)],
-                             delta = paramsTruth$delta[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)])
-
-trueAlarms <- data.frame(xAlarm = rep(xAlarm, 3),
-                         trueAlarm = c(trueAlarmPower30,
-                                       trueAlarmThresh30,
-                                       trueAlarmHill30),
-                         alarmGen = c(rep('power', length(xAlarm)),
-                                      rep('thresh', length(xAlarm)),
-                                      rep('hill', length(xAlarm))))
-
-
-# get example data
-set.seed(1)
-simNumber <- round(runif(1, 0.5, 50.5))
-
-nDays <- 100
-
-# get true epidemic curves for each scenario
-trueCurvePower30 <- readRDS(paste0('./Data/power_30.rds'))[simNumber,1:nDays]
-trueCurveThresh30 <- readRDS(paste0('./Data/thresh_30.rds'))[simNumber,1:nDays]
-trueCurveHill30 <- readRDS(paste0('./Data/hill_30.rds'))[simNumber,1:nDays]
-
-trueCurves <- data.frame(time = rep(1:nDays, 3),
-                         truth = c(trueCurvePower30, 
-                                   trueCurveThresh30,
-                                   trueCurveHill30),
-                         alarmGen = c(rep('power', nDays),
-                                      rep('thresh', nDays),
-                                      rep('hill', nDays)))
-
-trueAlarms$alarmGen <- factor(trueAlarms$alarmGen,
-                              levels = c('power', 'thresh', 'hill'),
-                              labels = c('Power', 'Threshold', 'Hill'))
-
-trueCurves$alarmGen <- factor(trueCurves$alarmGen,
-                              levels = c('power', 'thresh', 'hill'),
-                              labels = c('Power', 'Threshold', 'Hill'))
-
-
-p1 <- ggplot(trueAlarms, aes(x = xAlarm, y = trueAlarm)) +
-    geom_line(size = 1) +
-    facet_wrap(~alarmGen) +
-    labs(x = '30-day average incidence', y = 'Alarm',
-         title = 'True alarm functions') + 
-    ylim(0, 1)
-
-p2 <- ggplot(trueCurves, aes(x = time, y = truth)) +
-    geom_line(size = 1) +
-    facet_wrap(~alarmGen) +
-    labs(x = 'Epidemic Time', y = 'Incidence',
-         title = 'Example simulated epidemic curves') +
-    geom_vline(xintercept = 50, linetype = 2) +
-    annotate('text', x = 25, y = 530, label='Train', hjust = 0.5, size = 6) +
-    annotate('text', x = 75, y = 530, label='Test', hjust = 0.5, size = 6) +
-    ylim(0, 550)
-
-pdf('./figures/fig3_sim_setup.pdf', height = 7, width = 9)
-grid.arrange(p1, p2, ncol = 1)
-dev.off()
-
-
-
 
 ################################################################################
-# Figure 4 - Posterior estimation of the alarm functions for 30-day smoothing
-# Supplemental Figure 5 - for 14-day smoothing
+# Figure 3 - Posterior estimation of the alarm functions for 30-day smoothing
 ################################################################################
 
 ### get parameters for true alarms
 paramsTruth <- read.xlsx('simParamsSummary.xlsx')
-paramsTruth <- paramsTruth[paramsTruth$infPeriod == infPeriodSpec,]
 
 N <- 1e6
 
 xAlarm <- 0:500
-trueAlarmThresh14 <- thresholdAlarm(xAlarm, N = N, 
-                                    delta = paramsTruth$delta[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 14)],
-                                    H = paramsTruth$H[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 14)])
 trueAlarmThresh30 <- thresholdAlarm(xAlarm, N = N, 
                                     delta = paramsTruth$delta[
                                         (paramsTruth$alarmGen == 'thresh' & 
@@ -673,16 +566,6 @@ trueAlarmThresh30 <- thresholdAlarm(xAlarm, N = N,
                                     H = paramsTruth$H[
                                         (paramsTruth$alarmGen == 'thresh' & 
                                              paramsTruth$smoothWindow == 30)])
-trueAlarmHill14 <- hillAlarm(xAlarm, 
-                             nu = paramsTruth$nu[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)],
-                             x0 = paramsTruth$x0[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)],
-                             delta = paramsTruth$delta[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)])
 trueAlarmHill30 <- hillAlarm(xAlarm, 
                              nu = paramsTruth$nu[
                                  (paramsTruth$alarmGen == 'hill' & 
@@ -693,29 +576,24 @@ trueAlarmHill30 <- hillAlarm(xAlarm,
                              delta = paramsTruth$delta[
                                  (paramsTruth$alarmGen == 'hill' & 
                                       paramsTruth$smoothWindow == 30)])
-trueAlarmPower14 <- powerAlarm(xAlarm, N = N, 
-                               k = paramsTruth$k[
-                                   (paramsTruth$alarmGen == 'power' & 
-                                        paramsTruth$smoothWindow == 14)])
 trueAlarmPower30 <- powerAlarm(xAlarm, N = N, 
                                k = paramsTruth$k[
                                    (paramsTruth$alarmGen == 'power' & 
                                         paramsTruth$smoothWindow == 30)])
 
-trueAlarms <- data.frame(xAlarm = rep(xAlarm, 6),
-                         trueAlarm = c(trueAlarmThresh14,
-                                       trueAlarmThresh30,
-                                       trueAlarmHill14,
+trueAlarms <- data.frame(xAlarm = rep(xAlarm, 3),
+                         trueAlarm = c(trueAlarmThresh30,
                                        trueAlarmHill30,
-                                       trueAlarmPower14,
                                        trueAlarmPower30),
-                         alarmGen = c(rep('thresh', length(xAlarm)*2),
-                                      rep('hill', length(xAlarm)*2),
-                                      rep('power', length(xAlarm)*2)),
-                         smoothWindow = rep(rep(c(14, 30), each = length(xAlarm)), 3))
+                         alarmGen = c(rep('thresh', length(xAlarm)),
+                                      rep('hill', length(xAlarm)),
+                                      rep('power', length(xAlarm))))
 
 ### load posterior estimates
 alarmAll <- readRDS('./results/alarmPostAll.rds')
+
+# 30-day smoothing
+alarmAll<- subset(alarmAll, smoothWindow == 30)
 
 ### remove those that did not converge
 alarmAll <- merge(alarmAll, notConvergeModels,
@@ -730,103 +608,61 @@ alarmAll$alarmFit <- factor(alarmAll$alarmFit,
                             labels = c('Threshold', 'Hill', 'Power',
                                        'Spline', 'Gaussian Process'))
 
-theme_set(theme_bw() + 
-              theme(strip.background = element_rect(fill = 'white'),
-                    strip.text = element_text(size = 9),
-                    axis.title = element_text(size = 8),
-                    axis.text = element_text(size = 6),
-                    plot.title = element_text(size = 9, h = 0.5)))
+myTheme <- theme_bw() + 
+    theme(strip.background = element_rect(fill = 'white'),
+          strip.text = element_text(size = 9),
+          axis.title = element_text(size = 8),
+          axis.text = element_text(size = 6),
+          plot.title = element_text(size = 9, h = 0.5),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank())
 
-
-### smoothing window 14 days
-p1 <- ggplot() +  
-    geom_line(data = subset(alarmAll, smoothWindow == 14 & alarmGen == 'power'), 
-              aes(x = xAlarm, y = mean, group = simNumber), 
-              col = adjustcolor('grey50', alpha = 0.4)) +
-    geom_line(data = subset(trueAlarms, smoothWindow == 14 & alarmGen == 'power'), 
-              aes(x = xAlarm, y = trueAlarm), col = 'red', size = 0.7) +
-    facet_wrap(~alarmFit) + 
-    labs(x = '14-day average incidence', y = 'Alarm')+
-    ylim(0, 1) + 
-    ggtitle('Data generation: Power alarm')+
-    xlim(0, 370)
-
-p2 <- ggplot() +  
-    geom_line(data = subset(alarmAll, smoothWindow == 14 &  alarmGen == 'thresh'), 
-              aes(x = xAlarm, y = mean, group = simNumber), 
-              col = adjustcolor('grey50', alpha = 0.4)) +
-    geom_line(data = subset(trueAlarms, smoothWindow == 14 & alarmGen == 'thresh'), 
-              aes(x = xAlarm, y = trueAlarm), col = 'red', size = 0.7) +
-    facet_wrap(~alarmFit) + 
-    labs(x = '
-         14-day average incidence', y = 'Alarm') +
-    ylim(0, 1)  + 
-    ggtitle('Data generation: Threshold alarm')+
-    xlim(0, 250)
-
-p3 <- ggplot() +  
-    geom_line(data = subset(alarmAll, smoothWindow == 14 & alarmGen == 'hill'), 
-              aes(x = xAlarm, y = mean, group = simNumber), 
-              col = adjustcolor('grey50', alpha = 0.4)) +
-    geom_line(data = subset(trueAlarms, smoothWindow == 14 & alarmGen == 'hill'), 
-              aes(x = xAlarm, y = trueAlarm), col = 'red', size = 0.7) +
-    facet_wrap(~alarmFit) + 
-    labs(x = '14-day average incidence', y = 'Alarm')+
-    ylim(0, 1)  + 
-    ggtitle('Data generation: Hill alarm') +
-    xlim(0, 300)
-
-
-
-pdf('./figures/supp_fig5_sim_alarms14.pdf', height = 6, width = 6)
-grid.arrange(p1, p2, p3, nrow = 3,
-             top=textGrob("         Posterior mean of alarm functions", 
-                          gp = gpar(fontsize = 10, font = 1)))
-
-dev.off()
 
 
 ### smoothing window 30 days
 p1 <- ggplot() +  
-    geom_line(data = subset(alarmAll, smoothWindow == 30 & alarmGen == 'power'), 
+    geom_line(data = subset(alarmAll, alarmGen == 'power'), 
               aes(x = xAlarm, y = mean, group = simNumber), 
               col = adjustcolor('grey50', alpha = 0.4)) +
-    geom_line(data = subset(trueAlarms, smoothWindow == 30 & alarmGen == 'power'), 
+    geom_line(data = subset(trueAlarms, alarmGen == 'power'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red', size = 0.7) +
     facet_wrap(~alarmFit) + 
     labs(x = '30-day average incidence', y = 'Alarm')+
     ylim(0, 1) + 
-    ggtitle('Data generation: Power alarm')+
-    xlim(0, 300)
+    ggtitle('Data generation: power alarm')+
+    xlim(0, 300) + 
+    myTheme
 
 p2 <- ggplot() +  
-    geom_line(data = subset(alarmAll, smoothWindow == 30 &  alarmGen == 'thresh'), 
+    geom_line(data = subset(alarmAll, alarmGen == 'thresh'), 
               aes(x = xAlarm, y = mean, group = simNumber), 
               col = adjustcolor('grey50', alpha = 0.4)) +
-    geom_line(data = subset(trueAlarms, smoothWindow == 30 & alarmGen == 'thresh'), 
+    geom_line(data = subset(trueAlarms, alarmGen == 'thresh'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red', size = 0.7) +
     facet_wrap(~alarmFit) + 
     labs(x = '
          30-day average incidence', y = 'Alarm') +
     ylim(0, 1)  + 
-    ggtitle('Data generation: Threshold alarm')+
-    xlim(0, 170)
+    ggtitle('Data generation: threshold alarm')+
+    xlim(0, 170) + 
+    myTheme
 
 p3 <- ggplot() +  
-    geom_line(data = subset(alarmAll, smoothWindow == 30 & alarmGen == 'hill'), 
+    geom_line(data = subset(alarmAll, alarmGen == 'hill'), 
               aes(x = xAlarm, y = mean, group = simNumber), 
               col = adjustcolor('grey50', alpha = 0.4)) +
-    geom_line(data = subset(trueAlarms, smoothWindow == 30 & alarmGen == 'hill'), 
+    geom_line(data = subset(trueAlarms, alarmGen == 'hill'), 
               aes(x = xAlarm, y = trueAlarm), col = 'red', size = 0.7) +
     facet_wrap(~alarmFit) + 
     labs(x = '30-day average incidence', y = 'Alarm')+
     ylim(0, 1)  + 
     ggtitle('Data generation: Hill alarm') +
-    xlim(0, 220)
+    xlim(0, 220) + 
+    myTheme
 
 
 
-pdf('./figures/fig4_sim_alarms30.pdf', height = 6, width = 6)
+pdf('./figures/fig3_sim_alarms30.pdf', height = 6, width = 7)
 grid.arrange(p1, p2, p3, nrow = 3,
              top=textGrob("         Posterior mean of alarm functions",
                           gp = gpar(fontsize = 10, font = 1)))
@@ -835,8 +671,7 @@ dev.off()
 
 
 ################################################################################
-# Figure 5 - Posterior prediction for 30-day smoothing
-# Supplemental Figure 6 - for 14-day smoothing
+# Figure 4 - Posterior prediction for 30-day smoothing
 ################################################################################
 
 
@@ -847,24 +682,21 @@ simNumber <- round(runif(1, 0.5, 50.5))
 nDays <- 100
 
 # get true epidemic curves for each scenario
-trueCurveThresh14 <- readRDS(paste0('./Data/thresh_14.rds'))[simNumber,1:nDays]
 trueCurveThresh30 <- readRDS(paste0('./Data/thresh_30.rds'))[simNumber,1:nDays]
-trueCurveHill14 <- readRDS(paste0('./Data/hill_14.rds'))[simNumber,1:nDays]
 trueCurveHill30 <- readRDS(paste0('./Data/hill_30.rds'))[simNumber,1:nDays]
-trueCurvePower14 <- readRDS(paste0('./Data/power_14.rds'))[simNumber,1:nDays]
 trueCurvePower30 <- readRDS(paste0('./Data/power_30.rds'))[simNumber,1:nDays]
 
-trueCurves <- data.frame(time = rep(1:length(trueCurveThresh14), 6),
-                         truth = c(trueCurveThresh14, trueCurveThresh30,
-                                   trueCurveHill14, trueCurveHill30,
-                                   trueCurvePower14, trueCurvePower30),
-                         alarmGen = c(rep('thresh', length(trueCurveThresh14)*2),
-                                      rep('hill', length(trueCurveThresh14)*2),
-                                      rep('power', length(trueCurveThresh14)*2)),
-                         smoothWindow = rep(rep(c(14, 30), each = length(trueCurveThresh14)), 3))
+trueCurves <- data.frame(time = rep(1:length(trueCurveThresh30), 3),
+                         truth = c(trueCurveThresh30,
+                                   trueCurveHill30,
+                                   trueCurvePower30),
+                         alarmGen = c(rep('thresh', length(trueCurveThresh30)),
+                                      rep('hill', length(trueCurveThresh30)),
+                                      rep('power', length(trueCurveThresh30))))
 
 # merge with posterior predictions
 postPredAll <- readRDS('./results/postPredAll.rds')
+postPredAll<- subset(postPredAll, smoothWindow == 30)
 
 ### remove those that did not converge
 postPredAll <- merge(postPredAll, notConvergeModels,
@@ -878,101 +710,63 @@ postPredAll <- postPredAll[postPredAll$simNumber == simNumber,]
 
 # format for better plotting
 postPredAll$alarmFit <- factor(postPredAll$alarmFit,
-                               levels = c('basic', 'power', 'thresh', 'hill', 'spline', 'gp'),
-                               labels = c('No Behavioral Change', 'Power', 'Threshold', 'Hill',
+                               levels = c('basic', 'power', 'thresh', 
+                                          'hill', 'spline', 'gp'),
+                               labels = c('No Behavioral Change', 'Power', 
+                                          'Threshold', 'Hill',
                                           'Spline', 'Gaussian Process'))
 
 myCol <- 'blue'
 
-
-theme_set(theme_bw() + 
-              theme(strip.background = element_rect(fill = 'white'),
-                    strip.text = element_text(size = 11),
-                    axis.title = element_text(size = 10),
-                    axis.text = element_text(size = 10),
-                    plot.title = element_text(size = 11, h = 0.5)))
-
-### 14-day Smoothing Window
-p1 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'power' & smoothWindow == 14),
-              aes(x = time, y = truth)) + 
-    geom_line(data = subset(postPredAll, alarmGen == 'power' & smoothWindow == 14),
-              aes(x = time, y = mean), col = myCol, size = 0.5) + 
-    geom_ribbon(data=subset(postPredAll, alarmGen == 'power' & smoothWindow == 14),
-                aes(x = time, ymin = lower, ymax = upper), alpha = 0.3, fill = myCol) +
-    facet_wrap(~alarmFit, nrow = 1) +
-    labs(x = 'Epidemic time', y = 'Incidence') + 
-    ggtitle('Data generation: Power alarm')
-
-p2 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'thresh' & smoothWindow == 14),
-              aes(x = time, y = truth)) + 
-    geom_line(data = subset(postPredAll, alarmGen == 'thresh' & smoothWindow == 14),
-              aes(x = time, y = mean), col = myCol, size = 0.5) + 
-    geom_ribbon(data=subset(postPredAll, alarmGen == 'thresh' & smoothWindow == 14),
-                aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = myCol) +
-    facet_wrap(~alarmFit, nrow = 1) +
-    labs(x = 'Epidemic time', y = 'Incidence') + 
-    ggtitle('Data generation: Threshold alarm')
-
-p3 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'hill' & smoothWindow == 14),
-              aes(x = time, y = truth)) + 
-    geom_line(data = subset(postPredAll, alarmGen == 'hill' & smoothWindow == 14),
-              aes(x = time, y = mean), col = myCol, size = 0.5) + 
-    geom_ribbon(data=subset(postPredAll, alarmGen == 'hill' & smoothWindow == 14),
-                aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = myCol) +
-    facet_wrap(~alarmFit, nrow = 1) +
-    labs(x = 'Epidemic time', y = 'Incidence')  + 
-    ggtitle('Data generation: Hill alarm')
-
-
-pdf('./figures/supp_fig6_sim_postPred14.pdf', height = 7, width = 8)
-grid.arrange(p1, p2, p3, nrow = 3,
-             top=textGrob("        Posterior predictive forecasting",
-                          gp = gpar(fontsize = 13, font = 1)))
-
-dev.off()
-
+myTheme <- theme_bw() + 
+    theme(strip.background = element_rect(fill = 'white'),
+          strip.text = element_text(size = 11),
+          axis.title = element_text(size = 10),
+          axis.text = element_text(size = 10),
+          plot.title = element_text(size = 11, h = 0.5),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank())
 
 
 ### 30-day Smoothing Window
 p1 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'power' & smoothWindow == 30),
+    geom_line(data = subset(trueCurves, alarmGen == 'power'),
               aes(x = time, y = truth)) + 
-    geom_line(data = subset(postPredAll, alarmGen == 'power' & smoothWindow == 30),
+    geom_line(data = subset(postPredAll, alarmGen == 'power'),
               aes(x = time, y = mean), col = myCol, size = 0.5) + 
-    geom_ribbon(data=subset(postPredAll, alarmGen == 'power' & smoothWindow == 30),
+    geom_ribbon(data=subset(postPredAll, alarmGen == 'power'),
                 aes(x = time, ymin = lower, ymax = upper), alpha = 0.3, fill = myCol) +
     facet_wrap(~alarmFit, nrow = 1) +
     labs(x = 'Epidemic time', y = 'Incidence') + 
-    ggtitle('Data generation: Power alarm')
+    ggtitle('Data generation: power alarm') + 
+    myTheme
 
 p2 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'thresh' & smoothWindow == 30),
+    geom_line(data = subset(trueCurves, alarmGen == 'thresh'),
               aes(x = time, y = truth)) + 
-    geom_line(data = subset(postPredAll, alarmGen == 'thresh' & smoothWindow == 30),
+    geom_line(data = subset(postPredAll, alarmGen == 'thresh'),
               aes(x = time, y = mean), col = myCol, size = 0.5) + 
-    geom_ribbon(data=subset(postPredAll, alarmGen == 'thresh' & smoothWindow == 30),
+    geom_ribbon(data=subset(postPredAll, alarmGen == 'thresh'),
                 aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = myCol) +
     facet_wrap(~alarmFit, nrow = 1) +
     labs(x = 'Epidemic time', y = 'Incidence') + 
-    ggtitle('Data generation: Threshold alarm') +
-    ylim(0, 600)
+    ggtitle('Data generation: threshold alarm') + 
+    myTheme
 
 p3 <- ggplot() +
-    geom_line(data = subset(trueCurves, alarmGen == 'hill' & smoothWindow == 30),
+    geom_line(data = subset(trueCurves, alarmGen == 'hill'),
               aes(x = time, y = truth)) + 
-    geom_line(data = subset(postPredAll, alarmGen == 'hill' & smoothWindow == 30),
+    geom_line(data = subset(postPredAll, alarmGen == 'hill'),
               aes(x = time, y = mean), col = myCol, size = 0.5) + 
-    geom_ribbon(data=subset(postPredAll, alarmGen == 'hill' & smoothWindow == 30),
+    geom_ribbon(data=subset(postPredAll, alarmGen == 'hill'),
                 aes(x = time, ymin=lower, ymax=upper), alpha=0.3, fill = myCol) +
     facet_wrap(~alarmFit, nrow = 1) +
     labs(x = 'Epidemic time', y = 'Incidence')  + 
-    ggtitle('Data generation: Hill alarm')
+    ggtitle('Data generation: Hill alarm') + 
+    myTheme
 
 
-pdf('./figures/fig5_sim_postPred30.pdf', height = 7, width = 8)
+pdf('./figures/fig4_sim_postPred30.pdf', height = 7, width = 8)
 grid.arrange(p1, p2, p3, nrow = 3,
              top=textGrob("        Posterior predictive forecasting", 
                           gp = gpar(fontsize = 13, font = 1)))
@@ -983,89 +777,79 @@ dev.off()
 
 ################################################################################
 # Table 1 - Summaries of WAIC
-# Supplemental Table 3 - for 14-day smoothing
 ################################################################################
 
 ### Summary table with mean (SD) and % selected WAIC
 
 waicAll <- readRDS('./results/waicAll.rds')
+waicAll <- subset(waicAll, smoothWindow == 30)
 
 ### remove those that did not converge
 waicAll <- merge(waicAll, notConvergeModels,
-                     by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
-                     all.x = T)
+                 by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
+                 all.x = T)
 waicAll$noConverge[is.na(waicAll$noConverge)] <- 0
 waicAll <- waicAll[waicAll$noConverge == 0,]
 
 
-waicMin <- ddply(waicAll, .(alarmGen, smoothWindow, simNumber), summarize,
+waicMin <- ddply(waicAll, .(alarmGen, simNumber), summarize,
                  minWAIC = min(waic))
 
 waicAll <- merge(waicAll, waicMin, 
-                 by = c('alarmGen', 'smoothWindow', 'simNumber'),
+                 by = c('alarmGen', 'simNumber'),
                  all.x = T)
 
 # get mean and sd across simulations
-waicSummary <- ddply(waicAll, .(alarmGen, alarmFit, smoothWindow), summarize,
+waicSummary <- ddply(waicAll, .(alarmGen, alarmFit), summarize,
                      meanWAIC = mean(waic),
                      sdWAIC = sd(waic))
 
 
 # get % selected
-waicSelected <- ddply(waicAll, .(alarmGen, smoothWindow, simNumber), summarize,
+waicSelected <- ddply(waicAll, .(alarmGen, simNumber), summarize,
                       selected = alarmFit[which(waic == minWAIC)])
 waicSelected$selected <- factor(waicSelected$selected,
                                 levels = c('power', 'thresh', 'hill',
                                            'spline', 'gp', 'betatSpline', 'basic'))
 
-waicTab14 <- with(subset(waicSelected, smoothWindow == 14), 
-                  table(selected, alarmGen, exclude = NULL))
-waicTab14 <- as.data.frame(prop.table(waicTab14, 2))
-waicTab14$smoothWindow <- 14
-
-waicTab30 <- with(subset(waicSelected, smoothWindow == 30), 
-                  table(selected, alarmGen, exclude = NULL))
-waicTab30 <- as.data.frame(prop.table(waicTab30, 2))
-waicTab30$smoothWindow <- 30
-
-waicTab <- rbind.data.frame(waicTab14, waicTab30)
+waicTab <- with(waicSelected, 
+                table(selected, alarmGen, exclude = NULL))
+waicTab <- as.data.frame(prop.table(waicTab, 2))
 colnames(waicTab)[1] <- 'alarmFit'
 
 # merge with other summaries
-waicFinal <- merge(waicSummary, waicTab, by = c('alarmGen', 'alarmFit', 'smoothWindow'))
+waicFinal <- merge(waicSummary, 
+                   waicTab, by = c('alarmGen', 'alarmFit'))
 
-### 14-day smoothing
-waicFinal14 <- subset(waicFinal, smoothWindow == 14)
-waicFinal14$WAIC <- paste0(sprintf("%.2f", round(waicFinal14$meanWAIC, 2)), 
-                           ' (',
-                           sprintf("%.2f", round(waicFinal14$sdWAIC, 2)),
-                           ')')
+### format and print
+waicFinal$WAIC <- paste0(sprintf("%.2f", round(waicFinal$meanWAIC, 2)), 
+                         ' (',
+                         sprintf("%.2f", round(waicFinal$sdWAIC, 2)),
+                         ')')
 
-waicFinal14$Perc <- paste0(round(waicFinal14$Freq * 100, 2), '\\%')
+waicFinal$Perc <- paste0(round(waicFinal$Freq * 100, 2), '\\%')
 
-waicFinal14 <- waicFinal14[-which(colnames(waicFinal14) %in% 
-                                      c('smoothWindow', 'sdWAIC',
-                                        'Freq'))]
-waicFinal14$alarmGen <- factor(waicFinal14$alarmGen,
-                               levels = c('power', 'thresh', 'hill'),
-                               labels = c('Power',
-                                          'Threshold', 
-                                          'Hill'))
+waicFinal <- waicFinal[-which(colnames(waicFinal) %in% 
+                                  c('sdWAIC', 'Freq'))]
+waicFinal$alarmGen <- factor(waicFinal$alarmGen,
+                             levels = c('power', 'thresh', 'hill'),
+                             labels = c('Power',
+                                        'Threshold', 
+                                        'Hill'))
 
+waicFinal$alarmFit <- factor(waicFinal$alarmFit,
+                             levels = c('power', 'thresh', 'hill',
+                                        'spline', 'gp', 'betatSpline', 'basic'),
+                             labels = c('Power', 'Threshold', 'Hill',
+                                        'Spline', 'Gaussian Process', 
+                                        '$\\beta_t$', 'No Behavioral Change'))
 
-waicFinal14$alarmFit <- factor(waicFinal14$alarmFit,
-                               levels = c('power', 'thresh', 'hill',
-                                          'spline', 'gp', 'betatSpline', 'basic'),
-                               labels = c('Power', 'Threshold', 'Hill',
-                                          'Spline', 'Gaussian Process', 
-                                          '$\\beta_t$', 'No Behavioral Change'))
-
-waicFinal14 <- waicFinal14[order(waicFinal14$alarmGen, 
-                                 waicFinal14$meanWAIC),]
-waicFinal14 <- waicFinal14[,-which(colnames(waicFinal14) == 'meanWAIC')]
+waicFinal <- waicFinal[order(waicFinal$alarmGen, 
+                             waicFinal$meanWAIC),]
+waicFinal <- waicFinal[,-which(colnames(waicFinal) == 'meanWAIC')]
 
 
-kable(waicFinal14, row.names = F, format = 'latex', align = 'llcc', 
+kable(waicFinal, row.names = F, format = 'latex', align = 'llcc', 
       booktabs = T, escape = F, 
       col.names = linebreak(c('\\textbf{Data generation}',
                               '\\textbf{Model fitted}', 
@@ -1073,281 +857,4 @@ kable(waicFinal14, row.names = F, format = 'latex', align = 'llcc',
                               '\\textbf{\\% selected}'), align = 'c')) %>% 
     collapse_rows(columns = 1, latex_hline = 'major') 
 
-### 30-day smoothing
-waicFinal30 <- subset(waicFinal, smoothWindow == 30)
-waicFinal30$WAIC <- paste0(sprintf("%.2f", round(waicFinal30$meanWAIC, 2)), 
-                           ' (',
-                           sprintf("%.2f", round(waicFinal30$sdWAIC, 2)),
-                           ')')
-
-waicFinal30$Perc <- paste0(round(waicFinal30$Freq * 100, 2), '\\%')
-
-waicFinal30 <- waicFinal30[-which(colnames(waicFinal30) %in% 
-                                      c('smoothWindow', 'sdWAIC',
-                                        'Freq'))]
-waicFinal30$alarmGen <- factor(waicFinal30$alarmGen,
-                               levels = c('power', 'thresh', 'hill'),
-                               labels = c('Power',
-                                          'Threshold', 
-                                          'Hill'))
-
-
-waicFinal30$alarmFit <- factor(waicFinal30$alarmFit,
-                               levels = c('power', 'thresh', 'hill',
-                                          'spline', 'gp', 'betatSpline', 'basic'),
-                               labels = c('Power', 'Threshold', 'Hill',
-                                          'Spline', 'Gaussian Process', 
-                                          '$\\beta_t$', 'No Behavioral Change'))
-
-waicFinal30 <- waicFinal30[order(waicFinal30$alarmGen, 
-                                 waicFinal30$meanWAIC),]
-waicFinal30 <- waicFinal30[,-which(colnames(waicFinal30) == 'meanWAIC')]
-
-kable(waicFinal30, row.names = F, format = 'latex', align = 'llcc', 
-      booktabs = T, escape = F, 
-      col.names = linebreak(c('\\textbf{Data generation}',
-                              '\\textbf{Model fitted}', 
-                              '\\textbf{WAIC}\n\\textbf{Mean (SD)}',
-                              '\\textbf{\\% selected}'), align = 'c')) %>% 
-    collapse_rows(columns = 1, latex_hline = 'major') 
-
-
-################################################################################
-# Supplemental Figures 1-3 - Posterior dists for parameters in true models
-################################################################################
-
-
-### load truth
-paramsTruth <- read.xlsx('simParamsSummary.xlsx')
-
-### wide to long
-paramsTruth <- reshape(paramsTruth, 
-                       varying = c("beta", "delta", "H", "nu", "x0", "k", "rateI"), 
-                       v.names = "truth",
-                       timevar = "param", 
-                       times = c("beta", "delta", "H", "nu", "x0", "k", "rateI"), 
-                       new.row.names = 1:1000,
-                       direction = "long")
-
-paramsTruth <- paramsTruth[-which(is.na(paramsTruth$truth)),]
-paramsTruth <- paramsTruth[order(paramsTruth$alarmGen, paramsTruth$smoothWindow, paramsTruth$param),]
-paramsTruth <- paramsTruth[-which(colnames(paramsTruth) %in% c('infPeriod', 'id'))]
-
-paramsPostAll <- readRDS('./results/paramsPostAll.rds')
-
-# only keep rows where alarmGen == alarmFit (all of these converged)
-paramsPostAll <- paramsPostAll[paramsPostAll$alarmGen == paramsPostAll$alarmFit,]
-
-# merge with truth
-paramsPostAll <- merge(paramsPostAll, paramsTruth, 
-                       by = c('param', 'alarmGen', 'smoothWindow'),
-                       all.x = T)
-
-paramsPostAll <- paramsPostAll[order(paramsPostAll$alarmGen, 
-                                     paramsPostAll$smoothWindow,
-                                     paramsPostAll$simNumber, 
-                                     paramsPostAll$param),]
-
-paramsPostAll$param <- factor(paramsPostAll$param, 
-                              levels=c('beta', 'delta', 'H', 'k', 'nu', 'x0', 'rateI'),
-                              labels=c('beta', 'delta', 'H', 'k', 'nu', 'x[0]', 'gamma'))
-
-paramsPostAll$smoothWindow <- factor(paramsPostAll$smoothWindow , 
-                                     labels=c('14-day average', '30-day average'))
-
-
-### power alarm
-pdf('./figures/supp_fig1_sim_powerParams.pdf', height = 5, width = 10)
-ggplot(data = subset(paramsPostAll, alarmFit == 'power'), 
-       aes(x = simNumber, y = mean)) +
-    geom_point(size = 1) + 
-    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
-                  position = position_dodge(width = 0.9)) +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2, size = 1) +
-    facet_wrap(smoothWindow ~ param, nrow = 2, scales = 'free_y',
-               labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
-    labs(x = 'Simulation Number', y = '') +
-    theme_bw() + 
-    theme(strip.background = element_rect(fill = 'white'),
-          strip.text = element_text(size = 12),
-          axis.title = element_text(size = 12),
-          axis.text = element_text(size = 10),
-          plot.title = element_text(size = 13, h = 0.5))
-dev.off()
-
-
-### threshold alarm
-pdf('./figures/supp_fig2_sim_threshParams.pdf', height = 5.5, width = 12)
-ggplot(data = subset(paramsPostAll, alarmFit == 'thresh'), 
-       aes(x = simNumber, y = mean)) +
-    geom_point(size = 1) + 
-    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
-                  position = position_dodge(width = 0.9)) +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2, size = 1) +
-    facet_wrap(smoothWindow ~ param, nrow = 2, scales = 'free_y',
-               labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
-    labs(x = 'Simulation Number', y = '') +
-    theme_bw() + 
-    theme(strip.background = element_rect(fill = 'white'),
-          strip.text = element_text(size = 14),
-          axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12),
-          plot.title = element_text(size = 15, h = 0.5))
-dev.off()
-
-### hill alarm
-pdf('./figures/supp_fig3_sim_hillParams.pdf', height = 5.5, width = 13)
-ggplot(data = subset(paramsPostAll, alarmFit == 'hill'), 
-       aes(x = simNumber, y = mean)) +
-    geom_point(size = 1) + 
-    geom_errorbar(aes(ymin=lower, ymax=upper), width=.9,
-                  position = position_dodge(width = 0.9)) +
-    geom_hline(aes(yintercept = truth), col = 'red', linetype = 2, size = 1) +
-    facet_wrap(smoothWindow ~ param, nrow = 2, scales = 'free_y',
-               labeller =  labeller(smoothWindow = label_value, param = label_parsed)) +
-    labs(x = 'Simulation Number', y = '') +
-    theme_bw() + 
-    theme(strip.background = element_rect(fill = 'white'),
-          strip.text = element_text(size = 16),
-          axis.title = element_text(size = 16),
-          axis.text = element_text(size = 14),
-          plot.title = element_text(size = 17, h = 0.5))
-dev.off()
-
-
-################################################################################
-# Supplemental Figure 4 - Posterior for beta_t model
-################################################################################
-
-set.seed(1)
-simNumber <- round(runif(1, 0.5, 50.5))
-
-times <- 1:50
-
-# get true epidemic curves for each scenario
-trueCurveThresh14 <- readRDS(paste0('./Data/thresh_14.rds'))[simNumber,times]
-trueCurveThresh30 <- readRDS(paste0('./Data/thresh_30.rds'))[simNumber,times]
-trueCurveHill14 <- readRDS(paste0('./Data/hill_14.rds'))[simNumber,times]
-trueCurveHill30 <- readRDS(paste0('./Data/hill_30.rds'))[simNumber,times]
-trueCurvePower14 <- readRDS(paste0('./Data/power_14.rds'))[simNumber,times]
-trueCurvePower30 <- readRDS(paste0('./Data/power_30.rds'))[simNumber,times]
-
-
-# using epidemic trajectory and true parameters, find value of alarm[t]/beta[t]
-paramsTruth <- read.xlsx('simParamsSummary.xlsx')
-
-N <- 1e6
-trueAlarmThresh14 <- thresholdAlarm(movingAverage(trueCurveThresh14, 14),
-                                    N = N, 
-                                    delta = paramsTruth$delta[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 14)],
-                                    H = paramsTruth$H[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 14)])
-trueAlarmThresh30 <- thresholdAlarm(movingAverage(trueCurveThresh30, 30), 
-                                    N = N, 
-                                    delta = paramsTruth$delta[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 30)],
-                                    H = paramsTruth$H[
-                                        (paramsTruth$alarmGen == 'thresh' & 
-                                             paramsTruth$smoothWindow == 30)])
-trueAlarmHill14 <- hillAlarm(movingAverage(trueCurveHill14, 14), 
-                             nu = paramsTruth$nu[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)],
-                             x0 = paramsTruth$x0[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)],
-                             delta = paramsTruth$delta[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 14)])
-trueAlarmHill30 <- hillAlarm(movingAverage(trueCurveHill30, 30), 
-                             nu = paramsTruth$nu[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)],
-                             x0 = paramsTruth$x0[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)],
-                             delta = paramsTruth$delta[
-                                 (paramsTruth$alarmGen == 'hill' & 
-                                      paramsTruth$smoothWindow == 30)])
-trueAlarmPower14 <- powerAlarm(movingAverage(trueCurvePower14, 14), 
-                               N = N, 
-                               k = paramsTruth$k[
-                                   (paramsTruth$alarmGen == 'power' & 
-                                        paramsTruth$smoothWindow == 14)])
-trueAlarmPower30 <- powerAlarm(movingAverage(trueCurvePower30, 30),
-                               N = N, 
-                               k = paramsTruth$k[
-                                   (paramsTruth$alarmGen == 'power' & 
-                                        paramsTruth$smoothWindow == 30)])
-
-trueAlarmsSim <- data.frame(time = rep(times, 6),
-                            trueAlarm = c(trueAlarmThresh14,
-                                          trueAlarmThresh30,
-                                          trueAlarmHill14,
-                                          trueAlarmHill30,
-                                          trueAlarmPower14,
-                                          trueAlarmPower30),
-                            alarmGen = c(rep('thresh', length(times)*2),
-                                         rep('hill', length(times)*2),
-                                         rep('power', length(times)*2)),
-                            smoothWindow = rep(rep(c(14, 30), each = length(times)), 3))
-
-# from true alarms, get true beta[t]
-trueBeta <- trueAlarmsSim
-trueBeta$trueBeta <- paramsTruth$beta[1] * (1 - trueBeta$trueAlarm)
-
-### load posterior estimates
-betaPostAll <- readRDS('./results/betaPostAll.rds')
-
-### remove those that did not converge
-betaPostAll <- merge(betaPostAll, notConvergeModels,
-                       by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
-                       all.x = T)
-betaPostAll$noConverge[is.na(betaPostAll$noConverge)] <- 0
-betaPostAll <- betaPostAll[betaPostAll$noConverge == 0,]
-
-
-
-betaPostAll <- betaPostAll[betaPostAll$simNumber == simNumber,]
-
-
-betaPostAll$smoothWindow <- factor(betaPostAll$smoothWindow , 
-                                   labels=c('14-day average', '30-day average'))
-betaPostAll$alarmGen <- factor(betaPostAll$alarmGen, 
-                               levels = c('power', 'thresh', 'hill'),
-                               labels=c('Power', 'Threshold', 'Hill'))
-trueBeta$smoothWindow <- factor(trueBeta$smoothWindow , 
-                                labels=c('14-day average', '30-day average'))
-trueBeta$alarmGen <- factor(trueBeta$alarmGen, 
-                            levels = c('power', 'thresh', 'hill'),
-                            labels=c('Power', 'Threshold', 'Hill'))
-
-
-theme_set(theme_bw() + 
-              theme(strip.background = element_rect(fill = 'white'),
-                    strip.text = element_text(size = 10),
-                    axis.title = element_text(size = 10),
-                    axis.text = element_text(size = 8),
-                    plot.title = element_text(size = 11, h = 0.5)))
-
-
-pdf('./figures/supp_fig4_sim_betatCurves.pdf', height = 4, width = 7)
-ggplot() +  
-    geom_line(data = subset(betaPostAll,), 
-              aes(x = time, y = mean, group = simNumber), 
-              col = 'orangered', size = 0.8) +
-    geom_ribbon(data=subset(betaPostAll),
-                aes(x = time, ymin = lower, ymax = upper), 
-                alpha = 0.3, fill = 'orangered') +
-    geom_line(data = subset(trueBeta), 
-              aes(x = time, y = trueBeta), col = 'black') +
-    facet_wrap(~smoothWindow + alarmGen, nrow = 2, 
-               labeller =  labeller(smoothWindow = label_value, alarmGen = label_parsed)) +
-    labs(x = 'Epidemic time', y = expression(beta[t])) +
-    ggtitle(expression(paste('Posterior mean and 95% credible intervals for ', beta[t], ' model')))
-dev.off()
 

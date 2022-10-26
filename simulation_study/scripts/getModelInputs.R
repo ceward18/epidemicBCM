@@ -237,7 +237,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         
         ### constants
         timeVec <- 1:tau
-        nb <- 3
+        nb <- 4
         
         constantsList <- list(tau = tau,
                               N = N,
@@ -255,7 +255,7 @@ getModelInput <- function(alarmFit, incData, smoothWindow) {
         initsList <- list(b = rnorm(nb, 0, 4),
                           knots = as.vector(quantile(timeVec, 
                                                      probs = sort(runif(nb - 1, 
-                                                                        0.2, 
+                                                                        0.1, 
                                                                         0.6)))),
                           rateI = rgamma(1, aa, bb))
         
