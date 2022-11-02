@@ -183,31 +183,8 @@ plotGPChains <- function(chains) {
     
 }
 
-plotBetatChains_sim <- function(chains) {
-    
-    par(mfrow = c(2,3))
-    
-    param <- 'rateI'
-    plotParamChains(chains, param)
-    
-    param <- 'b[1]'
-    plotParamChains(chains, param)
-    
-    param <- 'b[2]'
-    plotParamChains(chains, param)
-    
-    param <- 'b[3]'
-    plotParamChains(chains, param)
-    
-    param <- 'knots[1]'
-    plotParamChains(chains, param)
-    
-    param <- 'knots[2]'
-    plotParamChains(chains, param)
-    
-}
 
-plotBetatChains_nyc <- function(chains) {
+plotBetatChains <- function(chains) {
     
     par(mfrow = c(2,4))
     
@@ -287,12 +264,10 @@ postParamTableAlarm <- function(paramsPostAll, alarmFits, smoothWindows) {
                   alarmFit == alarmFits & smoothWindow == smoothWindows)
     
     tab$Prior <- factor(tab$prior, 
-                        levels = c(5,1,3,2,4),
-                        labels=c('Mean 3',
-                                 'Mean 5 \n Strong', 
-                                 'Mean 5 \n Weaker', 
-                                 'Mean 2 \n Strong',
-                                 'Mean 2 \n Weaker'))
+                        levels = c(5,2,4,1,3),
+                        labels=c('Mean 3', 
+                                 'Mean 2, strong','Mean 2, weaker', 
+                                 'Mean 4, strong', 'Mean 4, weaker'))
     
     tab$val <- paste0(tab$mean, ' \n (',
                       tab$lower, ', ',
