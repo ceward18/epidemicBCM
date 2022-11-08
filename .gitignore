@@ -7,3 +7,5 @@ simulation_study/output/chains*
 data_analysis/figures/*
 data_analysis/model_config.xlsx
 simulation_study/figures/*
+supplement_helper_functions.R
+title.tex
