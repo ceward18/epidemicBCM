@@ -65,33 +65,13 @@ movingAverage <- nimbleFunction(
     })
 assign('movingAverage', movingAverage, envir = .GlobalEnv)
 
-
-# get smoothI at time t when doing posterior prediction
-get_smoothI <- nimbleFunction(     
-    run = function(Istar = double(1), t = double(0), Istar0 = double(1), 
-                   Istar0Length = double(0),  bw = double(0)) {
-        returnType(double(0))
-        
-        if (t < bw) {
-            
-            # incorporate previously observed incidence
-            result <- movingAverage(c(Istar0, Istar), bw)[Istar0Length + t - 1]
-           
-        } else {
-            result <- movingAverage(Istar, bw)[t - 1]
-        }
-        
-        return(result)
-    })
-assign('get_smoothI', get_smoothI, envir = .GlobalEnv)
-
 # get effective reproductive number at time t using a forward sum
 get_R0 <- nimbleFunction(     
     run = function(betat = double(1), rateI = double(0), N = double(0), S = double(1)) {
         returnType(double(1))
         
         maxInf <- 14
-
+        
         # probability of transition given 1 infectious individual (vector length t)
         pi_SI <- 1 - exp(- betat / N )
         
@@ -275,17 +255,17 @@ myF <- function(x, min, mid,  max) {
 }
 
 ################################################################################
-### Special proposal function for removal times in exponential model
+### Special proposal function for exposure times in exponential model
 
-RstarUpdate <- nimbleFunction(
-    name = 'Rstar',                              
+EstarUpdate <- nimbleFunction(
+    name = 'Estar',                              
     contains = sampler_BASE,                     
     setup = function(model, mvSaved, target, control) {                 # REQUIRED setup arguments
         calcNodes <- model$getDependencies(target) 
         
         # number of update attempts 
-        nUpdates <- 500
-    },                                                                  # setup can't return anything
+        nUpdates <- 30
+    },  # setup can't return anything
     run = function() {
         currentValue <- model[[target]]                                   
         currentLogProb <- model$getLogProb(calcNodes)                    
@@ -293,49 +273,22 @@ RstarUpdate <- nimbleFunction(
         # repeat proposal many times 
         for (it in 1:nUpdates) {
             
-            # three possible moves:
-            moveType <- ceiling(runif(1, 0, 3))
-            
             proposalValue <- currentValue
             
             nTimePoints <- length(currentValue)
             
-            if (moveType == 1) {
-                # add a removal time
-                addIdx <- runif(1, 1, nTimePoints + 1)
-                proposalValue[addIdx] <- proposalValue[addIdx] + 1
-                
-                # g(old|new) - g(new|old)
-                # subtract from new - add to old
-                possibleSubtract <- which(proposalValue > 0)
-                g <- -log(length(possibleSubtract)) + log(nTimePoints)
-                
-                
-            } else if (moveType == 2) {
-                # move a removal time
-                possibleSubtract <- which(currentValue > 0)
-                subtractIdx <- possibleSubtract[runif(1, 1, length(possibleSubtract) + 1)]
-                addIdx <- runif(1, 1, nTimePoints + 1)
-                
-                proposalValue[subtractIdx] <- proposalValue[subtractIdx] - 1
-                proposalValue[addIdx] <- proposalValue[addIdx] + 1
-                
-                # g(old|new) - g(new|old)
-                # possibly have different number of values to subtract from 
-                newPossibleSubtract <- which(proposalValue > 0)
-                g <- -log(length(newPossibleSubtract)) +log(length(possibleSubtract))
-                
-            } else if (moveType == 3) {
-                # subtract a removal time
-                possibleSubtract <- which(currentValue > 0)
-                subtractIdx <- possibleSubtract[runif(1, 1, length(possibleSubtract) + 1)]
-                proposalValue[subtractIdx] <- proposalValue[subtractIdx] - 1
-                
-                # g(old|new) - g(new|old)
-                # add to new - subtract from old
-                g <- -log(nTimePoints) + log(length(possibleSubtract)) 
-                
-            }
+            # move a removal time
+            possibleSubtract <- which(currentValue > 0)
+            subtractIdx <- possibleSubtract[runif(1, 1, length(possibleSubtract) + 1)]
+            addIdx <- runif(1, 1, nTimePoints + 1)
+            
+            proposalValue[subtractIdx] <- proposalValue[subtractIdx] - 1
+            proposalValue[addIdx] <- proposalValue[addIdx] + 1
+            
+            # g(old|new) - g(new|old)
+            # possibly have different number of values to subtract from 
+            newPossibleSubtract <- which(proposalValue > 0)
+            g <- -log(length(newPossibleSubtract)) +log(length(possibleSubtract))
             
             # put proposal value in model
             model[[target]] <<- proposalValue                                
@@ -367,19 +320,95 @@ RstarUpdate <- nimbleFunction(
         reset = function() {}
     )
 )
-assign('RstarUpdate', RstarUpdate, envir = .GlobalEnv)
+assign('EstarUpdate', EstarUpdate, envir = .GlobalEnv)
+
+# update for transition vectors Istar and Rstar which are partially observed
+transUpdate <- nimbleFunction(
+    name = 'transUpdate',                              
+    contains = sampler_BASE,                     
+    setup = function(model, mvSaved, target, control) {                 # REQUIRED setup arguments
+        calcNodes <- model$getDependencies(target) 
+        
+        # observed part of vector is passed as control argument
+        fixedValues <- control$fixed
+        
+        # number of update attempts 
+        nUpdates <- 30
+    },  # setup can't return anything
+    run = function() {
+        
+        currentValue <- model[[target]]                                   
+        currentLogProb <- model$getLogProb(calcNodes)       
+        
+        updatePart <- currentValue - fixedValues
+        
+        # repeat proposal many times 
+        for (it in 1:nUpdates) {
+            
+            updatePartProposal <- updatePart
+            
+            nTimePoints <- length(updatePart)
+            
+            # move a transition time
+            possibleSubtract <- which(updatePart > 0)
+            subtractIdx <- possibleSubtract[runif(1, 1, length(possibleSubtract) + 1)]
+            addIdx <- runif(1, 1, nTimePoints + 1)
+            
+            updatePartProposal[subtractIdx] <- updatePartProposal[subtractIdx] - 1
+            updatePartProposal[addIdx] <- updatePartProposal[addIdx] + 1
+            
+            # g(old|new) - g(new|old)
+            # possibly have different number of values to subtract from 
+            newPossibleSubtract <- which(updatePartProposal > 0)
+            g <- -log(length(newPossibleSubtract)) +log(length(possibleSubtract))
+            
+            # put proposal value in model
+            proposalValue <- updatePartProposal + fixedValues
+            
+            model[[target]] <<- proposalValue                               
+            proposalLogProb <- model$calculate(calcNodes)                     
+            logAcceptanceRatio <- proposalLogProb - currentLogProb + g      
+            
+            
+            accept <- decide(logAcceptanceRatio)                              
+            
+            if (accept) {
+                # no changes to model object needed
+                currentLogProb <- proposalLogProb
+                currentValue <- proposalValue
+                
+            } else {
+                # reject proposal and revert model to current state
+                model[[target]] <<- currentValue
+                
+                # current full conditional (calculate overwrites the stored value)
+                currentLogProb <- model$calculate(calcNodes) 
+            }
+            
+        } # end loop
+        
+        # synchronize model -> mvSaved after nUpdates
+        copy(from = model, to = mvSaved, row = 1, nodes = calcNodes, logProb = TRUE)
+        
+    },
+    methods = list(                              # required method for sampler_BASE base class
+        reset = function() {}
+    )
+)
+assign('transUpdate', transUpdate, envir = .GlobalEnv)
 
 ################################################################################
 ### Power alarm models
 
 # for model fitting (smoothI known)
 
-SIR_power <-  nimbleCode({
+SEIR_power <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
     ### rest of time points
@@ -388,22 +417,22 @@ SIR_power <-  nimbleCode({
         # compute alarm
         alarm[t] <- powerAlarm(smoothI[t], N, k)
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
-
+        
     }
     
     # estimated effective R0
-    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    R0_eff[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
     
     for (i in 1:n) {
         yAlarm[i] <- powerAlarm(xAlarm[i], N, k)
@@ -412,73 +441,80 @@ SIR_power <-  nimbleCode({
     # priors
     beta ~ dgamma(0.1, 0.1)
     k ~ dgamma(0.1, 0.1)
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
 
 # for forward simulation (smoothI unknown)
 
-SIR_power_sim <-  nimbleCode({
+
+SEIR_power_sim <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
     ### first time point
-    smoothI[1] <- smoothI0
+    smoothI[1] <- 0
     alarm[1] <- powerAlarm(smoothI[1], N, k)
     
-    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
-    Istar[1] ~ dbin(probSI[1], S[1])
+    Estar[1] ~ dbin(probSE[1], S[1])
+    Istar[1] ~ dbin(probEI, E[1])
     Rstar[1] ~ dbin(probIR, I[1])
     
-    # update S and I
-    S[2] <- S[1] - Istar[1]
+    # update S E I
+    S[2] <- S[1] - Estar[1]
+    E[2] <- E[1] + Estar[1] - Istar[1]
     I[2] <- I[1] + Istar[1] - Rstar[1]
-
+    
     ### rest of time points
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
+        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
         alarm[t] <- powerAlarm(smoothI[t], N, k)
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-    }
-    
-    for (i in 1:n) {
-        yAlarm[i] <- powerAlarm(xAlarm[i], N, k)
     }
     
     # priors
     beta ~ dgamma(0.1, 0.1)
     k ~ dgamma(0.1, 0.1)
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
+
+
 
 ################################################################################
 ### Threshold alarm models
 
 # for model fitting (smoothI known)
 
-SIR_thresh <-  nimbleCode({
+SEIR_thresh <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
     ### rest of time points
@@ -487,22 +523,21 @@ SIR_thresh <-  nimbleCode({
         # compute alarm
         alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
         
     }
     
     # estimated effective R0
-    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    R0_eff[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
     
     for (i in 1:n) {
         yAlarm[i] <- thresholdAlarm(xAlarm[i],  N, delta, H)
@@ -512,61 +547,61 @@ SIR_thresh <-  nimbleCode({
     beta ~ dgamma(0.1, 0.1)
     delta ~ dbeta(1, 1)
     H ~ dunif(minI/N, maxI/N)
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
 
-# for forward simulation (smoothI unknown)
-
-SIR_thresh_sim <-  nimbleCode({
+SEIR_thresh_sim <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
-    ### first time point for incidence based alarm
-    # compute alarm
-    smoothI[1] <- smoothI0
-    alarm[1] <- thresholdAlarm(smoothI[1],  N, delta, H)
+    ### first time point
+    smoothI[1] <- 0
+    alarm[1] <- powerAlarm(smoothI[1], N, k)
     
-    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
-    Istar[1] ~ dbin(probSI[1], S[1])
+    Estar[1] ~ dbin(probSE[1], S[1])
+    Istar[1] ~ dbin(probEI, E[1])
     Rstar[1] ~ dbin(probIR, I[1])
     
-    # update S and I
-    S[2] <- S[1] - Istar[1]
+    # update S E I
+    S[2] <- S[1] - Estar[1]
+    E[2] <- E[1] + Estar[1] - Istar[1]
     I[2] <- I[1] + Istar[1] - Rstar[1]
     
     ### rest of time points
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
+        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
         alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
-    }
-    
-    for (i in 1:n) {
-        yAlarm[i] <- thresholdAlarm(xAlarm[i],  N, delta, H)
     }
     
     # priors
     beta ~ dgamma(0.1, 0.1)
     delta ~ dbeta(1, 1)
     H ~ dunif(minI/N, maxI/N)
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
 
@@ -575,12 +610,13 @@ SIR_thresh_sim <-  nimbleCode({
 
 # for model fitting (smoothI known)
 
-SIR_hill <-  nimbleCode({
+SEIR_hill <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
     ### rest of time points
@@ -589,21 +625,20 @@ SIR_hill <-  nimbleCode({
         # compute alarm
         alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
     }
     
     # estimated effective R0
-    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    R0_eff[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
     
     
     for (i in 1:n) {
@@ -615,62 +650,63 @@ SIR_hill <-  nimbleCode({
     delta ~ dbeta(1, 1)
     nu ~ dunif(0, 50)
     x0 ~ dunif(minI, maxI)
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
 
-# for forward simulation (smoothI unknown)
-
-SIR_hill_sim <-  nimbleCode({
+SEIR_hill_sim <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
-    ### first time point for incidence based alarm
-    # compute alarm
-    smoothI[1] <- smoothI0
-    alarm[1] <- hillAlarm(smoothI[1], nu, x0, delta)
+    ### first time point
+    smoothI[1] <- 0
+    alarm[1] <- powerAlarm(smoothI[1], N, k)
     
-    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
-    Istar[1] ~ dbin(probSI[1], S[1])
+    Estar[1] ~ dbin(probSE[1], S[1])
+    Istar[1] ~ dbin(probEI, E[1])
     Rstar[1] ~ dbin(probIR, I[1])
     
-    # update S and I
-    S[2] <- S[1] - Istar[1]
+    # update S E I
+    S[2] <- S[1] - Estar[1]
+    E[2] <- E[1] + Estar[1] - Istar[1]
     I[2] <- I[1] + Istar[1] - Rstar[1]
     
     ### rest of time points
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
+        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
         alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
     }
     
-    for (i in 1:n) {
-        yAlarm[i] <- hillAlarm(xAlarm[i],  nu, x0, delta)
-    }
     
     # priors
     beta ~ dgamma(0.1, 0.1)
     delta ~ dbeta(1, 1)
     nu ~ dunif(0, 50)
     x0 ~ dunif(minI, maxI)
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
 
@@ -679,12 +715,13 @@ SIR_hill_sim <-  nimbleCode({
 
 # for model fitting (smoothI known)
 
-SIR_spline <-  nimbleCode({
+SEIR_spline <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
     ### rest of time points
@@ -693,22 +730,21 @@ SIR_spline <-  nimbleCode({
         # compute alarm
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
         
     }
     
     # estimated effective R0
-    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    R0_eff[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
     
     yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
     
@@ -726,51 +762,55 @@ SIR_spline <-  nimbleCode({
     for (i in 1:(nb - 1)) {
         knots[i] ~ dunif(min = minI, max = maxI - 1)
     }
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
     # constrain knots to be ordered
     constrain_knots ~ dconstraint(knots[1] < knots[2])
     
 })
 
-# for forward simulation (smoothI unknown)
 
-SIR_spline_sim <-  nimbleCode({
+SEIR_spline_sim <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
-    ### first time point for incidence based alarm
-    # compute alarm
-    smoothI[1] <- smoothI0
-    alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
+    ### first time point
+    smoothI[1] <- 0
+    alarm[1] <- powerAlarm(smoothI[1], N, k)
     
-    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
-    Istar[1] ~ dbin(probSI[1], S[1])
+    Estar[1] ~ dbin(probSE[1], S[1])
+    Istar[1] ~ dbin(probEI, E[1])
     Rstar[1] ~ dbin(probIR, I[1])
     
-    # update S and I
-    S[2] <- S[1] - Istar[1]
+    # update S E I
+    S[2] <- S[1] - Estar[1]
+    E[2] <- E[1] + Estar[1] - Istar[1]
     I[2] <- I[1] + Istar[1] - Rstar[1]
     
     ### rest of time points
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
+        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
     }
@@ -791,7 +831,8 @@ SIR_spline_sim <-  nimbleCode({
     for (i in 1:(nb - 1)) {
         knots[i] ~ dunif(min = minI, max = maxI - 1)
     }
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
     # constrain knots to be ordered
     constrain_knots ~ dconstraint(knots[1] < knots[2])
@@ -804,12 +845,13 @@ SIR_spline_sim <-  nimbleCode({
 
 # for model fitting (smoothI known)
 
-SIR_splineFixKnot <-  nimbleCode({
+SEIR_splineFixKnot <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
     ### rest of time points
@@ -818,22 +860,21 @@ SIR_splineFixKnot <-  nimbleCode({
         # compute alarm
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
         
     }
     
     # estimated effective R0
-    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    R0_eff[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
     
     yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
     
@@ -848,47 +889,52 @@ SIR_splineFixKnot <-  nimbleCode({
     for (i in 1:nb) {
         b[i] ~ dnorm(0, sd = 100)
     }
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
     
 })
 
-SIR_splineFixKnot_sim <-  nimbleCode({
+SEIR_splineFixKnot_sim <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
-    ### first time point for incidence based alarm
-    # compute alarm
-    smoothI[1] <- smoothI0
-    alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
+    ### first time point
+    smoothI[1] <- 0
+    alarm[1] <- powerAlarm(smoothI[1], N, k)
     
-    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
-    Istar[1] ~ dbin(probSI[1], S[1])
+    Estar[1] ~ dbin(probSE[1], S[1])
+    Istar[1] ~ dbin(probEI, E[1])
     Rstar[1] ~ dbin(probIR, I[1])
     
-    # update S and I
-    S[2] <- S[1] - Istar[1]
+    # update S E I
+    S[2] <- S[1] - Estar[1]
+    E[2] <- E[1] + Estar[1] - Istar[1]
     I[2] <- I[1] + Istar[1] - Rstar[1]
     
     ### rest of time points
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
+        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
     }
@@ -906,7 +952,8 @@ SIR_splineFixKnot_sim <-  nimbleCode({
     for (i in 1:nb) {
         b[i] ~ dnorm(0, sd = 100)
     }
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
 
@@ -915,12 +962,13 @@ SIR_splineFixKnot_sim <-  nimbleCode({
 
 # for model fitting (smoothI known)
 
-SIR_gp <-  nimbleCode({
+SEIR_gp <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
     ### rest of time points
@@ -929,21 +977,20 @@ SIR_gp <-  nimbleCode({
         # compute alarm
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- (beta * (1 - alarm[t])) / rateI
     }
     
     # estimated effective R0
-    R0_update[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
+    R0_eff[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
     
     yAlarm[1] <- 0
     mu[2:n] <- mu0 * ones[2:n]
@@ -954,46 +1001,51 @@ SIR_gp <-  nimbleCode({
     beta ~ dgamma(0.1, 0.1)
     sigma ~ dgamma(150, 50)
     l ~ dinvgamma(c, d)
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
 
-SIR_gp_sim <-  nimbleCode({
+SEIR_gp_sim <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
-    ### first time point for incidence based alarm
-    # compute alarm
-    smoothI[1] <- smoothI0
-    alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
+    ### first time point
+    smoothI[1] <- 0
+    alarm[1] <- powerAlarm(smoothI[1], N, k)
     
-    probSI[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
+    probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
-    Istar[1] ~ dbin(probSI[1], S[1])
+    Estar[1] ~ dbin(probSE[1], S[1])
+    Istar[1] ~ dbin(probEI, E[1])
     Rstar[1] ~ dbin(probIR, I[1])
     
-    # update S and I
-    S[2] <- S[1] - Istar[1]
+    # update S E I
+    S[2] <- S[1] - Estar[1]
+    E[2] <- E[1] + Estar[1] - Istar[1]
     I[2] <- I[1] + Istar[1] - Rstar[1]
     
     ### rest of time points
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- get_smoothI(Istar[1:(t-1)], t, Istar0[1:Istar0Length], Istar0Length, bw)
+        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
-        probSI[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
         
     }
@@ -1007,44 +1059,45 @@ SIR_gp_sim <-  nimbleCode({
     beta ~ dgamma(0.1, 0.1)
     sigma ~ dgamma(150, 50)
     l ~ dinvgamma(c, d)
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
 
 ################################################################################
 ### Standard SIR model with no alarm
 
-SIR_basic <-  nimbleCode({
+SEIR_basic <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
     ### rest of time points
     for(t in 1:tau) {
         
-        probSI[t] <- 1 - exp(- beta * I[t] / N)
+        probSE[t] <- 1 - exp(- beta * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- beta / rateI
     }
     
     # estimated effective R0
-    R0_update[1:(tau-15)] <- get_R0_basic(beta, rateI, N, S[1:tau])
+    R0_eff[1:(tau-15)] <- get_R0_basic(beta, rateI, N, S[1:tau])
     
     # priors
     beta ~ dgamma(0.1, 0.1)
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
 })
 
@@ -1053,32 +1106,32 @@ SIR_basic <-  nimbleCode({
 ### SIR model with time-varying beta (no alarm)
 # Spline
 
-SIR_betatSpline <-  nimbleCode({
+SEIR_betatSpline <-  nimbleCode({
     
-    SIR_init[1:3] ~ dmulti(prob = initProb[1:3], size = N)
-    S[1] <- SIR_init[1] - 1
-    I[1] <- SIR_init[2] + 1 # add 1 to ensure I0 > 0
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
     
+    probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
     ### rest of time points
     for(t in 1:tau) {
         
-        probSI[t] <- 1 - exp(- beta[t] * I[t] / N)
+        probSE[t] <- 1 - exp(- beta[t] * I[t] / N)
         
-        Istar[t] ~ dbin(probSI[t], S[t])
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
         Rstar[t] ~ dbin(probIR, I[t])
         
-        # update S and I
-        S[t + 1] <- S[t] - Istar[t]
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
         I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-        # estimate reproductive number
-        R0[t] <- beta[t] / rateI
     }
     
     # estimated effective R0
-    R0_update[1:(tau-15)] <- get_R0(beta[1:tau], rateI, N, S[1:tau])
+    R0_eff[1:(tau-15)] <- get_R0(beta[1:tau], rateI, N, S[1:tau])
     
     log(beta[1:tau]) <- splineBeta(timeVec[1:tau], b[1:nb], knots[1:(nb - 1)])
     
@@ -1089,7 +1142,8 @@ SIR_betatSpline <-  nimbleCode({
     for (i in 1:(nb - 1)) {
         knots[i] ~ dunif(min = 1, max = tau)
     }
-    rateI ~ dgamma(aa, bb)
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
     
     # constrain knots to be ordered
     constrain_knots ~ dconstraint(knots[1] < knots[2] & knots[2] < knots[3] )
