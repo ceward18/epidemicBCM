@@ -3,7 +3,7 @@
 ################################################################################
 
 
-postPredFit <- function(incData, deathData, smoothI, smoothWindow,
+postPredFit <- function(incData, deathData, smoothI, 
                         N, E0, I0, R0, 
                         alarmFit, paramsPost, alarmSamples) {
     
@@ -16,7 +16,6 @@ postPredFit <- function(incData, deathData, smoothI, smoothWindow,
     # model code
     if (!alarmFit %in% c('basic', 'betatSpline')) {
         modelCode <- get(paste0('SEIR_', alarmFit, '_sim'))
-        modelInputs$constantsList$bw <- smoothWindow
     } else {
         modelCode <- get(paste0('SEIR_', alarmFit))
     }
@@ -35,8 +34,9 @@ postPredFit <- function(incData, deathData, smoothI, smoothWindow,
     compiledPred  <- compileNimble(myModelPred) 
     
     tau <- modelInputs$constantsList$tau
-    dataNodes <- paste0('Istar[', 1:tau, ']')
-    dataNodes <- c(dataNodes, paste0('Estar[', 1:tau, ']'), paste0('Rstar[', 1:tau, ']'))
+    dataNodes <- c(paste0('Istar[', 1:tau, ']'), 
+                   paste0('Estar[', 1:tau, ']'),
+                   paste0('Rstar[', 1:tau, ']'))
     
     sim_R <- simulator(myModelPred, dataNodes)
     sim_C <- compileNimble(sim_R)
@@ -46,7 +46,7 @@ postPredFit <- function(incData, deathData, smoothI, smoothWindow,
     parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
     parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
     
-    nPost <- 10000
+    nPost <- 1000
     postPredInc <- matrix(NA, nrow = tau, ncol = nPost)
     set.seed(1)
     for (j in 1:nPost) {
@@ -107,18 +107,16 @@ postPredFit <- function(incData, deathData, smoothI, smoothWindow,
             
         }
         
-        # for exponential exposure period
-        rateEPost <- paramsPost[postIdx, 'rateE']
-        trueVals <- c(trueVals, rateEPost)
-        
-        # for exponential infectious period
-        rateIPost <- paramsPost[postIdx, 'rateI']
-        trueVals <- c(trueVals, rateIPost)
-        
+        # for exponential exposure and infectious periods
+        ratePosts <- paramsPost[postIdx, c('rateE', 'rateI')]
+        trueVals <- c(trueVals, ratePosts)
         
         trueVals <- trueVals[parentNodes]
+        
+        postPreds <- sim_C$run(trueVals, 50)[,grep('Istar', dataNodes)]
+        postPreds <- postPreds[rowSums(postPreds)>5,]
        
-        postPredInc[,j] <- apply(sim_C$run(trueVals, 10), 2, median)[grep('Istar', dataNodes)]
+        postPredInc[,j] <- apply(postPreds, 2, median)
     }
     
     postPredInc

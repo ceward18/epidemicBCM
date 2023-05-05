@@ -6,7 +6,7 @@
 ################################################################################
 
 fitAlarmModel <- function(incData, deathData, smoothI, N, E0, I0, R0, 
-                          smoothWindow, alarmFit, seed) {
+                          alarmFit, seed) {
     
     source('./scripts/modelCodes.R')
     source('./scripts/getModelInputs.R')

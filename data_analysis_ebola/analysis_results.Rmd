@@ -1,0 +1,185 @@
+---
+title: "Ebola Analysis Results"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+
+# load libraries
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(nimble)
+library(plyr)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+library(ggh4x)
+
+# for movingAverage function
+source('./scripts/modelCodes.R')
+```
+
+## Ebola Data
+
+From outbreaks::ebola_kikwit_1995. Contain new cases of Ebola in Kikwit, DRC.
+
+Over the entire period, there were 316 cases. Symptom onset is known for 291 cases
+and death date is known for 236 people. Recovery times for individuals that did not
+die are not reported.
+
+```{r}
+dat <- read.csv('./data/ebolaClean.csv')
+dat$date <- as.Date(dat$date)
+
+plot(dat$date, dat$onset, type= 'l', ylab = 'Count', xlab = 'Date')
+lines(dat$date, dat$death, col = 'red')
+legend('topright', c('cases', 'deaths'), col = c('black', 'red'), lwd = 5, cex = 1.5, bty = 'n')
+
+
+```
+
+## Model
+
+Ebola is best modeled with an SEIR structure as there is a latent period of around 6-7 days 
+after exposure before individuals become infectious.
+
+
+\begin{align*}
+E_t^* &\sim Binom\left(S_t, \pi_t^{(SE)}\right) \\
+I_t^* &\sim Binom\left(E_t, \pi^{EI}\right) \\
+R_t^* &\sim Binom\left(I_t, \pi^{(IR)}\right) \\
+\end{align*}
+
+Transition probabilities are modeled as:
+
+\begin{align*}
+\pi_t^{(SE)} &= 1 - \exp\left\{\beta(1 - a_t) \frac{I_t}{N}\right\} \\
+\pi^{(EI)} &= 1 - \exp\left(-\gamma_E\right) \\
+\pi^{(IR)} &= 1 - \exp\left(-\gamma_I\right) \\
+\end{align*}
+
+$I_t^*$ and $R_t^*$ are partially observed, $E_t^*$ is fully latent. The missing
+components are estimated with the MCMC process.
+
+Various alarm functions were considered:
+
+* Power
+* Threshold
+* Hilll
+* Spline
+* GP
+* No alarm, only $\beta_t$ estimated with splines
+* No alarm, $\beta_t = \beta$
+
+## Results
+
+```{r}
+grAll <- readRDS('./results/grAll.rds')
+alarmPostAll <- readRDS('./results/alarmPostAll.rds')
+paramsPostAll <- readRDS('./results/paramsPostAll.rds')
+R0PostAll <- readRDS('./results/R0PostAll.rds')
+waicAll <- readRDS('./results/waicAll.rds')
+postPredFitAll <- readRDS('./results/postPredFitAll.rds')
+```
+
+### Alarm function estimation
+
+```{r}
+ggplot(alarmPostAll, aes(x = xAlarm, y = mean, ymin = lower, ymax = upper)) +
+    facet_grid(smoothWindow~alarmFit) +
+    geom_line() + 
+    geom_ribbon(alpha = 0.3) + 
+    theme_bw()
+```
+
+### Reproductive number estimation
+
+The Ebola virus was confirmed as the causative agent on May 9 when tests were carried out on specimens collected from some of the early cases. Control measures were immediately introduced. These included, among others, the use of protective clothing, active surveillance, and community education.
+
+Previous modeling of this epidemic has included a change point in transmission on May 9. 
+Our results indicate that behavior change started to occur prior to this point.
+
+```{r}
+
+# get the actual date 
+timeDat <- dat
+timeDat$time <- 1:nrow(dat)
+
+R0PostAll <- merge(R0PostAll, timeDat, by = c('time'), all.x = T)
+
+
+ggplot(R0PostAll, aes(x = date, y = mean, ymin = lower, ymax = upper)) +
+    facet_grid(smoothWindow~alarmFit) +
+    geom_line() + 
+    geom_ribbon(alpha = 0.3) + 
+    theme_bw() + 
+    geom_vline(xintercept = as.Date('1995-05-09'), linetype = 2, col = 'red')
+```
+
+### WAIC 
+
+```{r}
+waicAll
+```
+
+### Posterior predictive fit
+
+```{r}
+
+postPredFitAll <- merge(postPredFitAll, timeDat, by = c('time'), all.x = T)
+
+ggplot(postPredFitAll, aes(x = date, y = mean, ymin = lower, ymax = upper)) +
+    facet_grid(smoothWindow~alarmFit) +
+    geom_line() + 
+    geom_ribbon(alpha = 0.3) + 
+    geom_line(aes(y = onset), col = 'red') +
+    theme_bw() 
+```
+
+```{r}
+# convert to cumulative sum
+postPredFitAll <- postPredFitAll[order(postPredFitAll$alarmFit, 
+                                       postPredFitAll$smoothWindow,
+                                       postPredFitAll$time),]
+
+
+postPredFitAllCum <- postPredFitAll %>%
+    group_by(alarmFit, smoothWindow) %>%
+    mutate(cumMean = cumsum(mean),
+           cumLower = cumsum(lower),
+           cumUpper = cumsum(upper),
+           cumTruth = cumsum(onset)) %>%
+    as.data.frame()
+
+ggplot(postPredFitAllCum, aes(x = date, y = cumMean, ymin = cumLower, ymax = cumUpper)) +
+    facet_grid(smoothWindow~alarmFit) +
+    geom_line() + 
+    geom_ribbon(alpha = 0.3) + 
+    geom_line(aes(y = cumTruth), col = 'red') +
+    theme_bw() 
+
+```
+
+
+
+
+### Posterior distribution of parameters
+
+```{r, fig.height = 8}
+ggplot(data = subset(paramsPostAll),  
+       aes(x = alarmFit, y = mean, ymin=lower, ymax=upper)) +
+    geom_point(size = 1) + 
+    geom_errorbar(width=.2, position = position_dodge(width = 0.5)) +
+    facet_grid(param ~ smoothWindow, scales = 'free') +
+    labs(x = 'Alarm Type', y = '', title = 'Posterior mean and 95% CIs') +
+    theme_bw() + 
+    theme(strip.background = element_rect(fill = 'white'),
+          strip.text = element_text(size = 12),
+          axis.title = element_text(size = 12),
+          axis.text = element_text(size = 10),
+          plot.title = element_text(size = 13, h = 0.5))
+```
+

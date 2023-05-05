@@ -40,31 +40,6 @@ hillAlarm <- nimbleFunction(
     })
 assign('hillAlarm', hillAlarm, envir = .GlobalEnv)
 
-# calculate moving average for smoothing
-movingAverage <- nimbleFunction(     
-    run = function(x = double(1), bw = double(0)) {
-        returnType(double(1))
-        n <- length(x)
-        bw <- floor(bw)
-        
-        out <- rep(0, n)
-        for (i in 1:n) {
-            
-            if (i < bw) {
-                t1 = 1
-                t2 = i
-            } else {
-                t1 = i - bw + 1
-                t2 = i
-            }
-            
-            out[i] <- mean(x[t1:t2])
-        }
-        
-        return(out)
-    })
-assign('movingAverage', movingAverage, envir = .GlobalEnv)
-
 # get effective reproductive number at time t using a forward sum
 get_R0 <- nimbleFunction(     
     run = function(betat = double(1), rateI = double(0), N = double(0), S = double(1)) {
@@ -477,7 +452,7 @@ SEIR_power_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- smoothI[t-1] + Istar[t-1]
         alarm[t] <- powerAlarm(smoothI[t], N, k)
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -580,7 +555,7 @@ SEIR_thresh_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- smoothI[t-1] + Istar[t-1]
         alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -683,7 +658,7 @@ SEIR_hill_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- smoothI[t-1] + Istar[t-1]
         alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -799,7 +774,7 @@ SEIR_spline_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- smoothI[t-1] + Istar[t-1]
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -923,7 +898,7 @@ SEIR_splineFixKnot_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- smoothI[t-1] + Istar[t-1]
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -1034,7 +1009,7 @@ SEIR_gp_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <-  movingAverage(Istar[1:(t-1)], bw)[t-1]
+        smoothI[t] <- smoothI[t-1] + Istar[t-1]
         alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)

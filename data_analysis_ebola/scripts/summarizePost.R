@@ -16,7 +16,7 @@ source('./scripts/getModelInputs.R')
 source('./scripts/postPredFit.R')
 source('./scripts/getWAIC.R')
 
-summarizePost <- function(resThree, incData, deathData, smoothI, smoothWindow,
+summarizePost <- function(resThree, incData, deathData, smoothI, 
                           N, E0, I0, R0, alarmFit) {
     
     if (!alarmFit %in% c('betatSpline', 'basic')) {
@@ -83,6 +83,7 @@ summarizePost <- function(resThree, incData, deathData, smoothI, smoothWindow,
     
     ##############################################################################
     ### posterior distribution of alarm function 
+    
     if (!alarmFit %in% c('betatSpline', 'basic')) {
         alarmSamples1 <- t(resThree[[1]][,grep('yAlarm', colnames(resThree[[1]]))])
         alarmSamples2 <- t(resThree[[2]][,grep('yAlarm', colnames(resThree[[2]]))])
@@ -117,6 +118,7 @@ summarizePost <- function(resThree, incData, deathData, smoothI, smoothWindow,
     
     ##############################################################################
     ### posterior distribution of beta[t] when estimated directly
+    
     if (alarmFit == 'betatSpline') {
         betaSamples1 <- t(resThree[[1]][,grep('beta', colnames(resThree[[1]]))])
         betaSamples2 <- t(resThree[[2]][,grep('beta', colnames(resThree[[2]]))])
@@ -153,12 +155,29 @@ summarizePost <- function(resThree, incData, deathData, smoothI, smoothWindow,
                          lower = postCI[1,],
                          upper = postCI[2,])
     rownames(postR0) <- NULL
+    
+    ##############################################################################
+    ### posterior distribution of compartments
+    
+    compSamples <- cbind(EstarPost, IstarPost, RstarPost)
+    
+    tau <- length(incData)
+    
+    postMeans <- colMeans(compSamples)
+    postCI <- apply(compSamples, 2, quantile, probs = c(0.025, 0.975))
+    postComps <- data.frame(time = rep(1:tau,3),
+                         comp = rep(c('Estar', 'Istar', 'Rstar'), each = tau),
+                         obs = c(rep(NA, tau), incData, deathData),
+                         mean = postMeans,
+                         lower = postCI[1,],
+                         upper = postCI[2,])
+    rownames(postComps) <- NULL
 
     ##############################################################################
     ### posterior predictive model fit
     
     postPredObs <- postPredFit(incData = incData, deathData = deathData,
-                               smoothI = smoothI, smoothWindow = smoothWindow, 
+                               smoothI = smoothI, 
                                N = N, E0 = E0, I0 = I0, R0 = R0,  
                                alarmFit = alarmFit, 
                                paramsPost = paramsPost, alarmSamples = alarmSamples)
@@ -198,7 +217,7 @@ summarizePost <- function(resThree, incData, deathData, smoothI, smoothWindow,
     } 
     
     waic <- getWAIC(samples = samples, incData = incData, deathData = deathData,
-                    smoothI = smoothI, smoothWindow = smoothWindow,
+                    smoothI = smoothI, 
                     N = N, E0 = E0, I0 = I0, R0 = R0, alarmFit = alarmFit)
     
     ##############################################################################
@@ -207,9 +226,10 @@ summarizePost <- function(resThree, incData, deathData, smoothI, smoothWindow,
     list(gdiag = gdiag,
          postParams = postParams,
          postAlarm = postAlarm,
+         postR0 = postR0,
+         postComps = postComps,
          postPredFit = postPredFit,
          postBeta = postBeta,
-         postR0 = postR0,
          waic = waic)
     
     

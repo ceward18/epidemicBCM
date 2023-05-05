@@ -97,7 +97,7 @@ lineLength <- 4
 
 layoutMat <- matrix(1:6, nrow = 2, ncol = 3)
 
-pdf('./figures/fig1_ex_alarms.pdf', width = 12, height = 5)
+jpeg('./figures/fig1_ex_alarms.jpg', units = 'in', res = 500, width = 12, height = 5)
 layout(mat = layoutMat,
        heights = c(3, 1), 
        widths = c(1, 1, 1)) 
@@ -357,13 +357,13 @@ toPlot_alarm_A <- data.frame(alarm = c(rep('Power', length(incRange) * 3),
                                        rep(c(0.05, 0.01, 0.003), each = length(incRange)),
                                        rep(c(0.2, 0.4, 0.6), each = length(incRange))),
                              alarmVal = c(powerAlarm1, powerAlarm2, powerAlarm3,
-                                       threshAlarm1, threshAlarm2, threshAlarm3,
-                                       hillAlarm1, hillAlarm2, hillAlarm3))
+                                          threshAlarm1, threshAlarm2, threshAlarm3,
+                                          hillAlarm1, hillAlarm2, hillAlarm3))
 
 toPlot_epi_A$paramLab <- factor(toPlot_epi_A$param, 
-                            levels = c(0, 0.2, 0.4, 0.6, 0.05, 0.01, 0.003))
+                                levels = c(0, 0.2, 0.4, 0.6, 0.05, 0.01, 0.003))
 toPlot_alarm_A$paramLab <- factor(toPlot_alarm_A$param, 
-                            levels = c(0.2, 0.4, 0.6, 0.05, 0.01, 0.003))
+                                  levels = c(0.2, 0.4, 0.6, 0.05, 0.01, 0.003))
 
 plotLabsDelta <- c('No behavioral change',
                    ~delta~'= 0.2',
@@ -379,22 +379,22 @@ legendLocation1 <- c(0.2, 0.80)
 legendLocation2 <- c(0.65, 0.77)
 
 myTheme1 <- theme(legend.position = legendLocation1,
-                 legend.title= element_blank(),
-                 plot.title = element_text(h = 0.5, size = 15),
-                 axis.title = element_text(size = 13),
-                 axis.text = element_text(size = 11),
-                 legend.text = element_text(size = 12),
-                 panel.grid.major = element_blank(), 
-                 panel.grid.minor = element_blank())
+                  legend.title= element_blank(),
+                  plot.title = element_text(h = 0.5, size = 15),
+                  axis.title = element_text(size = 13),
+                  axis.text = element_text(size = 11),
+                  legend.text = element_text(size = 12),
+                  panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank())
 
 myTheme2 <- theme(legend.position = legendLocation2,
-                 legend.title= element_blank(),
-                 plot.title = element_text(h = 0.5, size = 16),
-                 axis.title = element_text(size = 14),
-                 axis.text = element_text(size = 12),
-                 legend.text = element_text(size = 12),
-                 panel.grid.major = element_blank(), 
-                 panel.grid.minor = element_blank())
+                  legend.title= element_blank(),
+                  plot.title = element_text(h = 0.5, size = 16),
+                  axis.title = element_text(size = 14),
+                  axis.text = element_text(size = 12),
+                  legend.text = element_text(size = 12),
+                  panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank())
 
 # alarms
 p1 <- ggplot(subset(toPlot_alarm_A, alarm == 'Power'), 
@@ -521,7 +521,7 @@ toPlot_B$smoothWindow <- paste0(toPlot_B$smoothWindow,
 ### create plots
 
 p7 <- ggplot(subset(toPlot_B, time <=80), 
-       aes(x = time, y = Istar, color = alarm)) + 
+             aes(x = time, y = Istar, color = alarm)) + 
     geom_line(size = 1, alpha = 0.8) +
     facet_wrap(~smoothWindow) + 
     theme_bw() +
@@ -537,7 +537,7 @@ p7 <- ggplot(subset(toPlot_B, time <=80),
     labs(color = 'Alarm',
          x = 'Epidemic Time', y = 'Incidence') 
 
-pdf('./figures/fig2_ex_epidemics.pdf', height = 7, width = 12.5)
+jpeg('./figures/fig2_ex_epidemics.jpg', units = 'in', res = 500, height = 7, width = 12.5)
 ggarrange(ggarrange(p4, p5, p6, NULL, nrow = 1,
                     widths = c(1, 1, 1, 0.1)), 
           p7, nrow = 2,
@@ -597,8 +597,8 @@ alarmAll<- subset(alarmAll, smoothWindow == 30)
 
 ### remove those that did not converge
 alarmAll <- merge(alarmAll, notConvergeModels,
-                 by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
-                 all.x = T)
+                  by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
+                  all.x = T)
 alarmAll$noConverge[is.na(alarmAll$noConverge)] <- 0
 alarmAll <- alarmAll[alarmAll$noConverge == 0,]
 
@@ -662,7 +662,7 @@ p3 <- ggplot() +
 
 
 
-pdf('./figures/fig3_sim_alarms30.pdf', height = 6, width = 7)
+jpeg('./figures/fig3_sim_alarms30.jpg', units = 'in', res = 500, height = 6, width = 7)
 grid.arrange(p1, p2, p3, nrow = 3,
              top=textGrob("         Posterior mean of alarm functions",
                           gp = gpar(fontsize = 10, font = 1)))
@@ -700,8 +700,8 @@ postPredAll<- subset(postPredAll, smoothWindow == 30)
 
 ### remove those that did not converge
 postPredAll <- merge(postPredAll, notConvergeModels,
-                  by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
-                  all.x = T)
+                     by = c('alarmGen', 'alarmFit', 'smoothWindow', 'simNumber'),
+                     all.x = T)
 postPredAll$noConverge[is.na(postPredAll$noConverge)] <- 0
 postPredAll <- postPredAll[postPredAll$noConverge == 0,]
 
@@ -717,7 +717,7 @@ postPredAll$alarmFit <- factor(postPredAll$alarmFit,
                                           'Spline', 'Gaussian Process'))
 
 myCol <- 'blue'
-
+    
 myTheme <- theme_bw() + 
     theme(strip.background = element_rect(fill = 'white'),
           strip.text = element_text(size = 11),
@@ -766,7 +766,7 @@ p3 <- ggplot() +
     myTheme
 
 
-pdf('./figures/fig4_sim_postPred30.pdf', height = 7, width = 8)
+jpeg('./figures/fig4_sim_postPred30.jpg', units = 'in', res = 500, height = 7, width = 8)
 grid.arrange(p1, p2, p3, nrow = 3,
              top=textGrob("        Posterior predictive forecasting", 
                           gp = gpar(fontsize = 13, font = 1)))

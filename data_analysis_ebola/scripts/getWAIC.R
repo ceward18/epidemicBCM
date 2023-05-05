@@ -48,7 +48,7 @@ getWAICFun <- function(ll) {
     
 }
 
-getWAIC <- function(samples, incData, deathData, smoothI, smoothWindow, 
+getWAIC <- function(samples, incData, deathData, smoothI,
                     N, E0, I0, R0, alarmFit) {
     
     # get appropriate model code
