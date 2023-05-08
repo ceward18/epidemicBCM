@@ -23,7 +23,7 @@ alarmFit <- c('power', 'thresh', 'hill',
               'spline', 'gp', 
               'basic', 'betatSpline', 'basicInt')
 
-# 7
+# 8
 allModels <- data.frame(alarmFit = alarmFit)
 
 

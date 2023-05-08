@@ -67,9 +67,9 @@ getWAIC <- function(samples, incData, deathData, smoothI,
                            inits = modelInputs$initsList)
     
     compiled <- compileNimble(myModel) 
-    
-    
+   
     parentNodes <- myModel$getParents(c('Estar', 'Istar', 'Rstar'), stochOnly = TRUE)
+    parentNodes <- myModel$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
     
     samples <- samples[,parentNodes]
     

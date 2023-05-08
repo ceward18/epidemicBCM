@@ -8,9 +8,16 @@ This directory contains the code needed to run the simulation study presented in
 
 The figures_and_tables.R script in this directory can be run to reproduce Figures 1 - 4 and Table 1.
 
-## data_analysis
+
+## data_analysis_ebola
+
+This directory contains code to load and format the Kikwit Ebola data and perform the associated analyses presented in Section 4.
+
+The figures_and_tables.R script in this directory can be run to reproduce Figures 5 - 7 and Table 2.
+
+
+## data_analysis_covid
 
 This directory contains code to pull in and format COVID-19 data from New York City and perform the associated analyses presented in Section 4.
 
-
-The figures_and_tables.R script in this directory can be run to reproduce Figures 5 - 7 and Table 2.
+The figures_and_tables.R script in this directory can be run to reproduce Figures 5 - 7 and Table 3.

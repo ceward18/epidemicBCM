@@ -177,11 +177,11 @@ summarizePost <- function(resThree, incData, deathData, smoothI,
     ### posterior predictive model fit
     
     postPredObs <- postPredFit(incData = incData, deathData = deathData,
-                               smoothI = smoothI, 
+                               smoothI = smoothI,
                                N = N, E0 = E0, I0 = I0, R0 = R0, intTime = intTime,
-                               alarmFit = alarmFit, 
+                               alarmFit = alarmFit,
                                paramsPost = paramsPost, alarmSamples = alarmSamples)
-    
+
     postMean <- rowMeans(postPredObs)
     postCI <- apply(postPredObs, 1, quantile, probs = c(0.025, 0.975))
     postPredFit <- data.frame(time = 1:length(incData),
