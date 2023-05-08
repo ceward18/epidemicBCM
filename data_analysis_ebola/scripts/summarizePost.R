@@ -19,26 +19,26 @@ source('./scripts/getWAIC.R')
 summarizePost <- function(resThree, incData, deathData, smoothI, 
                           N, E0, I0, R0, alarmFit) {
     
-    if (!alarmFit %in% c('betatSpline', 'basic')) {
-        paramSamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Estar|Istar|Rstar|R0|SIR_init\\[3\\]',
+    if (!alarmFit %in% c('betatSpline', 'basic', 'basicInt')) {
+        paramSamples1 <- resThree[[1]][,-grep('alarm|yAlarm|Estar|Istar|Rstar|R0',
                                               colnames(resThree[[1]]))]
-        paramSamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Estar|Istar|Rstar|R0|SIR_init\\[3\\]', 
+        paramSamples2 <- resThree[[2]][,-grep('alarm|yAlarm|Estar|Istar|Rstar|R0', 
                                               colnames(resThree[[2]]))]
-        paramSamples3 <- resThree[[3]][,-grep('alarm|yAlarm|Estar|Istar|Rstar|R0|SIR_init\\[3\\]', 
+        paramSamples3 <- resThree[[3]][,-grep('alarm|yAlarm|Estar|Istar|Rstar|R0', 
                                               colnames(resThree[[3]]))]
     } else if (alarmFit == 'betatSpline') {
-        paramSamples1 <- resThree[[1]][,-grep('beta|Estar|Istar|Rstar|R0|SIR_init\\[3\\]', 
+        paramSamples1 <- resThree[[1]][,-grep('beta|Estar|Istar|Rstar|R0', 
                                               colnames(resThree[[1]]))]
-        paramSamples2 <- resThree[[2]][,-grep('beta|Estar|Istar|Rstar|R0|SIR_init\\[3\\]', 
+        paramSamples2 <- resThree[[2]][,-grep('beta|Estar|Istar|Rstar|R0', 
                                               colnames(resThree[[2]]))]
-        paramSamples3 <- resThree[[3]][,-grep('beta|Estar|Istar|Rstar|R0|SIR_init\\[3\\]', 
+        paramSamples3 <- resThree[[3]][,-grep('beta|Estar|Istar|Rstar|R0', 
                                               colnames(resThree[[3]]))]
-    } else if (alarmFit == 'basic') {
-        paramSamples1 <- resThree[[1]][,-grep('Estar|Istar|Rstar|Rstar|R0|SIR_init\\[3\\]', 
+    } else if (alarmFit %in% c('basic', 'basicInt')) {
+        paramSamples1 <- resThree[[1]][,-grep('Estar|Istar|Rstar|Rstar|R0', 
                                               colnames(resThree[[1]])), drop = F]
-        paramSamples2 <- resThree[[2]][,-grep('Estar|Istar|Rstar|Rstar|R0|SIR_init\\[3\\]', 
+        paramSamples2 <- resThree[[2]][,-grep('Estar|Istar|Rstar|Rstar|R0', 
                                               colnames(resThree[[2]])), drop = F]
-        paramSamples3 <- resThree[[3]][,-grep('Estar|Istar|Rstar|Rstar|R0|SIR_init\\[3\\]', 
+        paramSamples3 <- resThree[[3]][,-grep('Estar|Istar|Rstar|Rstar|R0', 
                                               colnames(resThree[[3]])), drop = F]
     }
     
@@ -84,7 +84,7 @@ summarizePost <- function(resThree, incData, deathData, smoothI,
     ##############################################################################
     ### posterior distribution of alarm function 
     
-    if (!alarmFit %in% c('betatSpline', 'basic')) {
+    if (!alarmFit %in% c('betatSpline', 'basic', 'basicInt')) {
         alarmSamples1 <- t(resThree[[1]][,grep('yAlarm', colnames(resThree[[1]]))])
         alarmSamples2 <- t(resThree[[2]][,grep('yAlarm', colnames(resThree[[2]]))])
         alarmSamples3 <- t(resThree[[3]][,grep('yAlarm', colnames(resThree[[3]]))])
@@ -178,7 +178,7 @@ summarizePost <- function(resThree, incData, deathData, smoothI,
     
     postPredObs <- postPredFit(incData = incData, deathData = deathData,
                                smoothI = smoothI, 
-                               N = N, E0 = E0, I0 = I0, R0 = R0,  
+                               N = N, E0 = E0, I0 = I0, R0 = R0, intTime = intTime,
                                alarmFit = alarmFit, 
                                paramsPost = paramsPost, alarmSamples = alarmSamples)
     
@@ -194,7 +194,7 @@ summarizePost <- function(resThree, incData, deathData, smoothI,
     ### WAIC values
     
     # samples to use for WAIC calculation differ by model
-    if (alarmFit %in% c('thresh', 'hill', 'power', 'basic', 'betatSpline')) {
+    if (alarmFit %in% c('thresh', 'hill', 'power', 'basic', 'basicInt', 'betatSpline')) {
         
         samples <- rbind(resThree[[1]], resThree[[2]], resThree[[3]])
         
@@ -218,7 +218,8 @@ summarizePost <- function(resThree, incData, deathData, smoothI,
     
     waic <- getWAIC(samples = samples, incData = incData, deathData = deathData,
                     smoothI = smoothI, 
-                    N = N, E0 = E0, I0 = I0, R0 = R0, alarmFit = alarmFit)
+                    N = N, E0 = E0, I0 = I0, R0 = R0, intTime = intTime, 
+                    alarmFit = alarmFit)
     
     ##############################################################################
     

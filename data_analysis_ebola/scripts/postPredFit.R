@@ -4,17 +4,17 @@
 
 
 postPredFit <- function(incData, deathData, smoothI, 
-                        N, E0, I0, R0, 
+                        N, E0, I0, R0, intTime,
                         alarmFit, paramsPost, alarmSamples) {
     
     # model-specific constants, data, and inits
     modelInputs <- getModelInput(alarmFit = alarmFit, 
                                  incData = incData, deathData = deathData,
                                  smoothI = smoothI,
-                                 N = N, E0 = E0, I0 = I0, R0 = R0)
+                                 N = N, E0 = E0, I0 = I0, R0 = R0, intTime = intTime)
     
     # model code
-    if (!alarmFit %in% c('basic', 'betatSpline')) {
+    if (!alarmFit %in% c('basic', 'betatSpline', 'basicInt')) {
         modelCode <- get(paste0('SEIR_', alarmFit, '_sim'))
     } else {
         modelCode <- get(paste0('SEIR_', alarmFit))
@@ -53,7 +53,7 @@ postPredFit <- function(incData, deathData, smoothI,
         
         postIdx <- sample(1:nrow(paramsPost), 1)
         
-        if (alarmFit != 'betatSpline') {
+        if (!alarmFit %in% c('betatSpline', 'basicInt')) {
             betaPost <- paramsPost[postIdx,'beta']
         }
         
@@ -104,6 +104,10 @@ postPredFit <- function(incData, deathData, smoothI,
             bPost <- paramsPost[postIdx, grep('b\\[', colnames(paramsPost))]
             knotsPost <- paramsPost[postIdx, grep('knots\\[', colnames(paramsPost))]
             trueVals <- c(bPost, knotsPost)
+            
+        }  else if (alarmFit == 'basicInt') {
+            
+            trueVals <- paramsPost[postIdx, grep('transParams\\[', colnames(paramsPost))]
             
         }
         

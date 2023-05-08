@@ -1076,6 +1076,48 @@ SEIR_basic <-  nimbleCode({
     
 })
 
+################################################################################
+### Standard SIR model with intervention change point
+
+SEIR_basicInt <-  nimbleCode({
+    
+    S[1] <- S0
+    E[1] <- E0
+    I[1] <- I0
+    
+    probEI <- 1 - exp(-rateE)
+    probIR <- 1 - exp(-rateI)
+    
+    ### rest of time points
+    for(t in 1:tau) {
+        
+        probSE[t] <- 1 - exp(- beta[t] * I[t] / N)
+        
+        beta[t] <- exp(inprod(transParams[1:2], X[t, 1:2]))
+        
+        Estar[t] ~ dbin(probSE[t], S[t])
+        Istar[t] ~ dbin(probEI, E[t])
+        Rstar[t] ~ dbin(probIR, I[t])
+        
+        # update S E I
+        S[t + 1] <- S[t] - Estar[t]
+        E[t + 1] <- E[t] + Estar[t] - Istar[t]
+        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
+    }
+    
+    # estimated effective R0
+    R0_eff[1:(tau-15)] <- get_R0(beta[1:tau], rateI, N, S[1:tau])
+    
+    # priors
+    transParams[1] ~ dnorm(0, 4) # baseline transmissibility
+    transParams[2] ~ dnorm(0, 4) # intervention parameter
+    rateI ~ dgamma(20, 100)
+    rateE ~ dgamma(20, 100)
+    
+})
+
+
+
 
 ################################################################################
 ### SIR model with time-varying beta (no alarm)

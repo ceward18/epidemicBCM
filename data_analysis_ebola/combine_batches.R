@@ -108,7 +108,6 @@ saveRDS(betaPostAll,  paste0('./', resultsFolder, '/betaPostAll.rds'))
 ################################################################################
 # R0 posterior over time
 
-
 r0PostFiles <- outputFiles[grep('R0Post', outputFiles)]
 
 r0PostAll <- readRDS(paste0('./', outputFolder, '/', r0PostFiles[1]))
@@ -121,3 +120,20 @@ for (i in 2:length(r0PostFiles)) {
 rownames(r0PostAll) <- NULL
 
 saveRDS(r0PostAll,  paste0('./', resultsFolder, '/r0PostAll.rds'))
+
+
+################################################################################
+# compartment posterior over time
+
+compsPostFiles <- outputFiles[grep('compsPost', outputFiles)]
+
+compsPostAll <- readRDS(paste0('./', outputFolder, '/', compsPostFiles[1]))
+
+for (i in 2:length(compsPostFiles)) {
+    compsPost_i <- readRDS(paste0('./', outputFolder, '/', compsPostFiles[i]))
+    compsPostAll <-rbind.data.frame(compsPostAll, compsPost_i)
+}
+
+rownames(compsPostAll) <- NULL
+
+saveRDS(compsPostAll,  paste0('./', resultsFolder, '/compsPostAll.rds'))

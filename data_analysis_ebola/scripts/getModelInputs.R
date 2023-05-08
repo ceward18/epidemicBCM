@@ -7,7 +7,7 @@
 
 
 getModelInput <- function(alarmFit, incData, deathData, smoothI,
-                          N, E0, I0, R0) {
+                          N, E0, I0, R0, intTime) {
     
     # Mean of prior for initial values
     S0 <- N - E0 - I0 - R0
@@ -307,12 +307,41 @@ getModelInput <- function(alarmFit, incData, deathData, smoothI,
         
         xAlarm <- NULL
         
+    } else if (alarmFit == 'basicInt') {
+        
+        # design matrix for intervention
+        X <- cbind(1, cumsum(1:tau >= intTime))
+        
+        
+        ### constants
+        constantsList <- list(tau = tau,
+                              N = N,
+                              S0 = S0,
+                              E0 = E0,
+                              I0 = I0,
+                              X = X)
+        
+        ### data
+        dataList <- NULL
+        
+        ### inits 
+        initsList <- list(transParams = c(runif(1, -1, 0), 
+                                          runif(1, -0.1, 0)), # a priori assume intervention is successful
+                          rateE = rgamma(1, 20, 100),
+                          rateI = rgamma(1, 20, 100),
+                          Estar = Estar,
+                          Istar = Istar,
+                          Rstar = Rstar)
+        
+        xAlarm <- NULL
+        
     }
     
     ### MCMC specifications
     niter <- 500000
     nburn <- 250000
     nthin <- 20
+    
     
     list(constantsList = constantsList,
          dataList = dataList,

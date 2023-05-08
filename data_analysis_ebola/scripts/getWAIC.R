@@ -49,7 +49,7 @@ getWAICFun <- function(ll) {
 }
 
 getWAIC <- function(samples, incData, deathData, smoothI,
-                    N, E0, I0, R0, alarmFit) {
+                    N, E0, I0, R0, intTime, alarmFit) {
     
     # get appropriate model code
     modelCode <- get(paste0('SEIR_', alarmFit))
@@ -58,7 +58,7 @@ getWAIC <- function(samples, incData, deathData, smoothI,
     modelInputs <- getModelInput(alarmFit = alarmFit, 
                                  incData = incData, deathData = deathData,
                                  smoothI = smoothI,
-                                 N = N, E0 = E0, I0 = I0, R0 = R0)
+                                 N = N, E0 = E0, I0 = I0, R0 = R0, intTime = intTime)
     
     ### create nimble model
     myModel <- nimbleModel(modelCode, 

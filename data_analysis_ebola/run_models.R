@@ -21,16 +21,10 @@ dat <- dat[-1,]
 
 alarmFit <- c('power', 'thresh', 'hill', 
               'spline', 'gp', 
-              'basic', 'betatSpline')
-
-# 5 possibilities (5 alarmFits)
-allModelsAlarm <- expand.grid(alarmFit = alarmFit[c(1:6)])
-
-# 2 possibilities (2 alarmFits)
-allModelsNoAlarm <- expand.grid(alarmFit = alarmFit[7:8])
+              'basic', 'betatSpline', 'basicInt')
 
 # 7
-allModels <- rbind.data.frame(allModelsAlarm, allModelsNoAlarm)
+allModels <- data.frame(alarmFit = alarmFit)
 
 
 # list of batches
@@ -42,6 +36,9 @@ N <- 5363500
 E0 <- 2             # two infections at start - assume already exposed
 I0 <- 1
 R0 <- 2             # two deaths already occurred
+
+# intervention time for intervention model
+intTime <- which(dat$date == as.Date('1995-05-09'))
 
 
 alarmFit_i <- allModels$alarmFit[idx]
@@ -58,7 +55,7 @@ smoothI <- c(0, head(cumsum(incData), -1))
 # run three chains in parallel
 cl <- makeCluster(3)
 clusterExport(cl, list('incData', 'deathData', 'smoothI', 'alarmFit_i', 
-                       'N', 'E0', 'I0', 'R0'))
+                       'N', 'E0', 'I0', 'R0', 'intTime'))
 
 resThree <- parLapplyLB(cl, 1:3, function(x) {
     
@@ -68,9 +65,8 @@ resThree <- parLapplyLB(cl, 1:3, function(x) {
     source('./scripts/modelFits.R')
     
     # debugonce(fitAlarmModel)
-    fitAlarmModel(incData = incData, deathData = deathData,
-                  smoothI = smoothI,
-                  N = N, E0 = E0, I0 = I0, R0 = R0, 
+    fitAlarmModel(incData = incData, deathData = deathData,  smoothI = smoothI,
+                  N = N, E0 = E0, I0 = I0, R0 = R0, intTime = intTime,
                   alarmFit = alarmFit_i, seed = x)
     
 })

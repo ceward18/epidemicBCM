@@ -68,11 +68,13 @@ Various alarm functions were considered:
 
 * Power
 * Threshold
-* Hilll
+* Hill
 * Spline
 * GP
 * No alarm, only $\beta_t$ estimated with splines
 * No alarm, $\beta_t = \beta$
+
+Alarms were informed by cumulative incidence, as the epidemic was completely observed.
 
 ## Results
 
@@ -81,6 +83,7 @@ grAll <- readRDS('./results/grAll.rds')
 alarmPostAll <- readRDS('./results/alarmPostAll.rds')
 paramsPostAll <- readRDS('./results/paramsPostAll.rds')
 R0PostAll <- readRDS('./results/R0PostAll.rds')
+compsPostAll <- readRDS('./results/compsPostAll.rds')
 waicAll <- readRDS('./results/waicAll.rds')
 postPredFitAll <- readRDS('./results/postPredFitAll.rds')
 ```
@@ -89,7 +92,7 @@ postPredFitAll <- readRDS('./results/postPredFitAll.rds')
 
 ```{r}
 ggplot(alarmPostAll, aes(x = xAlarm, y = mean, ymin = lower, ymax = upper)) +
-    facet_grid(smoothWindow~alarmFit) +
+    facet_grid(~alarmFit) +
     geom_line() + 
     geom_ribbon(alpha = 0.3) + 
     theme_bw()
@@ -102,7 +105,7 @@ The Ebola virus was confirmed as the causative agent on May 9 when tests were ca
 Previous modeling of this epidemic has included a change point in transmission on May 9. 
 Our results indicate that behavior change started to occur prior to this point.
 
-```{r}
+```{r, fig.width=10}
 
 # get the actual date 
 timeDat <- dat
@@ -111,28 +114,35 @@ timeDat$time <- 1:nrow(dat)
 R0PostAll <- merge(R0PostAll, timeDat, by = c('time'), all.x = T)
 
 
-ggplot(R0PostAll, aes(x = date, y = mean, ymin = lower, ymax = upper)) +
-    facet_grid(smoothWindow~alarmFit) +
+ggplot(subset(R0PostAll, alarmFit != 'betatSpline'), 
+       aes(x = date, y = mean, ymin = lower, ymax = upper)) +
+    facet_grid(~alarmFit) +
     geom_line() + 
     geom_ribbon(alpha = 0.3) + 
     theme_bw() + 
-    geom_vline(xintercept = as.Date('1995-05-09'), linetype = 2, col = 'red')
+    geom_vline(xintercept = as.Date('1995-05-09'), linetype = 2, col = 'red') + 
+    geom_hline(yintercept = 1, linetype = 2)
 ```
+
 
 ### WAIC 
 
 ```{r}
-waicAll
+waicAll[,c(2,1)] %>%
+    kbl(row.names = F, format.args = list(big.mark = ",")) %>%
+    kable_styling(full_width = F) %>%
+    row_spec(2, background = "yellow")
 ```
 
 ### Posterior predictive fit
 
-```{r}
+```{r, fig.width=10}
 
 postPredFitAll <- merge(postPredFitAll, timeDat, by = c('time'), all.x = T)
 
-ggplot(postPredFitAll, aes(x = date, y = mean, ymin = lower, ymax = upper)) +
-    facet_grid(smoothWindow~alarmFit) +
+ggplot(subset(postPredFitAll, alarmFit != 'betatSpline'),
+       aes(x = date, y = mean, ymin = lower, ymax = upper)) +
+    facet_grid(~alarmFit) +
     geom_line() + 
     geom_ribbon(alpha = 0.3) + 
     geom_line(aes(y = onset), col = 'red') +
@@ -142,20 +152,20 @@ ggplot(postPredFitAll, aes(x = date, y = mean, ymin = lower, ymax = upper)) +
 ```{r}
 # convert to cumulative sum
 postPredFitAll <- postPredFitAll[order(postPredFitAll$alarmFit, 
-                                       postPredFitAll$smoothWindow,
                                        postPredFitAll$time),]
 
 
 postPredFitAllCum <- postPredFitAll %>%
-    group_by(alarmFit, smoothWindow) %>%
+    group_by(alarmFit) %>%
     mutate(cumMean = cumsum(mean),
            cumLower = cumsum(lower),
            cumUpper = cumsum(upper),
            cumTruth = cumsum(onset)) %>%
     as.data.frame()
 
-ggplot(postPredFitAllCum, aes(x = date, y = cumMean, ymin = cumLower, ymax = cumUpper)) +
-    facet_grid(smoothWindow~alarmFit) +
+ggplot(subset(postPredFitAllCum, alarmFit != 'betatSpline'), 
+       aes(x = date, y = cumMean, ymin = cumLower, ymax = cumUpper)) +
+    facet_grid(~alarmFit) +
     geom_line() + 
     geom_ribbon(alpha = 0.3) + 
     geom_line(aes(y = cumTruth), col = 'red') +
@@ -164,22 +174,54 @@ ggplot(postPredFitAllCum, aes(x = date, y = cumMean, ymin = cumLower, ymax = cum
 ```
 
 
+### Posterior distribution of compartments over time
+
+$E^*$, $I^*$, $R^*$, are fully or partially estimated via MCMC.
+
+Estimating the timing of 23 missing symptom onset times and ~80 missing removal times.
+
+```{r, fig.width=10, fig.height =  8}
+ggplot(subset(compsPostAll, alarmFit != 'betatSpline'), 
+       aes(x = time, y = mean, ymin = lower, ymax = upper)) +
+    facet_grid(comp~alarmFit) +
+    geom_line() + 
+    geom_ribbon(alpha = 0.3) + 
+    geom_line(aes(y = obs), col = 'red') +
+    theme_bw() 
+```
+
+
 
 
 ### Posterior distribution of parameters
 
-```{r, fig.height = 8}
-ggplot(data = subset(paramsPostAll),  
-       aes(x = alarmFit, y = mean, ymin=lower, ymax=upper)) +
-    geom_point(size = 1) + 
-    geom_errorbar(width=.2, position = position_dodge(width = 0.5)) +
-    facet_grid(param ~ smoothWindow, scales = 'free') +
-    labs(x = 'Alarm Type', y = '', title = 'Posterior mean and 95% CIs') +
-    theme_bw() + 
-    theme(strip.background = element_rect(fill = 'white'),
-          strip.text = element_text(size = 12),
-          axis.title = element_text(size = 12),
-          axis.text = element_text(size = 10),
-          plot.title = element_text(size = 13, h = 0.5))
+```{r}
+options(knitr.kable.NA = '')
+
+paramsPostAll$formattedCol <- paste0(round(paramsPostAll$mean, 2), " (",
+                                     round(paramsPostAll$lower, 2), ', ',
+                                     round(paramsPostAll$upper, 2), ')')
+
+paramsPostAll$formattedCol[paramsPostAll$param == 'k'] <- 
+    paste0(round(paramsPostAll$mean[paramsPostAll$param == 'k'], 5), " (",
+           round(paramsPostAll$lower[paramsPostAll$param == 'k'], 5), ', ',
+           round(paramsPostAll$upper[paramsPostAll$param == 'k'], 5), ')')
+
+paramsPostAll$formattedCol[paramsPostAll$param == 'H'] <- 
+    paste0(round(paramsPostAll$mean[paramsPostAll$param == 'H'] , 5), " (",
+           round(paramsPostAll$lower[paramsPostAll$param == 'H'] , 5), ', ',
+           round(paramsPostAll$upper[paramsPostAll$param == 'H'] , 5), ')')
+
+
+# convert to wide format
+paramsPostWide <- reshape(paramsPostAll[paramsPostAll$alarmFit != 'betatSpline' ,c(1,5,6)], 
+                          timevar = "param",
+                          idvar = "alarmFit",
+                          direction = "wide")
+colnames(paramsPostWide) <- gsub('formattedCol\\.', '', colnames(paramsPostWide))
+
+paramsPostWide %>%
+    kbl(row.names = F) %>%
+    kable_styling()
 ```
 

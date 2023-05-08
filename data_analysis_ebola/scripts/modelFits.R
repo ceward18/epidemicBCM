@@ -5,7 +5,7 @@
 #   alarmFit - type of function to use to describe the alarm
 ################################################################################
 
-fitAlarmModel <- function(incData, deathData, smoothI, N, E0, I0, R0, 
+fitAlarmModel <- function(incData, deathData, smoothI, N, E0, I0, R0, intTime, 
                           alarmFit, seed) {
     
     source('./scripts/modelCodes.R')
@@ -21,7 +21,7 @@ fitAlarmModel <- function(incData, deathData, smoothI, N, E0, I0, R0,
     modelInputs <- getModelInput(alarmFit = alarmFit, 
                                  incData = incData, deathData = deathData,
                                  smoothI = smoothI,
-                                 N = N, E0 = E0, I0 = I0, R0 = R0)
+                                 N = N, E0 = E0, I0 = I0, R0 = R0, intTime = intTime)
     
     
     ### MCMC specifications
@@ -38,7 +38,7 @@ fitAlarmModel <- function(incData, deathData, smoothI, N, E0, I0, R0,
     
     # need to ensure all stochastic nodes are monitored for WAIC calculation
     
-    if (!alarmFit %in% c('betatSpline', 'basic')) {
+    if (!alarmFit %in% c('betatSpline', 'basic', 'basicInt')) {
         myConfig$addMonitors(c('yAlarm', 'alarm'))
     }
     if (alarmFit == 'betatSpline') {
@@ -166,6 +166,15 @@ fitAlarmModel <- function(incData, deathData, smoothI, N, E0, I0, R0,
         
         # block sampler for transmission parameters
         paramsForBlock <- c('beta', 'rateE', 'rateI')
+        myConfig$removeSampler(paramsForBlock)
+        myConfig$addSampler(target = paramsForBlock, 
+                            type = "AF_slice")
+        
+        
+    } else if (alarmFit == 'basicInt') {
+        
+        # block sampler for transmission parameters
+        paramsForBlock <- c('transParams', 'rateE', 'rateI')
         myConfig$removeSampler(paramsForBlock)
         myConfig$addSampler(target = paramsForBlock, 
                             type = "AF_slice")
