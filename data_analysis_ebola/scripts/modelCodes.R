@@ -452,7 +452,8 @@ SEIR_power_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- smoothI[t-1] + Istar[t-1]
+        obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+        smoothI[t] <- smoothI[t-1] + obsInc[t-1]
         alarm[t] <- powerAlarm(smoothI[t], N, k)
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
@@ -555,8 +556,9 @@ SEIR_thresh_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- smoothI[t-1] + Istar[t-1]
-        alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
+        obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+        smoothI[t] <- smoothI[t-1] + obsInc[t-1]
+        alarm[t] <- powerAlarm(smoothI[t], N, k)
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
@@ -658,8 +660,9 @@ SEIR_hill_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- smoothI[t-1] + Istar[t-1]
-        alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
+        obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+        smoothI[t] <- smoothI[t-1] + obsInc[t-1]
+        alarm[t] <- powerAlarm(smoothI[t], N, k)
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
@@ -755,9 +758,10 @@ SEIR_spline_sim <-  nimbleCode({
     probEI <- 1 - exp(-rateE)
     probIR <- 1 - exp(-rateI)
     
-    ### first time point
-    smoothI[1] <- 0
-    alarm[1] <- powerAlarm(smoothI[1], N, k)
+    # compute alarm
+    obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+    smoothI[t] <- smoothI[t-1] + obsInc[t-1]
+    alarm[t] <- powerAlarm(smoothI[t], N, k)
     
     probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
@@ -814,123 +818,6 @@ SEIR_spline_sim <-  nimbleCode({
     
 })
 
-
-################################################################################
-### Spline alarm models (knots fixed)
-
-# for model fitting (smoothI known)
-
-SEIR_splineFixKnot <-  nimbleCode({
-    
-    S[1] <- S0
-    E[1] <- E0
-    I[1] <- I0
-    
-    probEI <- 1 - exp(-rateE)
-    probIR <- 1 - exp(-rateI)
-    
-    ### rest of time points
-    for(t in 1:tau) {
-        
-        # compute alarm
-        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
-        
-        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-        
-        Estar[t] ~ dbin(probSE[t], S[t])
-        Istar[t] ~ dbin(probEI, E[t])
-        Rstar[t] ~ dbin(probIR, I[t])
-        
-        # update S E I
-        S[t + 1] <- S[t] - Estar[t]
-        E[t + 1] <- E[t] + Estar[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-    }
-    
-    # estimated effective R0
-    R0_eff[1:(tau-15)] <- get_R0(beta * (1 - alarm[1:tau]), rateI, N, S[1:tau])
-    
-    yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
-    
-    # constrain yAlarm to be between 0 and 1
-    minYAlarm <- min(yAlarm[1:n])
-    maxYAlarm <- max(yAlarm[1:n])
-    constrain_min ~ dconstraint(minYAlarm >= 0)
-    constrain_max ~ dconstraint(maxYAlarm <= 1)
-    
-    # priors
-    beta ~ dgamma(0.1, 0.1)
-    for (i in 1:nb) {
-        b[i] ~ dnorm(0, sd = 100)
-    }
-    rateI ~ dgamma(20, 100)
-    rateE ~ dgamma(20, 100)
-    
-    
-})
-
-SEIR_splineFixKnot_sim <-  nimbleCode({
-    
-    S[1] <- S0
-    E[1] <- E0
-    I[1] <- I0
-    
-    probEI <- 1 - exp(-rateE)
-    probIR <- 1 - exp(-rateI)
-    
-    ### first time point
-    smoothI[1] <- 0
-    alarm[1] <- powerAlarm(smoothI[1], N, k)
-    
-    probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
-    
-    Estar[1] ~ dbin(probSE[1], S[1])
-    Istar[1] ~ dbin(probEI, E[1])
-    Rstar[1] ~ dbin(probIR, I[1])
-    
-    # update S E I
-    S[2] <- S[1] - Estar[1]
-    E[2] <- E[1] + Estar[1] - Istar[1]
-    I[2] <- I[1] + Istar[1] - Rstar[1]
-    
-    ### rest of time points
-    for(t in 2:tau) {
-        
-        # compute alarm
-        smoothI[t] <- smoothI[t-1] + Istar[t-1]
-        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
-        
-        probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
-        
-        Estar[t] ~ dbin(probSE[t], S[t])
-        Istar[t] ~ dbin(probEI, E[t])
-        Rstar[t] ~ dbin(probIR, I[t])
-        
-        # update S E I
-        S[t + 1] <- S[t] - Estar[t]
-        E[t + 1] <- E[t] + Estar[t] - Istar[t]
-        I[t + 1] <- I[t] + Istar[t] - Rstar[t]
-        
-    }
-    
-    yAlarm[1:n] <- splineAlarm(xAlarm[1:n], b[1:nb], knots[1:(nb - 1)])
-    
-    # constrain yAlarm to be between 0 and 1
-    minYAlarm <- min(yAlarm[1:n])
-    maxYAlarm <- max(yAlarm[1:n])
-    constrain_min ~ dconstraint(minYAlarm >= 0)
-    constrain_max ~ dconstraint(maxYAlarm <= 1)
-    
-    # priors
-    beta ~ dgamma(0.1, 0.1)
-    for (i in 1:nb) {
-        b[i] ~ dnorm(0, sd = 100)
-    }
-    rateI ~ dgamma(20, 100)
-    rateE ~ dgamma(20, 100)
-    
-})
 
 ################################################################################
 ### Gaussian process alarm models
@@ -1009,8 +896,9 @@ SEIR_gp_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        smoothI[t] <- smoothI[t-1] + Istar[t-1]
-        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
+        obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+        smoothI[t] <- smoothI[t-1] + obsInc[t-1]
+        alarm[t] <- powerAlarm(smoothI[t], N, k)
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
@@ -1116,9 +1004,6 @@ SEIR_basicInt <-  nimbleCode({
     
 })
 
-
-
-
 ################################################################################
 ### SIR model with time-varying beta (no alarm)
 # Spline
@@ -1154,7 +1039,7 @@ SEIR_betatSpline <-  nimbleCode({
     
     # priors
     for (i in 1:nb) {
-        b[i] ~ dnorm(0, sd = 100)
+        b[i] ~ dnorm(0, sd = 10)
     }
     for (i in 1:(nb - 1)) {
         knots[i] ~ dunif(min = 1, max = tau)

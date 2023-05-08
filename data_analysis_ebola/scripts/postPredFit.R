@@ -34,9 +34,18 @@ postPredFit <- function(incData, deathData, smoothI,
     compiledPred  <- compileNimble(myModelPred) 
     
     tau <- modelInputs$constantsList$tau
-    dataNodes <- c(paste0('Istar[', 1:tau, ']'), 
-                   paste0('Estar[', 1:tau, ']'),
-                   paste0('Rstar[', 1:tau, ']'))
+    
+    if (!alarmFit %in% c('basic', 'basicInt', 'betatSpline')) {
+        dataNodes <- c(paste0('Istar[', 1:tau, ']'), 
+                       paste0('Estar[', 1:tau, ']'),
+                       paste0('Rstar[', 1:tau, ']'),
+                       paste0('obsInc[', 1:(tau-1), ']'))
+    } else {
+        dataNodes <- c(paste0('Istar[', 1:tau, ']'), 
+                       paste0('Estar[', 1:tau, ']'),
+                       paste0('Rstar[', 1:tau, ']'))
+    }
+    
     
     sim_R <- simulator(myModelPred, dataNodes)
     sim_C <- compileNimble(sim_R)
@@ -46,7 +55,7 @@ postPredFit <- function(incData, deathData, smoothI,
     parentNodes <- parentNodes[-which(parentNodes %in% dataNodes)]
     parentNodes <- myModelPred$expandNodeNames(parentNodes, returnScalarComponents = TRUE)
     
-    nPost <- 1000
+    nPost <- 10000
     postPredInc <- matrix(NA, nrow = tau, ncol = nPost)
     set.seed(1)
     for (j in 1:nPost) {
@@ -118,7 +127,6 @@ postPredFit <- function(incData, deathData, smoothI,
         trueVals <- trueVals[parentNodes]
         
         postPreds <- sim_C$run(trueVals, 50)[,grep('Istar', dataNodes)]
-        postPreds <- postPreds[rowSums(postPreds)>5,]
        
         postPredInc[,j] <- apply(postPreds, 2, median)
     }
