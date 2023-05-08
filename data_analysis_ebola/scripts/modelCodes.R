@@ -452,7 +452,7 @@ SEIR_power_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+        obsInc[t-1] ~ dbin(0.92, Istar[t-1])
         smoothI[t] <- smoothI[t-1] + obsInc[t-1]
         alarm[t] <- powerAlarm(smoothI[t], N, k)
         
@@ -556,7 +556,7 @@ SEIR_thresh_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+        obsInc[t-1] ~ dbin(0.92, Istar[t-1])
         smoothI[t] <- smoothI[t-1] + obsInc[t-1]
         alarm[t] <- powerAlarm(smoothI[t], N, k)
         
@@ -660,7 +660,7 @@ SEIR_hill_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+        obsInc[t-1] ~ dbin(0.92, Istar[t-1])
         smoothI[t] <- smoothI[t-1] + obsInc[t-1]
         alarm[t] <- powerAlarm(smoothI[t], N, k)
         
@@ -759,7 +759,7 @@ SEIR_spline_sim <-  nimbleCode({
     probIR <- 1 - exp(-rateI)
     
     # compute alarm
-    obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+    obsInc[t-1] ~ dbin(0.92, Istar[t-1])
     smoothI[t] <- smoothI[t-1] + obsInc[t-1]
     alarm[t] <- powerAlarm(smoothI[t], N, k)
     
@@ -896,7 +896,7 @@ SEIR_gp_sim <-  nimbleCode({
     for(t in 2:tau) {
         
         # compute alarm
-        obsInc[t-1] ~ dbin(0.9, Istar[t-1])
+        obsInc[t-1] ~ dbin(0.92, Istar[t-1])
         smoothI[t] <- smoothI[t-1] + obsInc[t-1]
         alarm[t] <- powerAlarm(smoothI[t], N, k)
         

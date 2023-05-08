@@ -15,19 +15,19 @@ getModelInput <- function(alarmFit, incData, deathData, smoothI,
     # constants that are the same for all models
     tau <- length(incData)
     
-    # initial value of Istar (unknown when 22 cases became infectious)
+    # initial value of Istar (unknown when 23 cases became infectious)
     # initialize with unknown infections happening early in the epidemic
     firstIstar <- 10
     Istar <- incData + c(rep(0, E0 + 1), 
-                         rmultinom(1, 22, rep(1/firstIstar, firstIstar)),
+                         rmultinom(1, 23, rep(1/firstIstar, firstIstar)),
                          rep(0, tau - firstIstar - E0 - 1))
     
     # initial value of Estar (exposed 2 days before infectious)
     Estar <- c(Istar[3:tau], rep(0, 2))
     
-    # initial value of Rstar (unknown when 78 cases were removed)
+    # initial value of Rstar (unknown when 79 cases were removed)
     # initialize with all removals happening on the last time point
-    Rstar <- deathData + c(rep(0, tau-1), 78)
+    Rstar <- deathData + c(rep(0, tau-1), 79)
     
     if (alarmFit == 'power') {
         
