@@ -13,3 +13,4 @@ The following object is masked from ‘package:stats’:
 
     simulate
 
+slurmstepd: error: *** JOB 157188867 ON cn1124 CANCELLED AT 2023-05-08T13:50:04 ***
