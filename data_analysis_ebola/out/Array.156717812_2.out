@@ -1,8 +1,0 @@
-[1] "Running alarm: hill , smoothing: 30"
-Stochastic parents of data are:  beta delta nu x0 rateI rateE .
-[1] "Running alarm: hill , smoothing: 60"
-Stochastic parents of data are:  beta delta nu x0 rateI rateE .
-[1] "Running alarm: spline , smoothing: 30"
-Stochastic parents of data are:  beta b[1] b[2] b[3] knots[1] knots[2] rateI rateE .
-[1] "Running alarm: spline , smoothing: 60"
-Stochastic parents of data are:  beta b[1] b[2] b[3] knots[1] knots[2] rateI rateE .

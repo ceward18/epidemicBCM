@@ -24,7 +24,7 @@ source('./scripts/modelCodes.R')
 ################################################################################
 ### set up NYC  data
 dat <- read.csv('./Data/nycClean.csv')
-dat <- dat[-c((max(which(dat$peak == 3)) + 1):nrow(dat)),]
+dat <- dat[-c((max(which(dat$peak == 2)) + 1):nrow(dat)),]
 
 dat$date <- as.Date(dat$date)
 dat$smoothedCases <- round(movingAverage(dat$dailyCases, 7))
@@ -35,7 +35,7 @@ dat$Peak <- factor(dat$peak)
 ### Gelman-rubin
 
 grAll <- readRDS('./results/grAll.rds')
-grAll <- subset(grAll, peak != 4)
+grAll <- subset(grAll, peak == c(1,2))
 
 # which didn't converge
 notConverge <- grAll[which(grAll$gr > 1.1),  ]
@@ -50,7 +50,7 @@ notConvergeModels$noConverge <- 1
 
 ### load WAIC values
 waicAll <- readRDS('./results/waicAll.rds')
-waicAll <- subset(waicAll, peak != 4)
+waicAll <- subset(waicAll, peak == c(1,2))
 
 ### flag those that did not converge
 waicAll <- merge(waicAll, notConvergeModels,
@@ -74,7 +74,7 @@ minWAIC$isMin <- 1
 ### load posterior estimates of alarm functions
 alarmAll <- readRDS('./results/alarmPostAll.rds')
 alarmSub <- subset(alarmAll, prior == 5)
-alarmSub <- subset(alarmSub, peak != 4)
+alarmSub <- subset(alarmSub, peak == c(1,2))
 
 ### identify those that did not converge 
 alarmSub <- merge(alarmSub, notConvergeModels,
@@ -91,7 +91,6 @@ alarmSub$upper[alarmSub$noConverge == 1] <- NA
 # wave 2 30-day incidence
 alarmSub <- alarmSub[-which(alarmSub$peak == 1 & alarmSub$smoothWindow == 30),]
 alarmSub <- alarmSub[-which(alarmSub$peak == 2 & alarmSub$smoothWindow == 60),]
-alarmSub <- alarmSub[-which(alarmSub$peak == 3 & alarmSub$smoothWindow == 30),]
 
 # format for better plotting
 alarmSub$alarmFit <- factor(alarmSub$alarmFit,
@@ -100,14 +99,14 @@ alarmSub$alarmFit <- factor(alarmSub$alarmFit,
                             labels = c('Spline', 'Gaussian Process', 
                                        'Threshold', 'Hill', 'Power'))
 
-alarmSub$Peak <- factor(alarmSub$peak, labels = paste0('Wave ', 1:3))
+alarmSub$Peak <- factor(alarmSub$peak, labels = paste0('Wave ', 1:2))
 
 ################################################################################
 ### Posterior R0
 
 ### load posterior estimates of R0 over epidemic time
 r0All <- readRDS('./results/r0PostAll.rds')
-r0All <- subset(r0All, peak != 4)
+r0All <- subset(r0All, peak == c(1,2))
 r0All <- subset(r0All, prior == 5)
 
 ### identify those that did not converge 
@@ -125,10 +124,9 @@ r0All$upper[r0All$noConverge == 1] <- NA
 # wave 2 30-day incidence
 r0All <- r0All[-which(r0All$peak == 1 & r0All$smoothWindow %in% c(30)),]
 r0All <- r0All[-which(r0All$peak == 2 & r0All$smoothWindow %in% c(60)),]
-r0All <- r0All[-which(r0All$peak == 3 & r0All$smoothWindow %in% c(30)),]
 
 ### create columns numbering timing of each wave from 0
-dat$timePeak3 <- dat$timePeak2 <- dat$timePeak1 <- NA
+dat$timePeak2 <- dat$timePeak1 <- NA
 
 # peak 1 time 1 is row 6
 dat$timePeak1[6:(max(which(dat$peak == 1)))] <- 1:(max(which(dat$peak == 1)) - 5)
@@ -137,29 +135,20 @@ dat$timePeak2[(min(which(dat$peak == 2)) + 1):(max(which(dat$peak == 2)))] <-
     (min(which(dat$peak == 2)) + 1):(max(which(dat$peak == 2))) -
     min(which(dat$peak == 2)) 
 
-dat$timePeak3[(min(which(dat$peak == 3)) + 1):(max(which(dat$peak == 3)))] <-
-    (min(which(dat$peak == 3)) + 1):(max(which(dat$peak == 3))) -
-    min(which(dat$peak == 3))
 
 r0Peak1 <- subset(r0All, peak == '1')
 r0Peak1 <- merge(r0Peak1, dat, 
                  by.x = 'time', by.y = 'timePeak1', 
                  all.x = T)
-r0Peak1 <- r0Peak1[,-which(colnames(r0Peak1) %in% paste0('timePeak', 1:3))]
+r0Peak1 <- r0Peak1[,-which(colnames(r0Peak1) %in% paste0('timePeak', 1:2))]
 
 r0Peak2 <- subset(r0All, peak == '2')
 r0Peak2 <- merge(r0Peak2, dat, 
                  by.x = 'time', by.y = 'timePeak2', 
                  all.x = T)
-r0Peak2 <- r0Peak2[,-which(colnames(r0Peak2) %in% paste0('timePeak', 1:3))]
+r0Peak2 <- r0Peak2[,-which(colnames(r0Peak2) %in% paste0('timePeak', 1:2))]
 
-r0Peak3 <- subset(r0All, peak == '3')
-r0Peak3 <- merge(r0Peak3, dat, 
-                 by.x = 'time', by.y = 'timePeak3', 
-                 all.x = T)
-r0Peak3 <- r0Peak3[,-which(colnames(r0Peak3) %in% paste0('timePeak', 1:3))]
-
-r0PeakAll <- rbind.data.frame(r0Peak1, r0Peak2, r0Peak3)
+r0PeakAll <- rbind.data.frame(r0Peak1, r0Peak2)
 
 # format for better plotting
 r0PeakAll$alarmFit <- factor(r0PeakAll$alarmFit,
@@ -175,7 +164,7 @@ r0PeakAll$alarmFit <- factor(r0PeakAll$alarmFit,
 
 ### load posterior predictive fit
 postPredFitAll <- readRDS('./results/postPredFitAll.rds')
-postPredFitAll <- subset(postPredFitAll, peak != 4)
+postPredFitAll <- subset(postPredFitAll, peak == c(1,2))
 postPredFitAll <- subset(postPredFitAll, prior == 5)
 
 
@@ -198,9 +187,6 @@ postPredFitAll <- postPredFitAll[
 postPredFitAll <- postPredFitAll[
     -which(postPredFitAll$peak == 2 &
                postPredFitAll$smoothWindow %in% c(60)),]
-postPredFitAll <- postPredFitAll[
-    -which(postPredFitAll$peak == 3 & 
-               postPredFitAll$smoothWindow %in% c(30)),]
 
 
 # merge with dates from dataset
@@ -209,46 +195,36 @@ postPredFitPeak1 <- merge(postPredFitPeak1, dat,
                           by.x = 'time', by.y = 'timePeak1', 
                           all.x = T)
 postPredFitPeak1 <- postPredFitPeak1[,-which(colnames(postPredFitPeak1) %in%
-                                                 paste0('timePeak', 1:3))]
+                                                 paste0('timePeak', 1:2))]
 
 postPredFitPeak2 <- subset(postPredFitAll, peak == '2')
 postPredFitPeak2 <- merge(postPredFitPeak2, dat, 
                           by.x = 'time', by.y = 'timePeak2', 
                           all.x = T)
 postPredFitPeak2 <- postPredFitPeak2[,-which(colnames(postPredFitPeak2) %in%
-                                                 paste0('timePeak', 1:3))]
-
-postPredFitPeak3 <- subset(postPredFitAll, peak == '3')
-postPredFitPeak3 <- merge(postPredFitPeak3, dat, 
-                          by.x = 'time', by.y = 'timePeak3', 
-                          all.x = T)
-postPredFitPeak3 <- postPredFitPeak3[,-which(colnames(postPredFitPeak3) %in%
-                                                 paste0('timePeak', 1:3))]
+                                                 paste0('timePeak', 1:2))]
 
 postPredFitPeakAll <- rbind.data.frame(postPredFitPeak1, 
-                                       postPredFitPeak2, 
-                                       postPredFitPeak3)
+                                       postPredFitPeak2)
 
 
 ################################################################################
 # Figure 5: NYC Data
 ################################################################################
 
-pal <- c('darkorchid2', 'darkgreen', 'darkorange2')
+pal <- c('darkorchid2', 'darkorange2')
 
-jpeg('./figures/fig5_nyc_data.jpg', units = 'in', res = 500, width = 7, height = 3)
+jpeg('./figures/fig5_nyc_data.jpg', units = 'in', res = 500, width = 6, height = 3)
 ggplot(dat, aes(x = date, y = smoothedCases)) + 
     geom_line(linetype = 2) + 
     geom_line(data = subset(dat, peak == 1), col = pal[1], lwd = 1.2) + 
     geom_line(data = subset(dat, peak == 2), col = pal[2], lwd = 1.2) + 
-    geom_line(data = subset(dat, peak == 3), col = pal[3], lwd = 1.2) + 
     scale_y_continuous(labels = scales::comma, limits = c(0, 6000)) +
     scale_x_date(date_breaks = "3 month", date_minor_breaks = "1 month",
                  date_labels = "%b '%y") +
-    labs(x = 'Date', y = 'Incidene', title = 'NYC COVID-19 Case Counts') +
+    labs(x = 'Date', y = 'Incidence', title = 'NYC COVID-19 Case Counts') +
     annotate('text', x = as.Date('2020-04-15'), y = 5800, label = 'Wave 1') +
     annotate('text', x = as.Date('2021-01-15'), y = 5800, label = 'Wave 2') +
-    annotate('text', x = as.Date('2021-09-01'), y = 2100, label = 'Wave 3') +
     theme_bw() + 
     theme(axis.title = element_text(size = 10),
           axis.text = element_text(size = 9),
@@ -265,10 +241,10 @@ dev.off()
 waicTab <- merge(waicAll, minWAIC, by = c('peak', 'prior',
                                           'alarmFit', 'smoothWindow'),
                  all.x = T)
-waicTab <- waicTab[waicTab$prior == 5, c('peak', 'alarmFit', 'smoothWindow', 'waic')]
+waicTab <- waicTab[waicTab$prior == 5,
+                   c('peak', 'alarmFit', 'smoothWindow', 'waic')]
 
 waicTab <- waicTab[order(waicTab$peak, waicTab$waic),]
-waicTab <- waicTab[-which(is.na(waicTab$waic)),]
 
 waicTab$alarmFit <- factor(waicTab$alarmFit,
                            levels = c('thresh', 'hill', 'power',
@@ -284,7 +260,7 @@ waicTab$smoothWindow <- factor(waicTab$smoothWindow,
                                labels = c('None', '60-day', '30-day'))
 
 waicTab$peak <- factor(waicTab$peak,
-                       labels = paste0('Wave ', 1:3))
+                       labels = paste0('Wave ', 1:2))
 waicTab$waic <- sprintf("%.2f", round(waicTab$waic, 2))
 
 kable(waicTab, row.names = F, format = 'latex', align = 'lccc', 
@@ -313,7 +289,7 @@ myTheme <- theme_bw() +
           panel.grid.minor = element_blank())
 
 
-pal <- c('darkorchid2', 'darkgreen', 'darkorange2')
+pal <- c('darkorchid2', 'darkorange2')
 
 p1 <- ggplot(subset(alarmSub, peak == 1),
              aes(x = xAlarm, y = mean, ymin=lower, ymax=upper)) +  
@@ -335,18 +311,8 @@ p2 <- ggplot(subset(alarmSub, peak == 2),
     labs(title = 'Wave 2') +
     myTheme 
 
-p3 <- ggplot(subset(alarmSub, peak == 3),
-             aes(x = xAlarm, y = mean, ymin=lower, ymax=upper)) +  
-    geom_line(col = pal[3]) +
-    geom_ribbon(alpha=0.3, fill = pal[3]) +
-    facet_grid(~alarmFit) +
-    labs(x = '60-day incidence', y = 'Alarm') + 
-    ylim(0, 0.7) +
-    labs(title = 'Wave 3') +
-    myTheme 
-
-jpeg('./figures/fig6_nyc_alarms.jpg', units = 'in', res = 500, width = 8, height = 7)
-grid.arrange(p1, p2, p3, nrow = 3)
+jpeg('./figures/fig6_nyc_alarms.jpg', units = 'in', res = 500, width = 8, height = 5)
+grid.arrange(p1, p2, nrow = 2)
 dev.off()
 
 ################################################################################
@@ -357,17 +323,14 @@ dev.off()
 
 r0Peak1$output <- 'R_0'
 r0Peak2$output <- 'R_0'
-r0Peak3$output <- 'R_0'
 
 postPredFitPeak1$output <- 'Posterior Predictive Fit'
 postPredFitPeak2$output <- 'Posterior Predictive Fit'
-postPredFitPeak3$output <- 'Posterior Predictive Fit'
 
 allOut1 <- rbind.data.frame(r0Peak1, postPredFitPeak1)
 allOut2 <- rbind.data.frame(r0Peak2, postPredFitPeak2)
-allOut3 <- rbind.data.frame(r0Peak3, postPredFitPeak3)
 
-allOut <- rbind.data.frame(allOut1, allOut2, allOut3)
+allOut <- rbind.data.frame(allOut1, allOut2)
 
 allOut$smoothedCases[allOut$output == 'R_0'] <- NA
 allOut$r0Thresh <- 1
@@ -379,7 +342,7 @@ allOut$output <- factor(allOut$output,
                         labels = c('R[0](t)', "atop('Posterior', 'Predictive Fit')"))
 
 allOut$Peak <- factor(allOut$Peak, 
-                      labels = paste0('Wave ', 1:3))
+                      labels = paste0('Wave ', 1:2))
 
 
 
@@ -392,21 +355,18 @@ allOut$alarmFitLab<- factor(allOut$alarmFit,
                                      'Fleixble~beta[t]', "atop('No Behavioral', 'Change')"))
 
 
-pal <- c('darkorchid2', 'darkgreen', 'darkorange2')
+pal <- c('darkorchid2',  'darkorange2')
 
 scale_r01 <- scale_y_continuous(limits = c(0.8, 3.8))
-scale_r01_b <- scale_y_continuous(limits = c(0.8, 1.1))
 scale_r02 <- scale_y_continuous(limits = c(0.45, 1.2))
-scale_r03 <- scale_y_continuous(limits = c(0.65, 1.25))
 scale_pp1 <- scale_y_continuous(limits = c(0, 6000), labels = scales::comma)
 scale_pp1_b <- scale_y_continuous(limits = c(0, 50000), labels = scales::comma)
 scale_pp2 <- scale_y_continuous(limits = c(0, 5500), labels = scales::comma)
-scale_pp3 <- scale_y_continuous(limits = c(0, 2500), labels = scales::comma)
 
 scales <- list(
-    scale_r01, scale_pp1, scale_r02, scale_pp2, scale_r03, scale_pp3,
-    scale_r01, scale_pp1_b, scale_r02, scale_pp2, scale_r03, scale_pp3,
-    scale_r01, scale_pp1, scale_r02, scale_pp2, scale_r03, scale_pp3
+    scale_r01, scale_pp1, scale_r02, scale_pp2, 
+    scale_r01, scale_pp1_b, scale_r02, scale_pp2, 
+    scale_r01, scale_pp1, scale_r02, scale_pp2
 )
 
 my_strips <- strip_nested(
@@ -418,14 +378,14 @@ my_strips <- strip_nested(
     by_layer_y = FALSE
 )
 
-jpeg('./figures/fig7_nyc_r0_postPred.jpg', units = 'in', res = 500, height = 11, width = 19)
+jpeg('./figures/fig7_nyc_r0_postPred.jpg', units = 'in', res = 500, height = 11, width = 17)
 ggplot(subset(allOut, 
                   alarmFit %in% c('gp', 'basic', 'betatSpline')), 
        aes(x = date, y = mean, ymin=lower, ymax=upper)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
+    geom_line(aes(y = smoothedCases), color = 'black', linewidth = 0.5) +
     geom_line(aes(col = Peak), size = 0.8) +
     geom_ribbon(aes(fill = Peak), alpha=0.3) +
-    geom_line(aes(y = r0Thresh), color = 'black', size = 0.5, linetype = 2) +
+    geom_line(aes(y = r0Thresh), color = 'black', linewidth = 0.5, linetype = 2) +
     facet_nested(alarmFitLab~Peak + output, scales = 'free', independent = 'y',
                         labeller =  labeller(Peak = label_value, 
                                              alarmFitLab = label_parsed, 
@@ -442,7 +402,7 @@ ggplot(subset(allOut,
     theme_bw() + 
     theme(strip.background = element_rect(color = 'white',fill = 'white'),
           axis.text.y = element_text(size = 16),
-          axis.text.x = element_text(size = 14, angle = 45, vjust = 1, hjust=1),
+          axis.text.x = element_text(size = 16, angle = 45, vjust = 1, hjust=1),
           axis.title = element_text(size = 22),
           strip.placement = 'outside',
           panel.grid.major = element_blank(), 

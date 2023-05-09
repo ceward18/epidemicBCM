@@ -539,7 +539,7 @@ SEIR_thresh_sim <-  nimbleCode({
     
     ### first time point
     smoothI[1] <- 0
-    alarm[1] <- powerAlarm(smoothI[1], N, k)
+    alarm[1] <- thresholdAlarm(smoothI[1],  N, delta, H)
     
     probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
@@ -558,7 +558,7 @@ SEIR_thresh_sim <-  nimbleCode({
         # compute alarm
         obsInc[t-1] ~ dbin(0.92, Istar[t-1])
         smoothI[t] <- smoothI[t-1] + obsInc[t-1]
-        alarm[t] <- powerAlarm(smoothI[t], N, k)
+        alarm[t] <- thresholdAlarm(smoothI[t],  N, delta, H)
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
@@ -643,7 +643,7 @@ SEIR_hill_sim <-  nimbleCode({
     
     ### first time point
     smoothI[1] <- 0
-    alarm[1] <- powerAlarm(smoothI[1], N, k)
+    alarm[1] <- hillAlarm(smoothI[1], nu, x0, delta)
     
     probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
@@ -662,7 +662,7 @@ SEIR_hill_sim <-  nimbleCode({
         # compute alarm
         obsInc[t-1] ~ dbin(0.92, Istar[t-1])
         smoothI[t] <- smoothI[t-1] + obsInc[t-1]
-        alarm[t] <- powerAlarm(smoothI[t], N, k)
+        alarm[t] <- hillAlarm(smoothI[t], nu, x0, delta)
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         
@@ -759,9 +759,8 @@ SEIR_spline_sim <-  nimbleCode({
     probIR <- 1 - exp(-rateI)
     
     # compute alarm
-    obsInc[t-1] ~ dbin(0.92, Istar[t-1])
-    smoothI[t] <- smoothI[t-1] + obsInc[t-1]
-    alarm[t] <- powerAlarm(smoothI[t], N, k)
+    smoothI[1] <- 0
+    alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
     
     probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
@@ -879,7 +878,7 @@ SEIR_gp_sim <-  nimbleCode({
     
     ### first time point
     smoothI[1] <- 0
-    alarm[1] <- powerAlarm(smoothI[1], N, k)
+    alarm[1] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[1])
     
     probSE[1] <- 1 - exp(- beta * (1 - alarm[1]) * I[1] / N)
     
@@ -898,7 +897,7 @@ SEIR_gp_sim <-  nimbleCode({
         # compute alarm
         obsInc[t-1] ~ dbin(0.92, Istar[t-1])
         smoothI[t] <- smoothI[t-1] + obsInc[t-1]
-        alarm[t] <- powerAlarm(smoothI[t], N, k)
+        alarm[t] <- nim_approx(xAlarm[1:n], yAlarm[1:n], smoothI[t])
         
         probSE[t] <- 1 - exp(- beta * (1 - alarm[t]) * I[t] / N)
         

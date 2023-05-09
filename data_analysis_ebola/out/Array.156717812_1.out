@@ -1,8 +1,0 @@
-[1] "Running alarm: power , smoothing: 30"
-Stochastic parents of data are:  beta k rateI rateE .
-[1] "Running alarm: power , smoothing: 60"
-Stochastic parents of data are:  beta k rateI rateE .
-[1] "Running alarm: thresh , smoothing: 30"
-Stochastic parents of data are:  beta delta H rateI rateE .
-[1] "Running alarm: thresh , smoothing: 60"
-Stochastic parents of data are:  beta delta H rateI rateE .

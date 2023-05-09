@@ -338,9 +338,9 @@ getModelInput <- function(alarmFit, incData, deathData, smoothI,
     }
     
     ### MCMC specifications
-    niter <- 500000
-    nburn <- 250000
-    nthin <- 20
+    niter <- 5000
+    nburn <- 250
+    nthin <- 10
     
     list(constantsList = constantsList,
          dataList = dataList,
