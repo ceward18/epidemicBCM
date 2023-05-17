@@ -2,10 +2,13 @@
 *.Rhistory
 *.pdf
 *.qmd
-data_analysis/output/chains*
+data_analysis_ebola/output/chains*
+data_analysis_covid/output/chains*
 simulation_study/output/chains*
-data_analysis/figures/*
-data_analysis/model_config.xlsx
+data_analysis_ebola/figures/*
+data_analysis_covid/figures/*
+data_analysis_covid/model_config.xlsx
+data_analysis_ebola/model_config.xlsx
 simulation_study/figures/*
 supplement_helper_functions.R
 title.tex

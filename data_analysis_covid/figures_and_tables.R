@@ -1,5 +1,5 @@
 ################################################################################
-# Figures in paper
+# Figures and tables in paper
 # NYC Analysis
 ################################################################################
 
@@ -22,7 +22,7 @@ source('./scripts/modelCodes.R')
 ################################################################################
 
 ################################################################################
-### set up NYC  data
+### set up NYC data
 dat <- read.csv('./Data/nycClean.csv')
 dat <- dat[-c((max(which(dat$peak == 2)) + 1):nrow(dat)),]
 
@@ -35,7 +35,7 @@ dat$Peak <- factor(dat$peak)
 ### Gelman-rubin
 
 grAll <- readRDS('./results/grAll.rds')
-grAll <- subset(grAll, peak == c(1,2))
+grAll <- subset(grAll, peak %in% c(1,2))
 
 # which didn't converge
 notConverge <- grAll[which(grAll$gr > 1.1),  ]
@@ -50,7 +50,7 @@ notConvergeModels$noConverge <- 1
 
 ### load WAIC values
 waicAll <- readRDS('./results/waicAll.rds')
-waicAll <- subset(waicAll, peak == c(1,2))
+waicAll <- subset(waicAll, peak %in% c(1,2))
 
 ### flag those that did not converge
 waicAll <- merge(waicAll, notConvergeModels,
@@ -74,7 +74,7 @@ minWAIC$isMin <- 1
 ### load posterior estimates of alarm functions
 alarmAll <- readRDS('./results/alarmPostAll.rds')
 alarmSub <- subset(alarmAll, prior == 5)
-alarmSub <- subset(alarmSub, peak == c(1,2))
+alarmSub <- subset(alarmSub, peak %in% c(1,2))
 
 ### identify those that did not converge 
 alarmSub <- merge(alarmSub, notConvergeModels,
@@ -94,10 +94,10 @@ alarmSub <- alarmSub[-which(alarmSub$peak == 2 & alarmSub$smoothWindow == 60),]
 
 # format for better plotting
 alarmSub$alarmFit <- factor(alarmSub$alarmFit,
-                            levels = c('spline', 'gp',
-                                       'thresh', 'hill', 'power'),
-                            labels = c('Spline', 'Gaussian Process', 
-                                       'Threshold', 'Hill', 'Power'))
+                            levels = c('power', 'thresh', 'hill',
+                                       'spline', 'gp'),
+                            labels = c('Power', 'Threshold', 'Hill', 
+                                       'Spline', 'Gaussian Process'))
 
 alarmSub$Peak <- factor(alarmSub$peak, labels = paste0('Wave ', 1:2))
 
@@ -106,7 +106,7 @@ alarmSub$Peak <- factor(alarmSub$peak, labels = paste0('Wave ', 1:2))
 
 ### load posterior estimates of R0 over epidemic time
 r0All <- readRDS('./results/r0PostAll.rds')
-r0All <- subset(r0All, peak == c(1,2))
+r0All <- subset(r0All, peak %in% c(1,2))
 r0All <- subset(r0All, prior == 5)
 
 ### identify those that did not converge 
@@ -164,7 +164,7 @@ r0PeakAll$alarmFit <- factor(r0PeakAll$alarmFit,
 
 ### load posterior predictive fit
 postPredFitAll <- readRDS('./results/postPredFitAll.rds')
-postPredFitAll <- subset(postPredFitAll, peak == c(1,2))
+postPredFitAll <- subset(postPredFitAll, peak %in% c(1,2))
 postPredFitAll <- subset(postPredFitAll, prior == 5)
 
 
@@ -209,12 +209,12 @@ postPredFitPeakAll <- rbind.data.frame(postPredFitPeak1,
 
 
 ################################################################################
-# Figure 5: NYC Data
+# Figure 8: NYC Data
 ################################################################################
 
-pal <- c('darkorchid2', 'darkorange2')
+pal <- c('darkorchid2', 'limegreen')
 
-jpeg('./figures/fig5_nyc_data.jpg', units = 'in', res = 500, width = 6, height = 3)
+jpeg('./figures/fig8_nyc_data.jpg', units = 'in', res = 500, width = 6, height = 3)
 ggplot(dat, aes(x = date, y = smoothedCases)) + 
     geom_line(linetype = 2) + 
     geom_line(data = subset(dat, peak == 1), col = pal[1], lwd = 1.2) + 
@@ -234,7 +234,7 @@ ggplot(dat, aes(x = date, y = smoothedCases)) +
 dev.off()
 
 ################################################################################
-# Table 2: All WAIC values for converged models
+# Table 3: All WAIC values for converged models
 ################################################################################
 
 ### WAIC table
@@ -273,7 +273,7 @@ kable(waicTab, row.names = F, format = 'latex', align = 'lccc',
 
 
 ################################################################################
-# Figure 6: Alarms 
+# Figure 9: Alarms 
 ################################################################################
 
 myTheme <- theme_bw() + 
@@ -289,7 +289,7 @@ myTheme <- theme_bw() +
           panel.grid.minor = element_blank())
 
 
-pal <- c('darkorchid2', 'darkorange2')
+pal <- c('darkorchid2', 'limegreen')
 
 p1 <- ggplot(subset(alarmSub, peak == 1),
              aes(x = xAlarm, y = mean, ymin=lower, ymax=upper)) +  
@@ -311,12 +311,12 @@ p2 <- ggplot(subset(alarmSub, peak == 2),
     labs(title = 'Wave 2') +
     myTheme 
 
-jpeg('./figures/fig6_nyc_alarms.jpg', units = 'in', res = 500, width = 8, height = 5)
+jpeg('./figures/fig9_nyc_alarms.jpg', units = 'in', res = 500, width = 8, height = 5)
 grid.arrange(p1, p2, nrow = 2)
 dev.off()
 
 ################################################################################
-# Figure 7 - Posterior prediction and R0
+# Figure 10: Posterior prediction and R0
 ################################################################################
 
 ### Merge posterior predictive and R0
@@ -352,10 +352,10 @@ allOut$alarmFitLab<- factor(allOut$alarmFit,
                                      'betatSpline', 'basic'),
                           labels = c('Spline', "atop('BC Model', 'Gaussian Process')", 
                                      'Threshold', 'Hill', 'Power',
-                                     'Fleixble~beta[t]', "atop('No Behavioral', 'Change')"))
+                                     'Flexible~beta[t]', "atop('No Behavioral', 'Change')"))
 
 
-pal <- c('darkorchid2',  'darkorange2')
+pal <- c('darkorchid2',  'limegreen')
 
 scale_r01 <- scale_y_continuous(limits = c(0.8, 3.8))
 scale_r02 <- scale_y_continuous(limits = c(0.45, 1.2))
@@ -378,12 +378,12 @@ my_strips <- strip_nested(
     by_layer_y = FALSE
 )
 
-jpeg('./figures/fig7_nyc_r0_postPred.jpg', units = 'in', res = 500, height = 11, width = 17)
+jpeg('./figures/fig10_nyc_r0_postPred.jpg', units = 'in', res = 500, height = 11, width = 17)
 ggplot(subset(allOut, 
                   alarmFit %in% c('gp', 'basic', 'betatSpline')), 
        aes(x = date, y = mean, ymin=lower, ymax=upper)) +  
     geom_line(aes(y = smoothedCases), color = 'black', linewidth = 0.5) +
-    geom_line(aes(col = Peak), size = 0.8) +
+    geom_line(aes(col = Peak), linewidth = 0.8) +
     geom_ribbon(aes(fill = Peak), alpha=0.3) +
     geom_line(aes(y = r0Thresh), color = 'black', linewidth = 0.5, linetype = 2) +
     facet_nested(alarmFitLab~Peak + output, scales = 'free', independent = 'y',

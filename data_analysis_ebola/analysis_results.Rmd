@@ -114,7 +114,7 @@ timeDat$time <- 1:nrow(dat)
 R0PostAll <- merge(R0PostAll, timeDat, by = c('time'), all.x = T)
 
 
-ggplot(subset(R0PostAll, alarmFit != 'betatSpline'), 
+ggplot(R0PostAll, 
        aes(x = date, y = mean, ymin = lower, ymax = upper)) +
     facet_grid(~alarmFit) +
     geom_line() + 
@@ -128,10 +128,13 @@ ggplot(subset(R0PostAll, alarmFit != 'betatSpline'),
 ### WAIC 
 
 ```{r}
+waicAll <- waicAll[order(waicAll$waic),]
+
+
 waicAll[,c(2,1)] %>%
     kbl(row.names = F, format.args = list(big.mark = ",")) %>%
     kable_styling(full_width = F) %>%
-    row_spec(2, background = "yellow")
+    row_spec(1, background = "yellow")
 ```
 
 ### Posterior predictive fit
@@ -140,7 +143,7 @@ waicAll[,c(2,1)] %>%
 
 postPredFitAll <- merge(postPredFitAll, timeDat, by = c('time'), all.x = T)
 
-ggplot(subset(postPredFitAll, alarmFit != 'betatSpline'),
+ggplot(postPredFitAll,
        aes(x = date, y = mean, ymin = lower, ymax = upper)) +
     facet_grid(~alarmFit) +
     geom_line() + 
@@ -163,7 +166,7 @@ postPredFitAllCum <- postPredFitAll %>%
            cumTruth = cumsum(onset)) %>%
     as.data.frame()
 
-ggplot(subset(postPredFitAllCum, alarmFit != 'betatSpline'), 
+ggplot(postPredFitAllCum, 
        aes(x = date, y = cumMean, ymin = cumLower, ymax = cumUpper)) +
     facet_grid(~alarmFit) +
     geom_line() + 
@@ -181,7 +184,7 @@ $E^*$, $I^*$, $R^*$, are fully or partially estimated via MCMC.
 Estimating the timing of 23 missing symptom onset times and ~80 missing removal times.
 
 ```{r, fig.width=10, fig.height =  8}
-ggplot(subset(compsPostAll, alarmFit != 'betatSpline'), 
+ggplot(compsPostAll, 
        aes(x = time, y = mean, ymin = lower, ymax = upper)) +
     facet_grid(comp~alarmFit) +
     geom_line() + 
@@ -189,8 +192,6 @@ ggplot(subset(compsPostAll, alarmFit != 'betatSpline'),
     geom_line(aes(y = obs), col = 'red') +
     theme_bw() 
 ```
-
-
 
 
 ### Posterior distribution of parameters
@@ -214,7 +215,7 @@ paramsPostAll$formattedCol[paramsPostAll$param == 'H'] <-
 
 
 # convert to wide format
-paramsPostWide <- reshape(paramsPostAll[paramsPostAll$alarmFit != 'betatSpline' ,c(1,5,6)], 
+paramsPostWide <- reshape(paramsPostAll[,c(1,5,6)], 
                           timevar = "param",
                           idvar = "alarmFit",
                           direction = "wide")
