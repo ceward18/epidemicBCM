@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "BC Model Supplemental"
 execute: 
   echo: false
   warning: false
@@ -11,7 +11,6 @@ format:
         template-partials:
           - title.tex
         self-contained: true
-        toc: true
         number-sections: true
         number-depth: 3
         fig-align: center
@@ -36,6 +35,11 @@ format:
 **Correspondence**:
 
 \*Caitlin Ward, Division of Biostatistics, University of Minnesota. Email: ward-c\@umn.edu
+
+\hypersetup{linkcolor = black}
+\tableofcontents
+
+\pagebreak
 
 ```{r}
 # load libraries
@@ -1142,7 +1146,7 @@ kable(notConvergePrint2, row.names = F, format = 'latex', align = 'lccc',
     kable_styling(latex_options = "HOLD_position")
 ```
 
-Tables X - X and Figures 12 - 14 show a sampling of trace plots for models that
+Tables 6 - 11 and Figures 12 - 23 show a sampling of trace plots and estimates of the alarm function or $\beta_t$ over time for models that
 did not achieve a Gelman-Rubin diagnostic < 1.1 for all parameters to 
 illustrate common convergence issues.
 
@@ -1160,17 +1164,20 @@ grPrint <- grAll[grAll$alarmGen == 'power' &
 grPrint$gr <- sprintf("%.2f", round(grPrint$gr, 2))
 grPrint <- grPrint[order(grPrint$param),]
 
-kable(grPrint[,c('param', 'gr')], row.names = F, format = 'latex', align = 'lc', 
-      booktabs = T, escape = F, 
-      col.names = linebreak(c('\\textbf{Parameter}',
-                              '\\textbf{Gelman-Rubin}'), align = 'c')) %>% 
+grPrintTrans <- t(grPrint[,c('param', 'gr')])
+colnames(grPrintTrans) <- NULL
+rownames(grPrintTrans) <- c('Parameter', 'Gelman-Rubin')
+
+kable(grPrintTrans, 
+      format = 'latex',
+      booktabs = T, escape = F)  %>% 
     kable_styling(latex_options = "HOLD_position")
 
 ```
 
 ```{r}
 #| fig-cap: "Trace plot for all three chains. Data: Power, Model: Spline, Smoothing: 14 days, Simulation: 13."
-#| fig-height: 4
+#| fig-height: 3.5
 #| fig-width: 7
 
 chains <- readRDS('./simulation_study/output/chains_power_spline_14_13.rds')
@@ -1178,11 +1185,10 @@ chains <- readRDS('./simulation_study/output/chains_power_spline_14_13.rds')
 plotSplineChains(chains)
 ```
 
-\pagebreak
 
 ```{r}
 #| fig-cap: "Posterior mean and 95% credible intervals for the alarm function from each chain. Data: Power, Model: Spline, Smoothing: 14 days, Simulation: 13."
-#| fig-height: 4
+#| fig-height: 2.3
 #| fig-width: 7
 
 plotAlarmChains(chains)
@@ -1202,17 +1208,20 @@ grPrint <- grAll[grAll$alarmGen == 'thresh' &
 grPrint$gr <- sprintf("%.2f", round(grPrint$gr, 2))
 grPrint <- grPrint[order(grPrint$param),]
 
-kable(grPrint[,c('param', 'gr')], row.names = F, format = 'latex', align = 'lc', 
-      booktabs = T, escape = F, 
-      col.names = linebreak(c('\\textbf{Parameter}',
-                              '\\textbf{Gelman-Rubin}'), align = 'c')) %>% 
+grPrintTrans <- t(grPrint[,c('param', 'gr')])
+colnames(grPrintTrans) <- NULL
+rownames(grPrintTrans) <- c('Parameter', 'Gelman-Rubin')
+
+kable(grPrintTrans, 
+      format = 'latex',
+      booktabs = T, escape = F)  %>% 
     kable_styling(latex_options = "HOLD_position")
 
 ```
 
 ```{r}
 #| fig-cap: "Trace plot for all three chains. Data: Threshold, Model: Gaussian Process, Smoothing: 14 days, Simulation: 24."
-#| fig-height: 4
+#| fig-height: 2.8
 #| fig-width: 7
 
 chains <- readRDS('./simulation_study/output/chains_thresh_gp_14_24.rds')
@@ -1220,11 +1229,10 @@ chains <- readRDS('./simulation_study/output/chains_thresh_gp_14_24.rds')
 plotGPChains(chains)
 ```
 
-\pagebreak
 
 ```{r}
 #| fig-cap: "Posterior mean and 95% credible intervals for the alarm function from each chain. Data: Threshold, Model: Gaussian Process, Smoothing: 14 days, Simulation: 24."
-#| fig-height: 4
+#| fig-height: 2.8
 #| fig-width: 7
 
 plotAlarmChains(chains)
@@ -1244,17 +1252,20 @@ grPrint <- grAll[grAll$alarmGen == 'power' &
 grPrint$gr <- sprintf("%.2f", round(grPrint$gr, 2))
 grPrint <- grPrint[order(grPrint$param),]
 
-kable(grPrint[,c('param', 'gr')], row.names = F, format = 'latex', align = 'lc', 
-      booktabs = T, escape = F, 
-      col.names = linebreak(c('\\textbf{Parameter}',
-                              '\\textbf{Gelman-Rubin}'), align = 'c')) %>% 
+grPrintTrans <- t(grPrint[,c('param', 'gr')])
+colnames(grPrintTrans) <- NULL
+rownames(grPrintTrans) <- c('Parameter', 'Gelman-Rubin')
+
+kable(grPrintTrans, 
+      format = 'latex',
+      booktabs = T, escape = F)  %>% 
     kable_styling(latex_options = "HOLD_position")
 
 ```
 
 ```{r}
 #| fig-cap: "Trace plot for all three chains. Data: Power, Model: beta[t],  Smoothing: 14 days, Simulation: 7."
-#| fig-height: 4
+#| fig-height: 3.5
 #| fig-width: 7
 
 chains <- readRDS('./simulation_study/output/chains_power_betatSpline_14_7.rds')
@@ -1262,11 +1273,9 @@ chains <- readRDS('./simulation_study/output/chains_power_betatSpline_14_7.rds')
 plotBetatChains(chains)
 ```
 
-\pagebreak
-
 ```{r}
-#| fig-cap: "Posterior mean and 95% credible intervals for the $beta_t$ function from each chain. Data: Power, Model: beta[t],  Smoothing: 14 days, Simulation: 7."
-#| fig-height: 4
+#| fig-cap: "Posterior mean and 95% credible intervals for the beta[t] function from each chain. Data: Power, Model: beta[t],  Smoothing: 14 days, Simulation: 7."
+#| fig-height: 2.4
 #| fig-width: 7
 
 plotBetaChains(chains)
@@ -1286,17 +1295,20 @@ grPrint <- grAll[grAll$alarmGen == 'thresh' &
 grPrint$gr <- sprintf("%.2f", round(grPrint$gr, 2))
 grPrint <- grPrint[order(grPrint$param),]
 
-kable(grPrint[,c('param', 'gr')], row.names = F, format = 'latex', align = 'lc', 
-      booktabs = T, escape = F, 
-      col.names = linebreak(c('\\textbf{Parameter}',
-                              '\\textbf{Gelman-Rubin}'), align = 'c')) %>% 
+grPrintTrans <- t(grPrint[,c('param', 'gr')])
+colnames(grPrintTrans) <- NULL
+rownames(grPrintTrans) <- c('Parameter', 'Gelman-Rubin')
+
+kable(grPrintTrans, 
+      format = 'latex',
+      booktabs = T, escape = F)  %>% 
     kable_styling(latex_options = "HOLD_position")
 
 ```
 
 ```{r}
 #| fig-cap: "Trace plot for all three chains. Data: Threshold, Model: beta[t], Smoothing: 14 days, Simulation: 1."
-#| fig-height: 4
+#| fig-height: 3.5
 #| fig-width: 7
 
 chains <- readRDS('./simulation_study/output/chains_thresh_betatSpline_14_1.rds')
@@ -1304,11 +1316,10 @@ chains <- readRDS('./simulation_study/output/chains_thresh_betatSpline_14_1.rds'
 plotBetatChains(chains)
 ```
 
-\pagebreak
 
 ```{r}
-#| fig-cap: "Posterior mean and 95% credible intervals for the $beta_t$ function from each chain. Data: Threshold, Model: beta[t], Smoothing: 14 days, Simulation: 1."
-#| fig-height: 4
+#| fig-cap: "Posterior mean and 95% credible intervals for the beta[t] function from each chain. Data: Threshold, Model: beta[t], Smoothing: 14 days, Simulation: 1."
+#| fig-height: 2.4
 #| fig-width: 7
 
 plotBetaChains(chains)
@@ -1328,17 +1339,20 @@ grPrint <- grAll[grAll$alarmGen == 'hill' &
 grPrint$gr <- sprintf("%.2f", round(grPrint$gr, 2))
 grPrint <- grPrint[order(grPrint$param),]
 
-kable(grPrint[,c('param', 'gr')], row.names = F, format = 'latex', align = 'lc', 
-      booktabs = T, escape = F, 
-      col.names = linebreak(c('\\textbf{Parameter}',
-                              '\\textbf{Gelman-Rubin}'), align = 'c')) %>% 
+grPrintTrans <- t(grPrint[,c('param', 'gr')])
+colnames(grPrintTrans) <- NULL
+rownames(grPrintTrans) <- c('Parameter', 'Gelman-Rubin')
+
+kable(grPrintTrans, 
+      format = 'latex',
+      booktabs = T, escape = F)  %>% 
     kable_styling(latex_options = "HOLD_position")
 
 ```
 
 ```{r}
 #| fig-cap: "Trace plot for all three chains. Data: Hill, Model: beta[t], Smoothing: 14 days, Simulation: 1"
-#| fig-height: 4
+#| fig-height: 3.5
 #| fig-width: 7
 
 chains <- readRDS('./simulation_study/output/chains_hill_betatSpline_14_1.rds')
@@ -1346,11 +1360,10 @@ chains <- readRDS('./simulation_study/output/chains_hill_betatSpline_14_1.rds')
 plotBetatChains(chains)
 ```
 
-\pagebreak
 
 ```{r}
-#| fig-cap: "Posterior mean and 95% credible intervals for the $beta_t$ function from each chain. Data: Hill, Model: beta[t], Smoothing: 14 days, Simulation: 1"
-#| fig-height: 4
+#| fig-cap: "Posterior mean and 95% credible intervals for the beta[t] function from each chain. Data: Hill, Model: beta[t], Smoothing: 14 days, Simulation: 1"
+#| fig-height: 2.4
 #| fig-width: 7
 
 plotBetaChains(chains)
@@ -1370,17 +1383,20 @@ grPrint <- grAll[grAll$alarmGen == 'thresh' &
 grPrint$gr <- sprintf("%.2f", round(grPrint$gr, 2))
 grPrint <- grPrint[order(grPrint$param),]
 
-kable(grPrint[,c('param', 'gr')], row.names = F, format = 'latex', align = 'lc', 
-      booktabs = T, escape = F, 
-      col.names = linebreak(c('\\textbf{Parameter}',
-                              '\\textbf{Gelman-Rubin}'), align = 'c')) %>% 
+grPrintTrans <- t(grPrint[,c('param', 'gr')])
+colnames(grPrintTrans) <- NULL
+rownames(grPrintTrans) <- c('Parameter', 'Gelman-Rubin')
+
+kable(grPrintTrans, 
+      format = 'latex',
+      booktabs = T, escape = F)  %>% 
     kable_styling(latex_options = "HOLD_position")
 
 ```
 
 ```{r}
 #| fig-cap: "Trace plot for all three chains. Data: Threshold, Model: beta[t], Smoothing: 30 days, Simulation: 1."
-#| fig-height: 4
+#| fig-height: 3.5
 #| fig-width: 7
 
 chains <- readRDS('./simulation_study/output/chains_thresh_betatSpline_30_1.rds')
@@ -1388,11 +1404,9 @@ chains <- readRDS('./simulation_study/output/chains_thresh_betatSpline_30_1.rds'
 plotBetatChains(chains)
 ```
 
-\pagebreak
-
 ```{r}
-#| fig-cap: "Posterior mean and 95% credible intervals for the $beta_t$ function from each chain. Data: Threshold, Model: beta[t], Smoothing: 30 days, Simulation: 1."
-#| fig-height: 4
+#| fig-cap: "Posterior mean and 95% credible intervals for the beta[t] function from each chain. Data: Threshold, Model: beta[t], Smoothing: 30 days, Simulation: 1."
+#| fig-height: 2.4
 #| fig-width: 7
 
 plotBetaChains(chains)
@@ -1907,53 +1921,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 
 \pagebreak
 
-#### Alarm estimation
-
-```{r}
-#| fig-cap: Posterior estimation of the alarm function for the power alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 5.5
-#| fig-width: 9
-
-pal <- c('orangered', 'blue')
-
-ggplot(subset(alarmAll, alarmFit == 'power'),
-       aes(x = xAlarm, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak~ prior, scales = 'free_x', independent = "x") +
-    labs(x = 'Smoothed incidence', y = 'Alarm') +
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    myTheme
-
-```
-
-\pagebreak
-
-#### $\mathcal{R}_0(t)$ estimation
-
-```{r}
-#| fig-cap: Posterior estimation of $\mathcal{R}_0(t)$ for the power alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 6
-#| fig-width: 9
-
-ggplot(subset(r0PeakAll, alarmFit == 'power'),
-       aes(x = date, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = expression(R[0](t))) +
-    geom_hline(yintercept = 1, linetype = 2) + 
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
 #### Posterior predictive fit
 
 ```{r}
@@ -2318,53 +2285,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 
 \pagebreak
 
-#### Alarm estimation
-
-```{r}
-#| fig-cap: Posterior estimation of the alarm function for the threshold alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 5.5
-#| fig-width: 9
-
-pal <- c('orangered', 'blue')
-
-ggplot(subset(alarmAll, alarmFit == 'thresh'),
-       aes(x = xAlarm, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak~ prior, scales = 'free_x', independent = "x") +
-    labs(x = 'Smoothed incidence', y = 'Alarm') +
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    myTheme
-
-```
-
-\pagebreak
-
-#### $\mathcal{R}_0(t)$ estimation
-
-```{r}
-#| fig-cap: Posterior estimation of $\mathcal{R}_0(t)$ for the threshold alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 6
-#| fig-width: 9
-
-ggplot(subset(r0PeakAll, alarmFit == 'thresh'),
-       aes(x = date, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = expression(R[0](t))) +
-    geom_hline(yintercept = 1, linetype = 2) + 
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
 #### Posterior predictive fit
 
 ```{r}
@@ -2445,15 +2365,13 @@ kable(grPrint[,c('param', 'gr')], row.names = F, format = 'latex', align = 'lc',
 
 ```{r}
 #| fig-cap: "Trace plot for all three chains. Model: Threshold, Peak 1, Prior: Mean 4, strong, 60-day Smoothing."
-#| fig-height: 3
+#| fig-height: 2.6
 #| fig-width: 7
 
 chains <- readRDS('./data_analysis_covid/output/chains_thresh_peak1_60_1.rds')
 
 plotThreshChains(chains)
 ```
-
-\pagebreak
 
 ```{r}
 #| fig-cap: "Posterior mean and 95% credible intervals for the alarm function from each chain. Model: Threshold, Peak 1, Prior: Mean 4, strong, 60-day Smoothing."
@@ -2487,7 +2405,7 @@ kable(grPrint[,c('param', 'gr')], row.names = F, format = 'latex', align = 'lc',
 
 ```{r}
 #| fig-cap: "Trace plot for all three chains.  Model: Threshold, Peak 2, Prior: Mean 2, strong, 30-day Smoothing."
-#| fig-height: 3
+#| fig-height: 2.6
 #| fig-width: 7
 
 chains <- readRDS('./data_analysis_covid/output/chains_thresh_peak2_30_2.rds')
@@ -2495,7 +2413,6 @@ chains <- readRDS('./data_analysis_covid/output/chains_thresh_peak2_30_2.rds')
 plotThreshChains(chains)
 ```
 
-\pagebreak
 
 ```{r}
 #| fig-cap: "Posterior mean and 95% credible intervals for the alarm function from each chain. Model: Threshold, Peak 2, Prior: Mean 2, strong, 30-day Smoothing."
@@ -2527,53 +2444,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 
 postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'hill', smoothWindows = 60)
-```
-
-\pagebreak
-
-#### Alarm estimation
-
-```{r}
-#| fig-cap: Posterior estimation of the alarm function for the Hill alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 5.5
-#| fig-width: 9
-
-pal <- c('orangered', 'blue')
-
-ggplot(subset(alarmAll, alarmFit == 'hill'),
-       aes(x = xAlarm, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak~ prior, scales = 'free_x', independent = "x") +
-    labs(x = 'Smoothed incidence', y = 'Alarm') +
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    myTheme
-
-```
-
-\pagebreak
-
-#### $\mathcal{R}_0(t)$ estimation
-
-```{r}
-#| fig-cap: Posterior estimation of $\mathcal{R}_0(t)$ for the Hill alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 6
-#| fig-width: 9
-
-ggplot(subset(r0PeakAll, alarmFit == 'hill'),
-       aes(x = date, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = expression(R[0](t))) +
-    geom_hline(yintercept = 1, linetype = 2) + 
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
 ```
 
 \pagebreak
@@ -2786,53 +2656,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 
 \pagebreak
 
-#### Alarm estimation
-
-```{r}
-#| fig-cap: Posterior estimation of the alarm function for the spline alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 5.5
-#| fig-width: 9
-
-pal <- c('orangered', 'blue')
-
-ggplot(subset(alarmAll, alarmFit == 'spline'),
-       aes(x = xAlarm, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak~ prior, scales = 'free_x', independent = "x") +
-    labs(x = 'Smoothed incidence', y = 'Alarm') +
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    myTheme
-
-```
-
-\pagebreak
-
-#### $\mathcal{R}_0(t)$ estimation
-
-```{r}
-#| fig-cap: Posterior estimation of $\mathcal{R}_0(t)$ for the spline alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 6
-#| fig-width: 9
-
-ggplot(subset(r0PeakAll, alarmFit == 'spline'),
-       aes(x = date, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = expression(R[0](t))) +
-    geom_hline(yintercept = 1, linetype = 2) + 
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
 #### Posterior predictive fit
 
 ```{r}
@@ -2999,53 +2822,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 
 \pagebreak
 
-#### Alarm estimation
-
-```{r}
-#| fig-cap: Posterior estimation of the alarm function for the Gaussian process alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 5.5
-#| fig-width: 9
-
-pal <- c('orangered', 'blue')
-
-ggplot(subset(alarmAll, alarmFit == 'gp'),
-       aes(x = xAlarm, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak~ prior, scales = 'free_x', independent = "x") +
-    labs(x = 'Smoothed incidence', y = 'Alarm') +
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    myTheme
-
-```
-
-\pagebreak
-
-#### $\mathcal{R}_0(t)$ estimation
-
-```{r}
-#| fig-cap: Posterior estimation of $\mathcal{R}_0(t)$ for the Gaussian process alarm models across all three waves. Models that did not converge are not shown.
-#| fig-height: 6
-#| fig-width: 9
-
-ggplot(subset(r0PeakAll, alarmFit == 'gp'),
-       aes(x = date, y = mean, col = Smoothing, fill = Smoothing)) +  
-    geom_line(size = 0.5) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = expression(R[0](t))) +
-    geom_hline(yintercept = 1, linetype = 2) + 
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
 #### Posterior predictive fit
 
 ```{r}
@@ -3117,30 +2893,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 
 \pagebreak
 
-#### $\mathcal{R}_0(t)$ estimation
-
-```{r}
-#| fig-cap: Posterior estimation of $\mathcal{R}_0(t)$ for the models with no behavioral change across all three waves. Models that did not converge are not shown.
-#| fig-height: 6
-#| fig-width: 9
-
-ggplot(subset(r0PeakAll, alarmFit == 'basic'),
-       aes(x = date, y = mean)) +  
-    geom_line(size = 0.5, color = 'blue') +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = expression(R[0](t))) +
-    geom_hline(yintercept = 1, linetype = 2) + 
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
 #### Posterior predictive fit
 
 ```{r}
@@ -3172,30 +2924,6 @@ ggplot(subset(postPredFitPeakAll, alarmFit == 'basic' ),
 
 postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'betatSpline', smoothWindows = 1)
-```
-
-\pagebreak
-
-#### $\mathcal{R}_0(t)$ estimation
-
-```{r}
-#| fig-cap: Posterior estimation of $\mathcal{R}_0(t)$ for the flexible $\beta_t$ models across all three waves. Models that did not converge are not shown.
-#| fig-height: 6
-#| fig-width: 9
-
-ggplot(subset(r0PeakAll, alarmFit == 'betatSpline'),
-       aes(x = date, y = mean)) +  
-    geom_line(size = 0.5, color = 'blue') +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = expression(R[0](t))) +
-    geom_hline(yintercept = 1, linetype = 2) + 
-    scale_color_manual(values = pal) +
-    scale_fill_manual(values = pal) +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
 ```
 
 \pagebreak

@@ -19,7 +19,8 @@ plotParamChains <- function(chains, param) {
         paramName <- param
     }
     
-    plot(chains[[1]][,param], type = 'l', ylim = ylims, main = paramName)
+    plot(chains[[1]][,param], type = 'l', 
+         ylim = ylims, main = paramName, ylab = '')
     lines(chains[[2]][,param], col = 'red')
     lines(chains[[3]][,param], col = 'blue')
 }
@@ -167,7 +168,7 @@ plotSplineFixedChains <- function(chains) {
 
 plotGPChains <- function(chains) {
     
-    par(mfrow = c(2,2))
+    par(mfrow = c(1,4))
     
     param <- 'beta'
     plotParamChains(chains, param)
