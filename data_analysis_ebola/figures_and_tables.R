@@ -137,7 +137,7 @@ ggplot(datWide, aes(x=date, y=count)) +
     geom_bar(stat="identity") + 
     facet_wrap(~type) +
     labs(x = 'Date', y = 'Count', fill = '',
-         title = 'DRC EVD Case and Death Counts') + 
+         title = 'DRC Ebola disease case and death counts') + 
     theme_bw() + 
     theme(strip.background = element_rect(color = 'white',fill = 'white'),
           strip.text = element_text(size = 16),
