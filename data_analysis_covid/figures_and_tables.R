@@ -212,7 +212,7 @@ postPredFitPeakAll <- rbind.data.frame(postPredFitPeak1,
 # Figure 8: NYC Data
 ################################################################################
 
-pal <- c('darkorchid2', 'limegreen')
+pal <- c('red', 'blue')
 
 jpeg('./figures/fig8_nyc_data.jpg', units = 'in', res = 500, width = 6, height = 3)
 ggplot(dat, aes(x = date, y = smoothedCases)) + 
@@ -289,7 +289,7 @@ myTheme <- theme_bw() +
           panel.grid.minor = element_blank())
 
 
-pal <- c('darkorchid2', 'limegreen')
+pal <- c('red', 'blue')
 
 p1 <- ggplot(subset(alarmSub, peak == 1),
              aes(x = xAlarm, y = mean, ymin=lower, ymax=upper)) +  
@@ -355,7 +355,7 @@ allOut$alarmFitLab<- factor(allOut$alarmFit,
                                      'Flexible~beta[t]', "atop('No Behavioral', 'Change')"))
 
 
-pal <- c('darkorchid2',  'limegreen')
+pal <- c('red', 'blue')
 
 scale_r01 <- scale_y_continuous(limits = c(0.8, 3.8))
 scale_r02 <- scale_y_continuous(limits = c(0.45, 1.2))

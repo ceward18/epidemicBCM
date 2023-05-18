@@ -1,6 +1,7 @@
 *.html
 *.Rhistory
 *.pdf
+*.docx
 data_analysis_ebola/output/chains*
 data_analysis_covid/output/chains*
 simulation_study/output/chains*

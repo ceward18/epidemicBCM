@@ -416,8 +416,8 @@ SEIR_power <-  nimbleCode({
     # priors
     beta ~ dgamma(0.1, 0.1)
     k ~ dgamma(0.1, 0.1)
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -472,8 +472,8 @@ SEIR_power_sim <-  nimbleCode({
     # priors
     beta ~ dgamma(0.1, 0.1)
     k ~ dgamma(0.1, 0.1)
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -523,8 +523,8 @@ SEIR_thresh <-  nimbleCode({
     beta ~ dgamma(0.1, 0.1)
     delta ~ dbeta(1, 1)
     H ~ dunif(minI/N, maxI/N)
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -577,8 +577,8 @@ SEIR_thresh_sim <-  nimbleCode({
     beta ~ dgamma(0.1, 0.1)
     delta ~ dbeta(1, 1)
     H ~ dunif(minI/N, maxI/N)
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -627,8 +627,8 @@ SEIR_hill <-  nimbleCode({
     delta ~ dbeta(1, 1)
     nu ~ dunif(0, 50)
     x0 ~ dunif(minI, maxI)
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -683,8 +683,8 @@ SEIR_hill_sim <-  nimbleCode({
     delta ~ dbeta(1, 1)
     nu ~ dunif(0, 50)
     x0 ~ dunif(minI, maxI)
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -740,8 +740,8 @@ SEIR_spline <-  nimbleCode({
     for (i in 1:(nb - 1)) {
         knots[i] ~ dunif(min = minI, max = maxI - 1)
     }
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
     # constrain knots to be ordered
     constrain_knots ~ dconstraint(knots[1] < knots[2])
@@ -809,8 +809,8 @@ SEIR_spline_sim <-  nimbleCode({
     for (i in 1:(nb - 1)) {
         knots[i] ~ dunif(min = minI, max = maxI - 1)
     }
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
     # constrain knots to be ordered
     constrain_knots ~ dconstraint(knots[1] < knots[2])
@@ -862,8 +862,8 @@ SEIR_gp <-  nimbleCode({
     beta ~ dgamma(0.1, 0.1)
     sigma ~ dgamma(150, 50)
     l ~ dinvgamma(c, d)
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -921,8 +921,8 @@ SEIR_gp_sim <-  nimbleCode({
     beta ~ dgamma(0.1, 0.1)
     sigma ~ dgamma(150, 50)
     l ~ dinvgamma(c, d)
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -958,8 +958,8 @@ SEIR_basic <-  nimbleCode({
     
     # priors
     beta ~ dgamma(0.1, 0.1)
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -998,8 +998,8 @@ SEIR_basicInt <-  nimbleCode({
     # priors
     transParams[1] ~ dnorm(0, 4) # baseline transmissibility
     transParams[2] ~ dnorm(0, 4) # intervention parameter
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
 })
 
@@ -1043,8 +1043,8 @@ SEIR_betatSpline <-  nimbleCode({
     for (i in 1:(nb - 1)) {
         knots[i] ~ dunif(min = 1, max = tau)
     }
-    rateI ~ dgamma(20, 100)
     rateE ~ dgamma(20, 100)
+    rateI ~ dgamma(20, 140)
     
     # constrain knots to be ordered
     constrain_knots ~ dconstraint(knots[1] < knots[2] & knots[2] < knots[3] )
