@@ -20,4 +20,4 @@ The figures_and_tables.R script in this directory can be run to reproduce Figure
 
 This directory contains code to pull in and format COVID-19 data from New York City and perform the associated analyses presented in Section 4.
 
-The figures_and_tables.R script in this directory can be run to reproduce Figures 5 - 7 and Table 3.
+The figures_and_tables.R script in this directory can be run to reproduce Figures 8 - 10 and Table 3.
