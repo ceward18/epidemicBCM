@@ -253,10 +253,59 @@ plotBetaChains <- function(chains) {
     
 }
 
+################################################################################
+# create table of posterior parameters - Ebola
+
+postParamTableEbola <- function(paramsPostAll, alarmFits, scale = FALSE) {
+    
+    tab <- paramsPostAll
+    
+    tab$val <- paste0(tab$mean, ' \n (',
+                      tab$lower, ', ',
+                      tab$upper, ')')
+    tab <- tab[,c('alarmFit', 'param', 'val')]
+    tab <- tab[order(tab$alarmFit, tab$param),]
+    
+    tabWide <- reshape(tab, 
+                       timevar = "param",
+                       idvar = 'alarmFit',
+                       direction = "wide")
+    
+    colnames(tabWide) <- c('Model', 
+                           '$\\beta$', '$1/\\lambda$', '$1/\\gamma$', 
+                           '$\\beta_1$', '$\\beta_2$',
+                           '$b_1$', '$b_2$', '$b_3$', '$b_4$', 
+                           '$\\text{knot}_1$', '$\\text{knot}_2$', '$\\text{knot}_3$',
+                           '$\\ell$', '$\\sigma$',
+                           '$\\delta$', '$\\nu$', '$x_0$',
+                           '$k$', '$H$')
+    
+    tabWide <- tabWide[tabWide$Model == alarmFits,]
+    
+    # remove NA columns
+    tabWide <- tabWide[, colSums(is.na(tabWide)) < nrow(tabWide)]
+    
+    if (scale) {
+        tabWide[,-1] %>%
+            mutate_all(linebreak, align = 'c') %>%
+            kable(format = 'latex', booktabs = T, 
+                  row.names = F, escape = F, 
+                  align = rep('c', ncol(tabWide))) %>%
+            kable_styling(latex_options = c("HOLD_position", "scale_down"))   
+    } else {
+        tabWide[,-1] %>%
+            mutate_all(linebreak, align = 'c') %>%
+            kable(format = 'latex', booktabs = T, 
+                  row.names = F, escape = F, 
+                  align = rep('c', ncol(tabWide))) %>%
+            kable_styling(latex_options = c("HOLD_position"))  
+    }
+   
+}
 
 
 ################################################################################
-# create table of posterior parameters
+# create table of posterior parameters - COVID-19
 
 postParamTableAlarm <- function(paramsPostAll, alarmFits, smoothWindows) {
     

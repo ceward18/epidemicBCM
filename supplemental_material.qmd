@@ -1414,6 +1414,172 @@ plotBetaChains(chains)
 
 \pagebreak
 
+
+## Data Application - Ebola
+
+### Model Specification
+
+
+```{=tex}
+\begin{center}
+\begin{table*}[ht!]%
+\caption{Priors used to fit models in the DRC Ebola data analysis. $\Gamma$ denotes the gamma distribution with shape and rate parameters. $\min(x)$ and $\max(x)$ are the minimum and maximum observed value of the cumulative incidence during the epidemic, respectively. \vspace{3mm}
+\label{tabSimParams}}
+\centering
+\begin{tabular}{ll}
+\hline
+Model & Priors  \\ \hline \\[-0.35cm]
+Power alarm & \begin{tabular}[c]{@{}l@{}}$\beta \sim \Gamma(0.1, 0.1)$\\ $\lambda \sim \Gamma(20, 100)$\\ $\gamma \sim \Gamma(20, 140)$\\ $k \sim \Gamma(0.1, 0.1)$\end{tabular}  \\ \hline \\[-0.35cm]
+Threshold alarm & \begin{tabular}[c]{@{}l@{}}$\beta \sim \Gamma(0.1, 0.1)$\\ $\lambda \sim \Gamma(20, 100)$\\ $\gamma \sim \Gamma(20, 140)$\\ $\delta \sim \text{Uniform}(0, 1)$\\ $H \sim \text{Uniform}(\min(x), \max(x))$\end{tabular}  \\ \hline \\[-0.35cm]
+Hill alarm & \begin{tabular}[c]{@{}l@{}}$\beta \sim \Gamma(0.1, 0.1)$\\ $\lambda \sim \Gamma(20, 100)$\\ $\gamma \sim \Gamma(20, 140)$\\ $\delta \sim \text{Uniform}(0, 1)$\\ $\nu \sim \text{Uniform}(0, 50)$\\ $x_0 \sim \text{Uniform}(\min(x), \max(x))$\end{tabular}  \\ \hline \\[-0.35cm]
+Spline alarm & \begin{tabular}[c]{@{}l@{}}$\beta \sim \Gamma(0.1, 0.1)$\\ $\lambda \sim \Gamma(20, 100)$\\ $\gamma \sim \Gamma(20, 140)$\\ $b_{1-3} \sim N(0, 100^2)$\\ $\text{knot}_{1-2} \sim \text{Uniform}(\min(x), \max(x))$\end{tabular}  \\ \hline \\[-0.35cm]
+Gaussian process alarm & \begin{tabular}[c]{@{}l@{}}$\beta \sim \Gamma(0.1, 0.1)$\\ $\lambda \sim \Gamma(20, 100)$\\ $\gamma \sim \Gamma(20, 140)$\\ $\sigma \sim \Gamma(150, 50)$\\ $l \sim \text{inv}\Gamma(a, b)$\end{tabular}  \\ \hline \\[-0.35cm]
+No behavioral change & \begin{tabular}[c]{@{}l@{}}$\beta \sim \Gamma(0.1, 0.1)$\\ $\lambda \sim \Gamma(20, 100)$\\ $\gamma \sim \Gamma(20, 140)$ \end{tabular} \\ \hline \\[-0.35cm] 
+Pre-specified intervention & \begin{tabular}[c]{@{}l@{}}$\beta_1 \sim N(0, 4^2)$\\ $\beta_2 \sim N(0, 4^2)$\\ $\lambda \sim \Gamma(20, 100)$\\ $\gamma \sim \Gamma(20, 140)$ \end{tabular} \\ \hline \\[-0.35cm] 
+Flexible $\beta_t$ & \begin{tabular}[c]{@{}l@{}}$\beta \sim \Gamma(0.1, 0.1)$\\ $\lambda \sim \Gamma(20, 100)$\\ $\gamma \sim \Gamma(20, 140)$\\ $b_{1-4} \sim N(0, 100^2)$\\ $\text{knot}_{1-3} \sim \text{Uniform}(1, \tau)$\end{tabular} \\ \hline \\
+\end{tabular}
+\end{table*}
+\end{center}
+```
+
+All models were run for 250,000 iterations after a burn-in period of 250,000 iterations. Thinning of every 20th iteration was applied.
+
+### Posterior distributions of parameters
+
+```{r}
+################################################################################
+# Posterior parameters
+
+## load posterior estimates of parameters
+paramsPostAll <- readRDS('./data_analysis_ebola/results/paramsPostAll.rds')
+
+# more interpretable on scale 1/lambda
+rateEParams <- paramsPostAll[paramsPostAll$param == 'rateE',]
+meanEParams <- rateEParams
+meanEParams$mean <- 1/meanEParams$mean
+meanEParams$lower <- 1/meanEParams$lower
+meanEParams$upper <- 1/meanEParams$upper
+meanEParams$param <- 'meanE'
+
+# more interpretable on scale 1/gamma
+rateIParams <- paramsPostAll[paramsPostAll$param == 'rateI',]
+meanIParams <- rateIParams
+meanIParams$mean <- 1/meanIParams$mean
+meanIParams$lower <- 1/meanIParams$lower
+meanIParams$upper <- 1/meanIParams$upper
+meanIParams$param <- 'meanI'
+
+paramsPostAll <- rbind.data.frame(paramsPostAll, meanEParams, meanIParams)
+paramsPostAll <- paramsPostAll[-which(paramsPostAll$param %in% c('rateE', 'rateI')),]
+
+paramsPostAll$param <- factor(paramsPostAll$param, 
+                              levels = c("beta", "transParams[1]", "transParams[2]",
+                                         "meanE", "meanI",
+                                         "k",  "delta", "H", 
+                                         "nu", "x0",
+                                         "l",  "sigma",
+                                         "b[1]", "b[2]", "b[3]", "b[4]", 
+                                         "knots[1]", "knots[2]", "knots[3]"))
+
+
+# fix H (estimated on scale 1/N)
+paramsPostAll$mean[paramsPostAll$param == 'H'] <- 
+    paramsPostAll$mean[paramsPostAll$param == 'H'] * 5363500
+paramsPostAll$lower[paramsPostAll$param == 'H'] <- 
+    paramsPostAll$lower[paramsPostAll$param == 'H'] * 5363500
+paramsPostAll$upper[paramsPostAll$param == 'H'] <- 
+    paramsPostAll$upper[paramsPostAll$param == 'H'] * 5363500
+
+
+# format k to 5 decimal places
+paramsPostAll$mean[paramsPostAll$param == 'k'] <-
+    sprintf('%.5f', paramsPostAll$mean[paramsPostAll$param == 'k'])
+paramsPostAll$lower[paramsPostAll$param == 'k'] <- 
+    sprintf('%.5f', paramsPostAll$lower[paramsPostAll$param == 'k'])
+paramsPostAll$upper[paramsPostAll$param == 'k'] <- 
+    sprintf('%.5f', paramsPostAll$upper[paramsPostAll$param == 'k'])
+
+
+# format everything except k to 2 decimals
+paramsPostAll$mean[!grepl('k$', paramsPostAll$param)] <-
+    sprintf('%.2f', as.numeric(paramsPostAll$mean[!grepl('k$', 
+                                                         paramsPostAll$param)]))
+paramsPostAll$lower[!grepl('k$', paramsPostAll$param)] <- 
+    sprintf('%.2f', as.numeric(paramsPostAll$lower[!grepl('k$',
+                                                          paramsPostAll$param)]))
+paramsPostAll$upper[!grepl('k$', paramsPostAll$param)] <- 
+    sprintf('%.2f', as.numeric(paramsPostAll$upper[!grepl('k$',
+                                                          paramsPostAll$param)]))
+
+
+```
+
+##### Power alarm
+
+```{r}
+#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the power alarm model
+
+postParamTableEbola(paramsPostAll, 'power')
+```
+
+##### Threshold alarm
+
+```{r}
+#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the threshold alarm model
+
+postParamTableEbola(paramsPostAll, 'thresh')
+```
+
+##### Hill alarm
+
+```{r}
+#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the Hill alarm model
+
+postParamTableEbola(paramsPostAll, 'hill')
+```
+
+##### Spline alarm
+
+```{r}
+#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the spline alarm model
+
+postParamTableEbola(paramsPostAll, 'spline', scale = T)
+```
+
+##### Gaussian process alarm
+
+```{r}
+#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the Gaussian process alarm model
+
+postParamTableEbola(paramsPostAll, 'gp')
+```
+
+##### No Behavioral Change
+
+```{r}
+#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the model with no behavioral change
+
+postParamTableEbola(paramsPostAll, 'basic')
+```
+
+##### Pre-specified intervention
+
+```{r}
+#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the model with a pre-specified intervention
+
+postParamTableEbola(paramsPostAll, 'basic')
+```
+
+##### Flexible $\beta_t$
+
+```{r}
+#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the flexible beta[t] model
+
+postParamTableEbola(paramsPostAll, 'betatSpline', scale = T)
+```
+
+\pagebreak
+
 ## Data Application - COVID-19
 
 ```{r}
@@ -1546,6 +1712,21 @@ paramsPostAll$lower[paramsPostAll$param == 'SIR_init[1]'] <-
 paramsPostAll$upper[paramsPostAll$param == 'SIR_init[1]'] <- 
     round(paramsPostAll$upper[paramsPostAll$param == 'SIR_init[1]'])
 
+# fix H (estimated on scale 1/N)
+paramsPostAll$mean[paramsPostAll$param == 'H'] <- 
+    paramsPostAll$mean[paramsPostAll$param == 'H'] * 8804190
+paramsPostAll$lower[paramsPostAll$param == 'H'] <- 
+    paramsPostAll$lower[paramsPostAll$param == 'H'] * 8804190
+paramsPostAll$upper[paramsPostAll$param == 'H'] <- 
+    paramsPostAll$upper[paramsPostAll$param == 'H'] * 8804190
+
+# format H with no decimals
+paramsPostAll$mean[paramsPostAll$param == 'H'] <- 
+    round(paramsPostAll$mean[paramsPostAll$param == 'H'])
+paramsPostAll$lower[paramsPostAll$param == 'H'] <- 
+    round(paramsPostAll$lower[paramsPostAll$param == 'H'])
+paramsPostAll$upper[paramsPostAll$param == 'H'] <- 
+    round(paramsPostAll$upper[paramsPostAll$param == 'H'])
 
 # format k to 4 decimal places
 paramsPostAll$mean[paramsPostAll$param == 'k'] <-
@@ -1556,15 +1737,15 @@ paramsPostAll$upper[paramsPostAll$param == 'k'] <-
     sprintf('%.4f', paramsPostAll$upper[paramsPostAll$param == 'k'])
 
 
-# format everything except S0 and k to 2 decimals
-paramsPostAll$mean[!grepl('SIR_init\\[1\\]|k$', paramsPostAll$param)] <-
-    sprintf('%.2f', as.numeric(paramsPostAll$mean[!grepl('SIR_init\\[1\\]|k$', 
+# format everything except S0, H and k to 2 decimals
+paramsPostAll$mean[!grepl('SIR_init\\[1\\]|k$|H$', paramsPostAll$param)] <-
+    sprintf('%.2f', as.numeric(paramsPostAll$mean[!grepl('SIR_init\\[1\\]|k$|H$', 
                                                          paramsPostAll$param)]))
-paramsPostAll$lower[!grepl('SIR_init\\[1\\]|k$', paramsPostAll$param)] <- 
-    sprintf('%.2f', as.numeric(paramsPostAll$lower[!grepl('SIR_init\\[1\\]|k$',
+paramsPostAll$lower[!grepl('SIR_init\\[1\\]|k$|H$', paramsPostAll$param)] <- 
+    sprintf('%.2f', as.numeric(paramsPostAll$lower[!grepl('SIR_init\\[1\\]|k$|H$',
                                                           paramsPostAll$param)]))
-paramsPostAll$upper[!grepl('SIR_init\\[1\\]|k$', paramsPostAll$param)] <- 
-    sprintf('%.2f', as.numeric(paramsPostAll$upper[!grepl('SIR_init\\[1\\]|k$',
+paramsPostAll$upper[!grepl('SIR_init\\[1\\]|k$|H$', paramsPostAll$param)] <- 
+    sprintf('%.2f', as.numeric(paramsPostAll$upper[!grepl('SIR_init\\[1\\]|k$|H$',
                                                           paramsPostAll$param)]))
 
 # format S0 in millions with commas
@@ -1908,7 +2089,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'power', smoothWindows = 30)
 ```
 
-\pagebreak
 
 #### Parameter estimation, 60-day smoothing
 
@@ -1918,52 +2098,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'power', smoothWindows = 60)
 ```
-
-\pagebreak
-
-#### Posterior predictive fit
-
-```{r}
-#| fig-cap: Posterior predictive fit for the power alarm models across all three waves for 30-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'power' & smoothWindow == 30),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.7, color = pal[1]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[1]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '30-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
-```{r}
-#| fig-cap: Posterior predictive fit for the power alarm models across all three waves for 60-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'power' & smoothWindow == 60),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.8, color = pal[2]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[2]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '60-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
-\pagebreak
 
 #### Models which did not converge
 
@@ -2272,7 +2406,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'thresh', smoothWindows = 30)
 ```
 
-\pagebreak
 
 #### Parameter estimation, 60-day smoothing
 
@@ -2282,50 +2415,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'thresh', smoothWindows = 60)
 ```
-
-\pagebreak
-
-#### Posterior predictive fit
-
-```{r}
-#| fig-cap: Posterior predictive fit for the threshold alarm models across all three waves for 30-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'thresh' & smoothWindow == 30),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.7, color = pal[1]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[1]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '30-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
-```{r}
-#| fig-cap: Posterior predictive fit for the threshold alarm models across all three waves for 60-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'thresh' & smoothWindow == 60),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.8, color = pal[2]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[2]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '60-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
 
 #### Models which did not converge
 
@@ -2435,8 +2524,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'hill', smoothWindows = 30)
 ```
 
-\pagebreak
-
 #### Parameter estimation, 60-day smoothing
 
 ```{r}
@@ -2445,50 +2532,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'hill', smoothWindows = 60)
 ```
-
-\pagebreak
-
-#### Posterior predictive fit
-
-```{r}
-#| fig-cap: Posterior predictive fit for the Hill alarm models across all three waves for 30-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'hill' & smoothWindow == 30),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.7, color = pal[1]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[1]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '30-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
-```{r}
-#| fig-cap: Posterior predictive fit for the Hill alarm models across all three waves for 60-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'hill' & smoothWindow == 60),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.8, color = pal[2]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[2]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '60-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
 
 #### Models which did not converge
 
@@ -2643,8 +2686,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'spline', smoothWindows = 30)
 ```
 
-\pagebreak
-
 #### Parameter estimation, 60-day smoothing
 
 ```{r}
@@ -2653,50 +2694,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'spline', smoothWindows = 60)
 ```
-
-\pagebreak
-
-#### Posterior predictive fit
-
-```{r}
-#| fig-cap: Posterior predictive fit for the spline alarm models across all three waves for 30-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'spline' & smoothWindow == 30),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.7, color = pal[1]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[1]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '30-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
-```{r}
-#| fig-cap: Posterior predictive fit for the spline alarm models across all three waves for 60-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'spline' & smoothWindow == 60),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.8, color = pal[2]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[2]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '60-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
 
 #### Models which did not converge
 
@@ -2809,8 +2806,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'gp', smoothWindows = 30)
 ```
 
-\pagebreak
-
 #### Parameter estimation, 60-day smoothing
 
 ```{r}
@@ -2822,63 +2817,6 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 
 \pagebreak
 
-#### Posterior predictive fit
-
-```{r}
-#| fig-cap: Posterior predictive fit for the Gaussian process alarm models across all three waves for 30-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'gp' & smoothWindow == 30),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.7, color = pal[1]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[1]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '30-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
-```{r}
-#| fig-cap: Posterior predictive fit for the Gaussian process alarm models across all three waves for 60-day smoothing. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'gp' & smoothWindow == 60),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.8, color = pal[2]) +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = pal[2]) +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '60-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
-#### Models which did not converge
-
-```{r}
-kable(notConvergeModels[notConvergeModels$alarmFit == 'Gaussian Process',][,c(1,4,3,2)], row.names = F, format = 'latex', align = 'lccc', 
-      booktabs = T, escape = F, 
-      col.names = linebreak(c('\\textbf{Model fitted}', 
-                              '\\textbf{Wave}',
-                              '\\textbf{Prior}', 
-                              '\\textbf{Smoothing}\n\\textbf{window}'), align = 'c')) %>% 
-    kable_styling(latex_options = "HOLD_position") %>%
-    collapse_rows(columns = 1, latex_hline = 'major')
-
-```
-
-\pagebreak
 
 ### Results - No Behavioral Change Model
 
@@ -2893,57 +2831,15 @@ postParamTableAlarm(paramsPostAll = paramsPostAll,
 
 \pagebreak
 
-#### Posterior predictive fit
-
-```{r}
-#| fig-cap: Posterior predictive fit for the models with no behavioral change across all three waves. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'basic' ),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.7, color = 'blue') +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '30-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
-
-\pagebreak
-
 ### Results - Flexible $\beta_t$ Model
 
 #### Parameter estimation
 
 ```{r}
-#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the flexible $\\beta_t$ models.
+#| tbl-cap: Posterior mean and 95% credible intervals for all parameters in the flexible beta[t] models.
 
 postParamTableAlarm(paramsPostAll = paramsPostAll,
                     alarmFits = 'betatSpline', smoothWindows = 1)
 ```
 
 \pagebreak
-
-#### Posterior predictive fit
-
-```{r}
-#| fig-cap: Posterior predictive fit for the flexible $\beta_t$ models across all three waves. Models that did not converge are not shown.
-#| fig-height: 5
-#| fig-width: 9
-
-ggplot(subset(postPredFitPeakAll, alarmFit == 'betatSpline' ),
-       aes(x = date, y = mean)) +  
-    geom_line(aes(y = smoothedCases), color = 'black', size = 0.5) +
-    geom_line(size = 0.7, color = 'blue') +
-    geom_ribbon(aes(ymin=lower, ymax=upper), alpha=0.3, fill = 'blue') +
-    ggh4x::facet_grid2(Peak ~prior, scales = 'free', independent = "x") +
-    labs(x = 'Date', y = 'Incidence', title = '30-day smoothing') +
-    scale_x_date(date_breaks = "2 month", date_minor_breaks = "1 month",
-                 date_labels = "%b '%y") +
-    myTheme + 
-    theme(axis.text.x = element_text(size = 8, angle = 25, vjust = 1, hjust = 1))
-```
