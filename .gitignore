@@ -2,6 +2,7 @@
 *.Rhistory
 *.pdf
 *.docx
+SMMR/*
 data_analysis_ebola/output/chains*
 data_analysis_covid/output/chains*
 simulation_study/output/chains*
@@ -12,3 +13,4 @@ data_analysis_covid/model_config.xlsx
 data_analysis_ebola/model_config.xlsx
 simulation_study/figures/*
 title.tex
+supplement*
