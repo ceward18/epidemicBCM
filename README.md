@@ -1,6 +1,6 @@
 # epidemicBCM
 
-This repository contains code associated with the simulation study and data analysis presented in "Bayesian Modeling of Dynamic Behavioral Change During an Epidemic" by Ward et al. (2022). The ArXiv version of the paper can be found here: https://arxiv.org/abs/2211.00122.
+This repository contains code associated with the simulation study and data analysis presented in "Bayesian Modeling of Dynamic Behavioral Change During an Epidemic" by Ward et al. (2023). The ArXiv version of the paper can be found here: https://arxiv.org/abs/2211.00122.
 
 ## simulation_study
 
