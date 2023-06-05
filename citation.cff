@@ -10,9 +10,9 @@ type: software
 authors:
   - given-names: Caitlin
     family-names: Ward
-    email: caitlin.ward@ucalgary.ca
-    affiliation: University of Calgary
+    email: ward-c@umn.edu
+    affiliation: University of Minnesota
     orcid: 'https://orcid.org/0000-0002-0806-0222'
 repository: 'https://github.com/ceward18/epidemicBCM'
 version: 1.0.0
-date-released: '2022-05-11'
+date-released: '2023-06-05'
