@@ -214,7 +214,7 @@ postPredFitPeakAll <- rbind.data.frame(postPredFitPeak1,
 
 pal <- c('red', 'blue')
 
-jpeg('./figures/fig8_nyc_data.jpg', units = 'in', res = 500, width = 6, height = 3)
+pdf('./figures/fig8_nyc_data.pdf', width = 6, height = 3)
 ggplot(dat, aes(x = date, y = smoothedCases)) + 
     geom_line(linetype = 2) + 
     geom_line(data = subset(dat, peak == 1), col = pal[1], lwd = 1.2) + 
@@ -311,7 +311,7 @@ p2 <- ggplot(subset(alarmSub, peak == 2),
     labs(title = 'Wave 2') +
     myTheme 
 
-jpeg('./figures/fig9_nyc_alarms.jpg', units = 'in', res = 500, width = 8, height = 5)
+pdf('./figures/fig9_nyc_alarms.pdf', width = 8, height = 5)
 grid.arrange(p1, p2, nrow = 2)
 dev.off()
 
@@ -378,7 +378,7 @@ my_strips <- strip_nested(
     by_layer_y = FALSE
 )
 
-jpeg('./figures/fig10_nyc_r0_postPred.jpg', units = 'in', res = 500, height = 11, width = 17)
+pdf('./figures/fig10_nyc_r0_postPred.pdf', height = 11, width = 17)
 ggplot(subset(allOut, 
                   alarmFit %in% c('gp', 'basic', 'betatSpline')), 
        aes(x = date, y = mean, ymin=lower, ymax=upper)) +  

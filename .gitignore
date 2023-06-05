@@ -11,6 +11,8 @@ data_analysis_ebola/figures/*
 data_analysis_covid/figures/*
 data_analysis_covid/model_config.xlsx
 data_analysis_ebola/model_config.xlsx
+data_analysis_ebola/submit*
+data_analysis_covid/submit*
 simulation_study/figures/*
 title.tex
 supplement*

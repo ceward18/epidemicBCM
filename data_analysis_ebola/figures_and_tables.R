@@ -132,7 +132,7 @@ datWide$type <- factor(datWide$type,
                        levels = c('onset', 'death'),
                        labels = c('Cases', 'Deaths'))
 
-jpeg('./figures/fig5_ebola_data.jpg', units = 'in', res = 500, width = 8, height = 5)
+pdf('./figures/fig5_ebola_data.pdf', width = 8, height = 5)
 ggplot(datWide, aes(x=date, y=count)) +
     geom_bar(stat="identity") + 
     facet_wrap(~type) +
@@ -170,7 +170,7 @@ kable(waicAll, row.names = F, format = 'latex', align = 'lcc',
 # Figure 6: Alarms
 ################################################################################
 
-jpeg('./figures/fig6_ebola_alarms.jpg', units = 'in', res = 500, width = 8, height = 2.5)
+pdf('./figures/fig6_ebola_alarms.pdf', width = 8, height = 2.5)
 ggplot(alarmPostAll,
        aes(x = xAlarm, y = mean, ymin=lower, ymax=upper)) +  
     geom_line() +
@@ -256,7 +256,7 @@ p2 <- ggplot(postPredFitLong,
     scale_linewidth_manual(values = c(0.8, 0.8), 
                            labels = c( '\nObserved\n', 'Posterior\npredictive\nmean'))
 
-jpeg('./figures/fig7_ebola_r0_postPred.jpg', units = 'in', res = 500, width = 9, height = 5)
+pdf('./figures/fig7_ebola_r0_postPred.pdf', width = 9, height = 5)
 grid.arrange(p1, p2, nrow = 2)
 dev.off()
 
